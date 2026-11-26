@@ -25,7 +25,7 @@ for (const file of files) {
   } else if (file.endsWith('.json')) JSON.parse(readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));
 }
 const python = findExecutable('python', {
-  extra: [path.join(root, '.runtime/asr-venv/Scripts/python.exe')],
+  extra: [path.join(root, '.runtime/asr-venv/bin/python')],
 });
 if (python) {
   const code =
@@ -38,21 +38,6 @@ if (python) {
   if (result.status !== 0) throw new Error(result.stderr);
 } else if (process.argv.includes('--require-python'))
   throw new Error('Python is required for CI source checks');
-if (process.platform === 'win32') {
-  const parsed = spawnSync(
-    'powershell.exe',
-    [
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-File',
-      path.join(root, 'tools/checks/powershell.ps1'),
-    ],
-    { encoding: 'utf8', windowsHide: true },
-  );
-  if (parsed.status !== 0) throw new Error(parsed.stderr || parsed.stdout);
-}
 console.log(
   JSON.stringify({
     javascript: checked,

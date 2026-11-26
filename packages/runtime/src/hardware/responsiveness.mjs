@@ -1,20 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { cpus, machine, totalmem } from 'node:os';
-
-export function windowsX64Emulation({
-  platform = process.platform,
-  arch = process.arch,
-  hardwareArch = process.env.PROCESSOR_ARCHITEW6432 || machine(),
-  cpu = cpus()[0]?.model ?? '',
-} = {}) {
-  // x64 emulation can report AMD64 even though the Windows host is ARM64.
-  return (
-    platform === 'win32' &&
-    arch === 'x64' &&
-    (/^(?:arm64|aarch64)$/i.test(hardwareArch) ||
-      /\b(?:Snapdragon|Oryon|Microsoft SQ\d)\b/i.test(cpu))
-  );
-}
+import { totalmem } from 'node:os';
 
 /** Planning budgets, not measured speed. Leave cold imports/prefill time on small PCs. */
 export function responsiveness({

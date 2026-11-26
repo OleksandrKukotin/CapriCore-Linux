@@ -5,7 +5,7 @@ import path from 'node:path';
 import { constants, setPriority } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { APPLICATION_DEFAULTS, validateApplications } from './settings.mjs';
-import { ensureDesktopActions } from './provision.mjs';
+import { platformUnavailable } from '../../packages/runtime/src/host/platform.mjs';
 import { calculate, CALCULATOR_PROPERTIES, validateCalculation } from './calculator.mjs';
 
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -71,35 +71,13 @@ export function applicationPermissions(file) {
   }
 }
 
-/** Resolve only the source-matched, hash-verified owned native executable. */
-export function applicationBridgeExecutable(root) {
-  const directory = path.join(root, '.runtime/desktop-actions'),
-    metadata = path.join(directory, 'build.json');
-  const currentHash = hash(
-    readFileSync(path.join(root, 'integrations/desktop-actions/native/DesktopActions.cs')),
-  );
-  let build = existsSync(metadata) ? JSON.parse(readFileSync(metadata, 'utf8')) : null;
-  // Source updates invalidate the owned helper. Rebuild the new revision lazily,
-  // but never bless a modified executable with the current source receipt.
-  const artifactPattern = /^[a-f0-9]{16}[\\/]Capri\.DesktopActions\.exe$/;
-  const missingHelper =
-    build &&
-    artifactPattern.test(build.artifact) &&
-    !existsSync(path.join(directory, build.artifact));
-  if (!build || build.sourceSha256 !== currentHash || missingHelper) {
-    ensureDesktopActions(root, { rebuild: true });
-    build = JSON.parse(readFileSync(metadata, 'utf8'));
-  }
-  if (
-    !/^[a-f0-9]{16}[\\/]Capri\.DesktopActions\.exe$/.test(build.artifact) ||
-    build.sourceSha256 !==
-      hash(readFileSync(path.join(root, 'integrations/desktop-actions/native/DesktopActions.cs')))
-  )
-    throw new Error('Rebuild the fixed application bridge with setup-desktop-actions');
-  const executable = path.join(directory, build.artifact);
-  if (hash(readFileSync(executable)) !== build.executableSha256)
-    throw new Error('Application bridge integrity check failed');
-  return executable;
+/**
+ * The fixed application bridge (input, accessibility, app launch) was a Windows
+ * helper. Linux needs AT-SPI2 plus the RemoteDesktop portal; until then every
+ * bridge call reports a platform error. The command policy below is kept.
+ */
+export function applicationBridgeExecutable() {
+  throw platformUnavailable('Desktop application actions');
 }
 
 /** One short-lived owned helper per call, with private stdio and bounded runtime. */
@@ -113,17 +91,9 @@ export function callApplicationBridge(
   const executable = applicationBridgeExecutable(root);
   return new Promise((resolve, reject) => {
     const cancellableChessMove = command.action === 'chess_move';
-    const windows = process.env.SystemRoot ?? 'C:\\Windows';
     const child = spawn(executable, [], {
-      windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: {
-        SystemRoot: windows,
-        WINDIR: windows,
-        PATH: path.join(windows, 'System32'),
-        TEMP: path.join(root, '.runtime/tmp'),
-        TMP: path.join(root, '.runtime/tmp'),
-      },
+      env: { PATH: '/usr/bin:/bin', TMPDIR: path.join(root, '.runtime/tmp') },
     });
     if (command.action === 'chess_view' && child.pid) {
       try {

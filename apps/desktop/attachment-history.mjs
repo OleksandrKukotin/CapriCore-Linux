@@ -121,8 +121,7 @@ export class AttachmentHistory {
     }
     const info = lstatSync(this.directory);
     const actual = realpathSync(this.directory);
-    const normalized = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
-    if (!info.isDirectory() || normalized(actual) !== normalized(this.directory))
+    if (!info.isDirectory() || actual !== this.directory)
       throw new Error('Attachment storage is unavailable.');
     return true;
   }

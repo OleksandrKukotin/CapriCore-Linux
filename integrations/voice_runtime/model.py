@@ -138,7 +138,6 @@ class DecoderMemoryBudget:
                 ['nvidia-smi', *(['--id=' + visible] if visible else []),
                  '--query-gpu=memory.free', '--format=csv,noheader,nounits'],
                 capture_output=True, text=True, timeout=3, check=True,
-                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0,
             )
             free = min(free, int(result.stdout.splitlines()[0].strip()) * 1024**2)
         except (OSError, ValueError, subprocess.SubprocessError):

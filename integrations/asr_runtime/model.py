@@ -67,7 +67,7 @@ def verified_files(config, manifest='asr-model-upstream.json'):
     for name, item in upstream['files'].items():
         path = (config['folder'] / item['file']).resolve()
         if path.parent != config['folder'] or not path.is_file() or path.stat().st_size != item['bytes']:
-            raise ValueError('Recognition model is missing; run setup-streaming-asr.cmd')
+            raise ValueError('Recognition model is missing; install the speech recognition components')
         with path.open('rb') as stream:
             digest = hashlib.file_digest(stream, 'sha256').hexdigest()
         if digest != item['sha256']:

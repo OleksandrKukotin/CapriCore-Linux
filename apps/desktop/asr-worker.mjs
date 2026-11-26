@@ -1,3 +1,4 @@
+import { inheritedEnvironment } from '../../packages/runtime/src/host/python.mjs';
 import { EventEmitter } from 'node:events';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -21,7 +22,7 @@ const nativeStartupCodes = new Map([
 ]);
 const workerStopped = 'The local speech recognizer stopped. Restart the microphone.';
 const startupRepair =
-  'Speech recognition could not start. Check the selected language and setup-multilingual.cmd.';
+  'Speech recognition could not start. Check the selected language and the installed speech components.';
 const nativeStartupStages = ['ASR_START_DEPENDENCIES', 'ASR_START_MODEL'];
 const canRecoverStartup = (error) =>
   error.code === 'ASR_START_NATIVE_CRASH' && error.startupStage === 'ASR_START_MODEL';
@@ -77,13 +78,9 @@ export class ASRWorker extends EventEmitter {
   }
   async startAttempt(safeStartup = false) {
     if (this.ready) return this.ready;
-    const python = path.join(this.root, '.runtime/asr-venv/Scripts/python.exe');
+    const python = path.join(this.root, '.runtime/asr-venv/bin/python');
     if (!existsSync(python)) throw asrError('ASR_START_PYTHON');
-    const env = Object.fromEntries(
-      ['SystemRoot', 'WINDIR', 'PATH', 'TEMP', 'TMP', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA']
-        .filter((name) => process.env[name])
-        .map((name) => [name, process.env[name]]),
-    );
+    const env = inheritedEnvironment();
     Object.assign(env, {
       PYTHONUTF8: '1',
       PYTHONIOENCODING: 'utf-8',

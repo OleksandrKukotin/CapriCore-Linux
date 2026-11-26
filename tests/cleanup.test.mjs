@@ -45,7 +45,7 @@ test('cache cleanup previews by default and preserves user data, runtimes and AS
     'data/workspace/PERSONALITY.md',
     'data/voices/capri/en/raw/voice.wav',
     '.runtime/asr-verification/english-reference.wav',
-    '.runtime/asr-venv/Scripts/python.exe',
+    '.runtime/asr-venv/bin/python',
     '.runtime/design-reference/contact-sheet.png',
     '.downloads/model.zip',
   ];

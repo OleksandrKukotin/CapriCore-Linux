@@ -16,7 +16,7 @@ access to desktop actions.
 - **Desktop and speech.** Electron companion with framed and desktop modes, teleport effects, independent mouth animation, music/BPM reactions, compact controls, tray operation, reminders and resource monitoring. The interface has 50 offline languages. Recognition and voice start off; Chatterbox and the Qwen3-TTS CPU beta have separate language/device limits. [Languages](docs/languages.md) · [Music listening](docs/music-listening.md)
 - **Inference and memory.** Bundled local models, Hugging Face GGUF imports and saved OpenAI-compatible API profiles; configurable context, OpenClaw compaction, local hybrid recall, a saved-memory viewer, a document knowledge folder and a separate password-protected memory box. Budgeted free-form tagged recall and shorter maintenance stalls remain future work. Ordinary history and memory are not fully encrypted. [Context management](docs/context-management.md) · [External API](docs/external-api.md) · [Security](SECURITY.md)
 - **Perception and actions.** Opt-in screen observation, scoped files/apps, Discord and Spotify actions, computer control, recorded workflows and isolated user tools. Computer control remains beta: real-application reliability and long combined tasks need continuing qualification. [Screen observation](docs/screen-observation.md) · [Computer control](docs/computer-control.md) · [User tools](docs/user-tools.md)
-- **Distribution.** Public Windows x64 installer, SHA-256 build/source manifests, anonymous update checks, optional experimental releases and selective uninstall. The former private updater needs a one-time full-installer migration. Main is protected and contributions use pull requests. Signing and broader clean-machine/hardware coverage remain open. [1.0.0 release notes](docs/releases/1.0.0.md) · [Updates](docs/updates.md) · [Installation wizard](docs/installation-wizard.md)
+- **Distribution.** Public Windows x64 installer, SHA-256 build/source manifests, anonymous update checks, optional experimental releases and selective uninstall. The former private updater needs a one-time full-installer migration. Main is protected and contributions use pull requests. Signing and broader clean-machine/hardware coverage remain open. [1.0.0 release notes](docs/releases/1.0.0.md) · Updates · [Installation wizard](docs/installation.md)
 
 ## Priorities and delivery order
 
@@ -478,7 +478,7 @@ supports local inference, deferred Hugging Face selection or an API profile, bun
 and registers shortcuts and uninstall. Installer session recovery, retries and
 resumable downloads are available for supported components. Broader hardware
 qualification, device audition, storage choices and signing remain open.
-[Wizard design and limits](docs/installation-wizard.md)
+[Wizard design and limits](docs/installation.md)
 
 The following is the target guided setup flow; device audition and a guided
 first conversation are not separate steps in the current eight-page installer.
@@ -515,7 +515,7 @@ not block anonymous public downloads. Stable/experimental selection, update
 notifications with defer-until-next-launch, verified staging/rollback and
 selective Windows uninstall are implemented. Continuing qualification covers
 interrupted installs, legacy migrations, retained data and wider Windows setups.
-[Updates and recovery](docs/updates.md) · [Installation wizard](docs/installation-wizard.md)
+Updates and recovery · [Installation wizard](docs/installation.md)
 
 - [ ] Version the app, configuration schemas, model profiles, character packs and voice packs independently with a compatibility matrix.
 - [ ] Offer stable and optional preview channels; allow users to defer updates and choose whether model downloads happen automatically.

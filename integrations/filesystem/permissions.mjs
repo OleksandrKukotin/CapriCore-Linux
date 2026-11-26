@@ -12,16 +12,55 @@ export const within = (root, target) => {
     (!relative.startsWith('..' + path.sep) && relative !== '..' && !path.isAbsolute(relative))
   );
 };
-export function protectedLocations(root) {
+// Operating-system trees, and the per-user application data and credential
+// folders (the Linux counterparts of Program Files, System32 and AppData).
+const SYSTEM_ROOTS = [
+  '/bin',
+  '/boot',
+  '/dev',
+  '/etc',
+  '/lib',
+  '/lib32',
+  '/lib64',
+  '/opt',
+  '/proc',
+  '/root',
+  '/run',
+  '/sbin',
+  '/snap',
+  '/srv',
+  '/sys',
+  '/usr',
+  '/var',
+];
+const USER_PRIVATE = [
+  '.ssh',
+  '.gnupg',
+  '.pki',
+  '.password-store',
+  '.config',
+  '.local',
+  '.cache',
+  '.var',
+  '.mozilla',
+  '.aws',
+  '.azure',
+  '.kube',
+  '.docker',
+];
+
+export function protectedLocations(root, env = process.env) {
+  const home = env.HOME && path.isAbsolute(env.HOME) ? env.HOME : null;
   return [
     root,
-    process.env.SystemRoot,
-    process.env.ProgramFiles,
-    process.env['ProgramFiles(x86)'],
-    process.env.APPDATA,
-    process.env.LOCALAPPDATA,
+    ...SYSTEM_ROOTS,
+    ...(home ? USER_PRIVATE.map((name) => path.join(home, name)) : []),
+    env.XDG_CONFIG_HOME,
+    env.XDG_DATA_HOME,
+    env.XDG_STATE_HOME,
+    env.XDG_CACHE_HOME,
   ]
-    .filter(Boolean)
+    .filter((value) => typeof value === 'string' && path.isAbsolute(value))
     .map((value) => path.resolve(value));
 }
 export class FilePermissions {
@@ -93,12 +132,12 @@ export class FilePermissions {
     return Boolean(
       this.applicationRoot &&
         scope.id === INSTALLATION_SCOPE_ID &&
-        path.resolve(scope.root).toLowerCase() === this.applicationRoot.toLowerCase(),
+        path.resolve(scope.root) === this.applicationRoot,
     );
   }
   isComputer(scope) {
     return this.computerScopes().some(
-      (entry) => entry.id === scope.id && entry.root.toLowerCase() === scope.root.toLowerCase(),
+      (entry) => entry.id === scope.id && entry.root === scope.root,
     );
   }
   canActWithoutConfirmation(scope) {
@@ -112,7 +151,6 @@ export class FilePermissions {
     const computer = this.isComputer({ id, root });
     if (
       (!computer && root === path.parse(root).root) ||
-      root.startsWith('\\\\') ||
       !lstatSync(root).isDirectory() ||
       (!computer &&
         !this.isInstallation({ id, root }) &&
@@ -124,11 +162,11 @@ export class FilePermissions {
   grant(folder) {
     const own =
       this.applicationRoot &&
-      realpathSync(folder).toLowerCase() === this.applicationRoot.toLowerCase();
+      realpathSync(folder) === this.applicationRoot;
     const id = own ? INSTALLATION_SCOPE_ID : randomUUID();
     const root = this.allowedRoot(folder, id),
       scopes = this.load();
-    if (scopes.some((s) => s.root.toLowerCase() === root.toLowerCase())) return this.snapshot();
+    if (scopes.some((s) => s.root === root)) return this.snapshot();
     if (!own && scopes.filter((s) => s.id !== INSTALLATION_SCOPE_ID).length >= 20)
       throw new Error('Remove a folder before adding another one.');
     scopes.push({ id, root, write: Boolean(own) });
@@ -170,7 +208,7 @@ export class FilePermissions {
     if (write && !scope.write)
       throw new Error('This folder is read-only. The owner can allow file changes in File access.');
     const root = this.allowedRoot(scope.root, scope.id);
-    if (root.toLowerCase() !== scope.root.toLowerCase())
+    if (root !== scope.root)
       throw new Error('The approved folder target changed. Select it again.');
     return { ...scope, root };
   }
@@ -180,7 +218,6 @@ export class FilePermissions {
       typeof relative !== 'string' ||
       relative.length > 1024 ||
       path.isAbsolute(relative) ||
-      path.win32.isAbsolute(relative) ||
       /[\x00-\x1f<>:"|?*]/.test(relative)
     )
       throw new Error('Use a path relative to the approved folder.');

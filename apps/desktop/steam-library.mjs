@@ -107,7 +107,7 @@ export async function readSteamLibraries(steamExecutable) {
   const steamRoot = path.normalize(path.dirname(steamExecutable));
   const libraryFile = path.join(steamRoot, 'steamapps', 'libraryfolders.vdf');
   const folders = await readVdf(libraryFile, 256 * 1024);
-  const libraryKey = (library) => (process.platform === 'win32' ? library.toLowerCase() : library);
+  const libraryKey = (library) => library;
   const libraryRoots = new Map([[libraryKey(steamRoot), steamRoot]]);
   for (const [, value] of folders.matchAll(/^\s*"path"\s+"([^"\r\n]+)"/gmu)) {
     const library = value.replace(/\\\\/gu, '\\');

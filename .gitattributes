@@ -1,6 +1,4 @@
 * text=auto eol=lf
-*.cmd text eol=crlf
-*.ps1 text eol=crlf
 *.png binary
 *.ttf binary
 
@@ -13,5 +11,3 @@
 /release/** export-ignore
 /docs/audit/** export-ignore
 /docs/audit/npm-sbom.cdx.json -export-ignore
-
-*.ico binary

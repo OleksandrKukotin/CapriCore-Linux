@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { root } from '../src/host/paths.mjs';
 
 // Closing the supported stdin host lifeline asks OpenClaw to drain and release
-// SQLite ownership cleanly. SIGTERM alone force-kills Node on Windows.
+// SQLite ownership cleanly before it exits.
 const name = process.argv[2];
 if (!name || !/^[a-z0-9-]+$/i.test(name)) throw new Error('Invalid Gateway host name');
 const stopFile = path.join(root, 'data/run', `${name}.stop`);

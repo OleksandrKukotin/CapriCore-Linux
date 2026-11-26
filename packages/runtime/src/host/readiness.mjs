@@ -2,7 +2,7 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import { managedProcess } from './processes.mjs';
 
-/** Cold imports can take minutes on a fresh Windows install. Wait only for our live process. */
+/** Cold imports can take minutes on a fresh install. Wait only for our live process. */
 export async function waitForOwnedService(
   check,
   {

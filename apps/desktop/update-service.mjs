@@ -11,15 +11,12 @@ import {
   closeSync,
 } from 'node:fs';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
-import { setTimeout as delay } from 'node:timers/promises';
 import { Preferences } from './preferences.mjs';
 import { writeJsonAtomic } from './storage.mjs';
 import { noLinks } from '../../packages/installer/src/policy.mjs';
 import {
   installedUpdateVersion,
   managedInstallation,
-  runtimeUpgradeRequired,
 } from '../../packages/updater/src/transaction.mjs';
 import { listUpdateReleases, githubCredential } from '../../packages/updater/src/github.mjs';
 import { gitlabReleaseUrl } from '../../packages/updater/src/gitlab.mjs';
@@ -32,10 +29,7 @@ import {
   releaseVersion,
   parseVersion,
 } from '../../packages/updater/src/releases.mjs';
-import { downloadUpdate } from '../../packages/updater/src/download.mjs';
-import { stageUpdate } from '../../packages/updater/src/stage.mjs';
-import { fileHash } from '../../packages/installer/src/download.mjs';
-import { prepareUpdateHost } from '../../packages/updater/src/launcher.mjs';
+import { platformUnavailable } from '../../packages/runtime/src/host/platform.mjs';
 
 function isExperimentalRelease(release) {
   // A private preview can be marked Latest on GitHub only as a regular release.
@@ -69,10 +63,6 @@ export class UpdateService {
     emit = () => {},
     credential = githubCredential,
     releases = listUpdateReleases,
-    download = downloadUpdate,
-    stage = stageUpdate,
-    launch = spawn,
-    prepareHost = prepareUpdateHost,
     startupTimeoutMs = 15000,
   }) {
     Object.assign(this, {
@@ -81,10 +71,6 @@ export class UpdateService {
       emit,
       credential,
       releases,
-      download,
-      stage,
-      launch,
-      prepareHost,
       startupTimeoutMs,
     });
     this.preferences = new Preferences(
@@ -452,88 +438,10 @@ export class UpdateService {
   }
   async prepare() {
     this.cancelAutomaticCheck();
-    if (this.busy()) return this.snapshot();
     if (!this.selected) throw new Error('Check for updates first.');
-    this.controller = new AbortController();
-    this.publish({
-      phase: 'downloading',
-      error: null,
-      progress: null,
-      installerRequired: false,
-      installerReason: null,
-      notification: null,
-    });
-    const asset = releaseAsset(this.selected, this.mode === 'managed' ? 'source' : 'installer');
-    try {
-      const token =
-        this.selected.downloadSource === 'gitlab' ? null : await this.optionalCredential();
-      this.controller.signal.throwIfAborted();
-      const downloadOptions = {
-        token,
-        repository: this.selected.repository ?? REPOSITORY,
-        tag: isExperimentalRelease(this.selected) ? undefined : this.selected.tag_name,
-        source: this.selected.downloadSource,
-        signal: this.controller.signal,
-        progress: (progress) => this.publish({ phase: 'downloading', progress }),
-      };
-      const folder = path.join(this.root, '.runtime/updates/downloads');
-      let archive = await this.download(asset, folder, downloadOptions);
-      this.controller.signal.throwIfAborted();
-      this.publish({ phase: 'verifying' });
-      if (this.mode === 'managed') {
-        let source, installerReason;
-        try {
-          source = await this.stage({
-            root: this.root,
-            archive,
-            asset,
-            tag: this.selected.tag_name,
-          });
-        } catch (error) {
-          this.controller.signal.throwIfAborted();
-          // Unknown future layouts use a separately verified installer. Hash,
-          // path and malformed-manifest failures never downgrade verification.
-          if (error.code !== 'UPDATE_INSTALLER_REQUIRED') throw error;
-          installerReason = 'compatibility';
-        }
-        this.controller.signal.throwIfAborted();
-        if (installerReason || runtimeUpgradeRequired(this.root, source)) {
-          installerReason ??= 'runtimes';
-          const installer = releaseAsset(this.selected, 'installer');
-          if (!installer)
-            throw new Error(
-              'This release requires its full installer, but no verified installer was published.',
-            );
-          this.publish({ phase: 'downloading', progress: null });
-          archive = await this.download(installer, folder, downloadOptions);
-          this.controller.signal.throwIfAborted();
-          const executable = path.join(path.dirname(archive), installer.sha256 + '.exe');
-          noLinks(executable);
-          copyFileSync(archive, executable);
-          this.prepared = { executable, asset: installer, archive };
-          this.publish({ installerReason });
-        } else this.prepared = { source, tag: this.selected.tag_name, asset, archive };
-      } else {
-        const executable = path.join(path.dirname(archive), asset.sha256 + '.exe');
-        noLinks(executable);
-        copyFileSync(archive, executable);
-        this.prepared = { executable, asset, archive };
-      }
-      return this.publish({
-        phase: 'ready',
-        progress: null,
-        installerRequired: Boolean(this.prepared.executable),
-      });
-    } catch (error) {
-      this.prepared = null;
-      return this.publish({
-        phase: this.controller.signal.aborted ? 'available' : 'error',
-        error: this.controller.signal.aborted ? null : error.message,
-        progress: null,
-      });
-    } finally {
-      this.controller = null;
-    }
+    // Windows releases were staged and applied by a separate update host. A Linux
+    // source checkout updates with `git pull`; packaged builds will use their channel.
+    throw platformUnavailable('In-app update installation');
   }
   cancel() {
     this.cancelAutomaticCheck();
@@ -558,117 +466,7 @@ export class UpdateService {
     }
   }
   async performInstall({ parentPid, language, shutdown }) {
-    const prepared = this.prepared;
-    if ((await fileHash(prepared.archive)) !== prepared.asset.sha256)
-      throw new Error('Update checksum verification failed. Download it again.');
-    if (prepared.executable) {
-      if ((await fileHash(prepared.executable)) !== prepared.asset.sha256)
-        throw new Error('Installer checksum verification failed.');
-      const child = this.launch(prepared.executable, [], {
-        cwd: this.root,
-        detached: true,
-        windowsHide: true,
-        stdio: 'ignore',
-      });
-      await new Promise((resolve, reject) => {
-        child.once('spawn', resolve);
-        child.once('error', reject);
-      });
-      child.unref();
-      if (this.mode === 'managed') {
-        await shutdown();
-        this.handoff = true;
-      }
-      return true;
-    }
-    this.publish({ phase: 'installing', error: null });
-    const parent = path.join(this.root, '.runtime/updates/jobs');
-    noLinks(parent);
-    mkdirSync(parent, { recursive: true });
-    const job = mkdtempSync(path.join(parent, 'update-'));
-    const file = path.join(job, 'request.json');
-    const request = {
-      schemaVersion: 1,
-      root: this.root,
-      source: prepared.source,
-      tag: prepared.tag,
-      parentPid,
-      language,
-      node: this.node,
-      ready: path.join(job, 'ready'),
-      events: path.join(job, 'events.jsonl'),
-      proceed: path.join(job, 'proceed'),
-      cancel: path.join(job, 'cancel'),
-    };
-    writeJsonAtomic(file, request);
-    const logs = path.join(this.root, 'logs');
-    noLinks(logs);
-    mkdirSync(logs, { recursive: true });
-    const output = path.join(logs, 'update-ui.stdout.log');
-    const errors = path.join(logs, 'update-ui.stderr.log');
-    noLinks(output);
-    noLinks(errors);
-    const record = (event) => {
-      try {
-        appendFileSync(
-          output,
-          JSON.stringify({ ...event, at: new Date().toISOString(), job: path.basename(job) }) +
-            '\n',
-        );
-      } catch {
-        console.error('Could not save update launch diagnostics.');
-      }
-    };
-    let child;
-    try {
-      record({ phase: 'launching', tag: prepared.tag });
-      const host = await this.prepareHost(this.root);
-      const descriptors = [];
-      try {
-        descriptors.push(openSync(output, 'a'));
-        descriptors.push(openSync(errors, 'a'));
-        child = this.launch(
-          host,
-          [path.join(prepared.source, 'packages/updater/windows/update.ps1'), file, output, errors],
-          // Detach the windowed host, never powershell.exe: PowerShell can silently
-          // exit under DETACHED_PROCESS, or share Capri's console without it.
-          { cwd: this.root, detached: true, windowsHide: true, stdio: ['ignore', ...descriptors] },
-        );
-      } finally {
-        for (const descriptor of descriptors) closeSync(descriptor);
-      }
-      await new Promise((resolve, reject) => {
-        child.once('spawn', resolve);
-        child.once('error', reject);
-      });
-      child.unref();
-      let ready = false;
-      for (let i = 0; i < 100; i++) {
-        if (child.exitCode !== null || child.signalCode) break;
-        if (existsSync(request.ready)) {
-          ready = true;
-          break;
-        }
-        await delay(200);
-      }
-      if (!ready) throw new Error('The update window could not start. Capri is still running.');
-      record({ phase: 'window-ready', pid: child.pid });
-      await shutdown();
-      writeFileSync(request.proceed, 'approved');
-      record({ phase: 'handoff-approved' });
-      this.handoff = true;
-      return true;
-    } catch (error) {
-      writeFileSync(request.cancel, 'cancelled');
-      record({
-        phase: 'failed',
-        message: error.message,
-        exitCode: child?.exitCode,
-        signal: child?.signalCode,
-      });
-      this.publish({ phase: 'ready', error: error.message });
-      throw error;
-    }
+    throw platformUnavailable('In-app update installation');
   }
   close() {
     this.closed = true;

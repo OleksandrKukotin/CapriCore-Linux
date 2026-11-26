@@ -29,7 +29,7 @@ def cuda_preflight(config):
     free, total = torch.cuda.mem_get_info()
     if free < config["training"]["minimumFreeVramGiB"] * 1024**3:
         raise RuntimeError(
-            "Not enough free VRAM. Use stop.cmd to unload Capri before training, then retry."
+            "Not enough free VRAM. Run npm stop to unload Capri before training, then retry."
         )
     return {
         "gpu": torch.cuda.get_device_name(),

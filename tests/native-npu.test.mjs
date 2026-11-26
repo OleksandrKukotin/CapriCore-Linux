@@ -186,7 +186,7 @@ test('real worker returns a safe missing-runtime error without SDK paths or prom
 });
 test('prepared OpenVINO discovers real hardware without a background-import deadlock', async (t) => {
   const root = path.resolve('.'),
-    python = path.join(root, '.runtime/npu-openvino/Scripts/python.exe');
+    python = path.join(root, '.runtime/npu-openvino/bin/python');
   if (!existsSync(python)) return t.skip('Optional OpenVINO runtime is not prepared');
   const worker = new NpuWorker({ root, python });
   t.after(() => worker.stop());

@@ -12,7 +12,6 @@ const validName = (name) =>
   !/history|transcript|memory|prompt|screenshot|recording|token|secret|verification|dataset|audition|chat|dialog|(?:sk-|ghp_|hf_)/i.test(
     name,
   );
-const normalized = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
 const timingFiles = new Set([
   'response-desktop.jsonl',
   'response-desktop.jsonl.1',
@@ -28,7 +27,7 @@ async function tail(file, maximumBytes = 64 * 1024) {
     !before.isFile() ||
     before.isSymbolicLink() ||
     before.nlink !== 1 ||
-    normalized(await realpath(file)) !== normalized(path.resolve(file))
+    await realpath(file) !== path.resolve(file)
   )
     throw Error('Unavailable log');
   const handle = await open(file, 'r');
@@ -91,7 +90,7 @@ export class DeveloperDiagnostics {
     for (const { directory, group } of await this.folders())
       try {
         assertPrivatePath(directory);
-        if (normalized(await realpath(directory)) !== normalized(path.resolve(directory))) continue;
+        if (await realpath(directory) !== path.resolve(directory)) continue;
         for (const entry of (await readdir(directory, { withFileTypes: true })).slice(0, 256)) {
           if (!entry.isFile() || !validName(entry.name)) continue;
           const file = path.join(directory, entry.name),
@@ -185,7 +184,7 @@ export class DeveloperDiagnostics {
       assertPrivatePath(folder);
       if (
         !(await lstat(folder)).isDirectory() ||
-        normalized(await realpath(folder)) !== normalized(folder)
+        await realpath(folder) !== folder
       )
         throw Error();
       return folder;

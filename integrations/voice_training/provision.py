@@ -82,7 +82,7 @@ def verify_source():
     )
     if installed.get("vcs_info", {}).get("commit_id") != upstream["source"]["revision"]:
         raise ValueError(
-            "Installed source is not pinned correctly; run setup-voice-training.cmd"
+            "Installed source is not pinned correctly; reinstall the voice environment"
         )
     return upstream
 

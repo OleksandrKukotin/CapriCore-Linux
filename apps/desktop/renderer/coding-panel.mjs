@@ -45,7 +45,7 @@ export class CodingPanel {
       </section>
       <section class="settings-card">
       <h3>Approved build and test tasks</h3><p class="settings-help">A task runs your project code with your Windows account. Approve only trusted projects. The model cannot change these commands or start a shell.</p>
-      <div data-code="tasks"></div><label>Task name<input type="text" data-code="taskName" maxlength="60" placeholder="Unit tests"></label><input type="text" data-code="taskExe" readonly placeholder="Choose node.exe, dotnet.exe or another build tool"><button data-code="pickTask">Choose task executable</button><label>Arguments (JSON array)<input type="text" data-code="taskArgs" placeholder='["--test"]' value='[]'></label><button data-code="addTask">Add approved task</button>
+      <div data-code="tasks"></div><label>Task name<input type="text" data-code="taskName" maxlength="60" placeholder="Unit tests"></label><input type="text" data-code="taskExe" readonly placeholder="Choose node, cargo or another build tool"><button data-code="pickTask">Choose task executable</button><label>Arguments (JSON array)<input type="text" data-code="taskArgs" placeholder='["--test"]' value='[]'></label><button data-code="addTask">Add approved task</button>
       </section>
       <div class="settings-actions"><button data-code="save">Save project access</button><button data-code="enable">Enable coding mode</button></div><p data-code="status" role="status" aria-live="polite"></p></div>`;
     document.getElementById('companion').append(this.panel);

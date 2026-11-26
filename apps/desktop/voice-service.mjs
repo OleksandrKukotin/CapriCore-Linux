@@ -221,7 +221,7 @@ export class VoiceService {
             ? error.message
             : error.message.includes('Multilingual voice')
               ? error.message
-              : 'The selected voice could not start. Text replies remain available. Check setup-multilingual.cmd.',
+              : 'The selected voice could not start. Text replies remain available. Check the installed voice components.',
         });
       }
     } finally {

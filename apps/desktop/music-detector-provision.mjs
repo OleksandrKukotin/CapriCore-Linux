@@ -13,7 +13,7 @@ import { randomUUID } from 'node:crypto';
 import { noLinks } from '../../packages/installer/src/policy.mjs';
 import { fileHash } from '../../packages/installer/src/download.mjs';
 import { resumableArtifact } from '../../packages/installer/src/resumable-download.mjs';
-import { runCommand } from '../../packages/installer/src/commands.mjs';
+import { extractZip } from '../../packages/installer/src/zip.mjs';
 
 export function musicDetectorConfig(root) {
   const value = JSON.parse(readFileSync(path.join(root, 'config/music-detector.json'), 'utf8'));
@@ -41,7 +41,7 @@ export function musicDetectorConfig(root) {
 export function musicPython(root) {
   return (
     ['router-venv', 'asr-venv']
-      .map((name) => path.join(root, '.runtime', name, 'Scripts/python.exe'))
+      .map((name) => path.join(root, '.runtime', name, 'bin/python'))
       .find(existsSync) ?? null
   );
 }
@@ -64,7 +64,7 @@ async function verifiedModel(folder, config) {
 
 export async function prepareMusicDetector(
   root,
-  { signal, progress = () => {}, fetchImpl = fetch, execute = runCommand } = {},
+  { signal, progress = () => {}, fetchImpl = fetch } = {},
 ) {
   const config = musicDetectorConfig(root),
     python = musicPython(root);
@@ -100,22 +100,17 @@ export async function prepareMusicDetector(
   );
   signal?.throwIfAborted();
   const temporary = mkdtempSync(path.join(parent, 'verified-'));
-  await execute(
-    'powershell.exe',
-    [
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-File',
-      path.join(root, 'integrations/music_runtime/extract.ps1'),
-      '-Archive',
-      archive,
-      '-Destination',
-      temporary,
-    ],
-    { cwd: root, timeoutMs: 30000, signal },
-  );
+  // Exactly the four model files, flattened out of their release folder.
+  const expected = /^yamnet-onnx-float\/(?:(?:yamnet\.onnx|yamnet\.data|labels\.txt|metadata\.json))?$/;
+  await extractZip(archive, temporary, {
+    maximumBytes: 80 * 1024 ** 2,
+    accept: (name) => expected.test(name),
+    signal,
+  });
+  for (const file of config.files) {
+    const source = path.join(temporary, 'yamnet-onnx-float', file.name);
+    if (existsSync(source)) renameSync(source, path.join(temporary, file.name));
+  }
   signal?.throwIfAborted();
   if (!(await verifiedModel(temporary, config))) throw Error('Music detector verification failed.');
   noLinks(folder);

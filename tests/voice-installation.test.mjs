@@ -23,7 +23,7 @@ test('a profile and Python alone cannot advertise an English voice without adapt
   };
   put('config/companion-voice.json', { profileDir });
   assert.equal(speechModelsInstalled(folder, 'en'), false);
-  const python = put('.runtime/voice-training-venv/Scripts/python.exe');
+  const python = put('.runtime/voice-training-venv/bin/python');
   put(profileDir + '/voice-profile.json', {
     language: 'en',
     engine: 'chatterbox-turbo',

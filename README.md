@@ -2,13 +2,22 @@
 
 # CapriCore · Capri 1.2.2
 
-Capri is a Windows AI desktop companion powered by OpenClaw. Run a bundled local model, import a compatible Hugging Face GGUF model, or connect to an OpenAI-compatible API. Capri supports text and voice chat, persistent memory, an animated desktop avatar, and optional tools for working with apps and files.
+Capri is a Linux AI desktop companion powered by OpenClaw. Run a bundled local model, import a compatible Hugging Face GGUF model, or connect to an OpenAI-compatible API. Capri supports text and voice chat, persistent memory, an animated desktop avatar, and optional tools for working with apps and files.
 
 [Website](https://capri-core.com/) · [Discord](https://discord.gg/capricore) · [Documentation](docs/README.md) · [Roadmap](ROADMAP.md) · [Contribute](CONTRIBUTING.md)
 
-**[Download the latest Capri for Windows](https://github.com/CapriChooms/CapriCore/releases/latest)** · [1.2.2 release notes](https://github.com/CapriChooms/CapriCore/releases/tag/v1.2.2) · [Report a bug](https://github.com/CapriChooms/CapriCore/issues/new/choose)
+**CapriCore-Linux** is a Linux-only fork of [CapriChooms/CapriCore](https://github.com/CapriChooms/CapriCore). The Windows installer, updater and native helpers were removed; what they taught us, and the Linux mechanism that replaces each one, is in [docs/linux/windows-heritage.md](docs/linux/windows-heritage.md).
 
-The public repository and releases are **CapriChooms/CapriCore**. Downloads and update checks do not require a GitHub account, invitation or token.
+### Linux status
+
+| Area | Status |
+|---|---|
+| Text chat, memory, local llama.cpp (Vulkan) and API models | Works from source |
+| Hardware probe, VRAM/GPU load, CPU temperature, process load | Works (DRM sysfs, hwmon, `/proc`) |
+| Desktop avatar | Electron window today; a native Wayland overlay lives in [`apps/overlay`](apps/overlay) |
+| Coding mode (editor discovery, VS Code bridge), Discord Rich Presence, Stockfish | Works (system packages) |
+| Speech recognition and voice | Python workers run; component installation is not ported yet |
+| Computer control, app actions, Spotify/YouTube Music, awareness, call audio, screen capture, virtual camera, tool sandbox, in-app updates | Not ported yet: these report "not available on Linux yet" |
 
 ## What's new in 1.2.2
 
@@ -29,32 +38,18 @@ The public repository and releases are **CapriChooms/CapriCore**. Downloads and 
 
 Capabilities depend on the selected model, its tool/image support and your permissions. Complex workflows, individual GPU backends and additional voices still need configuration and can require your help; see [current limits](docs/releases/1.0.0.md#limits-to-know).
 
-[Set up native NPU and editor integration, follow desktop task progress, and check experimental Windows 10 compatibility](docs/native-npu-and-coding.md).
+[Set up native NPU and editor integration, and follow desktop task progress](docs/native-npu-and-coding.md).
 
-## Quick installation
+## Run from source
 
-On Windows 10 22H2/11 x64, run the **CapriSetup** executable for your release, or extract the source package and double-click **Install Capri.cmd**. The wizard installs private runtimes, selected models and optional speech components. The CPU request classifier is included. Choose local LLMs, Hugging Face model selection, or API mode (BETA). API mode skips local conversation-model downloads and, by default, startup loading. No global Python/Node installation or terminal is required.
+Requirements: an x86-64 Linux desktop, Node.js 24.x with npm, and for local models a
+[llama.cpp](https://github.com/ggml-org/llama.cpp) build of `llama-server` with
+Vulkan (for example `pacman -S llama.cpp-vulkan` from the AUR, or a release build).
+Put `llama-server` on `PATH` or set `CAPRI_LLAMA_PATH`. Optional: `uv` for speech
+components, `stockfish` for chess.
 
-For a first installation, complete this wizard before opening **Capri.exe**. Use
-the same wizard and installation folder to repair missing runtimes or dependencies.
-
-**Upgrading an existing installation.** Open **Settings → Updates** in Capri. You can also run the latest installer and select your current Capri folder to update the runtime while keeping local data, compatible downloaded models and settings.
-
-For voice replies on a supported GPU, choose your **Conversation language** and the included **Capri · Chatterbox** voice. Setup installs English or the matching multilingual voice. The CPU Qwen3-TTS option is separate and BETA. No separate voice ZIP, destination folder, recording or training is needed for the included reference. Add or prepare voices later in **Settings → Language model → Voice models**. [Voice installation guide](docs/voice-installation.md), [release packaging](docs/voice-distribution.md).
-
-Capri starts with the microphone and voice replies **off** on every launch. Their models stay unloaded until you enable the microphone or speaker button. Installing a speech pack does not turn it on automatically at startup; your selected languages and downloaded models are kept.
-
-License/download consent, hardware profiles, language choices, progress, cancellation, repair and selective uninstall are explained in the [wizard guide](docs/installation-wizard.md). The installer is unsigned; publisher signing and broader clean-machine qualification remain release work. Capri has read/write access to its own installation folder by default, including code and configuration; revoke it in **Settings → File access**. Other folders, microphone and screen access require separate grants.
-
-## Start from source
-
-For manual local-model development on Windows 10/11 x64, install Node.js 24.22.1
-(or a compatible later 24.x), npm and the [llama.cpp Windows x64 Vulkan runtime](https://github.com/ggml-org/llama.cpp/releases/tag/b12317). Set `CAPRI_LLAMA_PATH` to the full path of `llama-server.exe` before starting Capri. Open the
-extracted or cloned folder containing **package.json** and run:
-
-```powershell
-node --version
-npm --version
+```sh
+node --version   # v24.x
 npm ci
 npm run doctor
 npm run setup
@@ -62,20 +57,16 @@ npm run models:pull
 npm run desktop
 ```
 
-`node --version` should show `v24.22.1` or a newer 24.x version. `npm ci` installs
-the JavaScript libraries from the lockfile; wait for it to finish successfully
-before continuing. If startup reports `Cannot find module` or
-`ERR_MODULE_NOT_FOUND`, repeat `npm ci` in this folder. If `node` or `npm` is not
-recognized, install Node.js with npm and reopen PowerShell, or use the graphical
-installation above. [Detailed setup and repair](docs/installation.md).
+`npm stop` releases managed resources. Setup explains hardware profiles and saves an
+ignored local override. The model command downloads the selected text model and the
+memory embedding model; allow several GB of disk space.
 
-Setup explains hardware profiles and saves an ignored local override. The model command downloads the selected text model and memory embedding model. Allow several GB of disk space. Capri manages `llama-server` locally and can reuse compatible weights from an existing model store. `npm stop` releases managed resources.
-
-The source package includes the reviewed Capri sprites and animations, plus a procedural fallback avatar. Recordings and trained voice weights remain separate optional packs. Missing speech packs leave text chat available. [Installation](docs/installation.md).
+The source tree includes the reviewed Capri sprites and animations, plus a procedural
+fallback avatar. [Detailed setup](docs/installation.md).
 
 ## System requirements
 
-**Windows 10 22H2 or Windows 11, x64.** The smallest supported configuration has
+**Linux, x86-64**, with a Wayland or X11 desktop. The smallest supported configuration has
 **8 GiB system RAM**. Requirements above that depend on where the language model
 runs and which speech components you enable.
 
@@ -88,7 +79,7 @@ runs and which speech components you enable.
 
 **RAM, VRAM and free disk space are separate resources.** GPU-offloaded weights
 use VRAM; CPU inference uses RAM, and partial offload uses both. Shared GPU memory
-borrows system RAM. Leave room for Windows, games and other applications.
+borrows system RAM. Leave room for the desktop, games and other applications.
 
 ### API connections (BETA)
 
@@ -166,7 +157,7 @@ CPU execution and partial offload can be slower and consume more system RAM.
 
 **16 GiB RAM plus 16 GiB VRAM does not guarantee comfortable 9B operation.**
 The 16 GiB RAM target assumes text-only use and a working GPU backend; it is not
-a promise that RAM stays almost unused. Windows, the browser, Capri's core,
+a promise that RAM stays almost unused. The desktop, the browser, Capri's core,
 CPU speech recognition and optional TTS still need system RAM. Loading peaks,
 longer context and driver-managed shared memory can increase it further. On a
 16 GiB PC, start with 2B/4B and speech off, or use an external API. Confirm actual
@@ -190,7 +181,7 @@ The app/core and transient memory retrieval have a separate planning allowance o
 is not required for the interface. Larger context, images and model loading can
 increase peaks. These ranges are estimates, not measured guarantees or download
 sizes. Chatterbox voice uses NVIDIA CUDA or experimental support for selected
-AMD ROCm GPUs on Windows 11; Qwen3-TTS provides the separate CPU voice option.
+supported AMD ROCm GPUs; Qwen3-TTS provides the separate CPU voice option.
 See [AMD voice requirements](docs/amd-voice.md) and [hardware policy](docs/hardware.md).
 
 **Settings → API connections → AI apps and ChatGPT plan** can discover installed
@@ -214,9 +205,9 @@ can have different estimates and component choices.
 
 ## Use and development
 
-`Capri.exe` opens the desktop without a console. In a source checkout, create it with `tools/setup/create-local-launcher.ps1 -DesktopShortcut`; `capri.cmd` remains a terminal-compatible launcher. Enter sends; Shift+Enter adds a line. Drag the header to move the window and the sprite to reposition the character. The diamond toggles signal core. The menu contains languages, audio, appearance and permissions. Interface language is independent of conversation, recognition and voice. Camera support is not implemented. [Desktop guide](docs/desktop.md), [languages](docs/languages.md).
+`npm run desktop` opens the desktop companion. Enter sends; Shift+Enter adds a line. Drag the header to move the window and the sprite to reposition the character. The diamond toggles signal core. The menu contains languages, audio, appearance and permissions. Interface language is independent of conversation, recognition and voice. Camera support is not implemented. [Desktop guide](docs/desktop.md), [languages](docs/languages.md).
 
-```powershell
+```sh
 npm run check
 npm test
 npm run format:check
@@ -233,14 +224,14 @@ See [CONTRIBUTING](CONTRIBUTING.md), [SECURITY](SECURITY.md), [architecture](doc
 ## Companion controls
 
 The reviewed character sprites and animations are included in source and setup exports.
-Use Capri.exe for a silent launch. New support, report, personality, wake sound,
+New support, report, personality, wake sound,
 follow-up listening and memory controls are described in [Companion controls](docs/companion-controls.md).
 See [Character assets](docs/character-assets.md) for the separate artwork notice.
 
 In-app **Updates** checks **CapriChooms/CapriCore**, downloads verified releases and restarts a
 managed installation while preserving personal data. Experimental builds are optional.
 Public updates work without a GitHub account or token; an expired optional token
-does not block anonymous access. See [Updates and recovery](docs/updates.md).
+does not block anonymous access. See Updates and recovery.
 
 Choose Neutral, Romantic, Business or Wild under **Companion settings → Conversation**.
 Styles apply to the next reply and retain your editable Personality. Simple replies
@@ -259,7 +250,7 @@ request context, relevant memory and enabled tool results to that provider;
 screen images are shared when vision is enabled and used. Optional downloads still
 contact their hosting services. Review permissions before enabling desktop tools.
 
-API credentials are encrypted for the Windows account. Conversation history,
+API credentials are encrypted with the desktop keyring (Secret Service or KWallet) through Electron's safe storage; without a keyring they are only obfuscated. Conversation history,
 attachments and ordinary memory are stored locally **without full encryption**;
 the separately password-protected private memory has its own protection. Diagnostic
 exports are saved for review and are not uploaded automatically. See [Security](SECURITY.md)

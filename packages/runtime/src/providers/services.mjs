@@ -3,7 +3,6 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { root, requireExecutable } from '../host/paths.mjs';
 import { nodePath, llamaPath, openclawPath } from '../host/executables.mjs';
-import { llamaBundleReady } from '../host/llama-bundle.mjs';
 import { settings } from '../config/settings.mjs';
 import { runtime, initialize, headers } from '../context.mjs';
 import { launch, managedProcess, stopProcess, requiresPrivacyRestart } from '../host/processes.mjs';
@@ -33,15 +32,11 @@ async function startLocalLlama(
   { signal, voiceExpected = false, voiceReady = false } = {},
 ) {
   signal?.throwIfAborted();
-  const bundled = path.join(
-    root,
-    '.runtime',
-    `llama-${settings.llamaVersion}-vulkan`,
-    'llama-server.exe',
-  );
-  if (!llamaPath || (llamaPath === bundled && !llamaBundleReady(bundled)))
+  if (!llamaPath)
     throw Object.assign(
-      new Error('The llama.cpp runtime is missing or incomplete. Run Capri Setup to repair it.'),
+      new Error(
+        'llama.cpp is missing. Install llama-server (Vulkan build) or set CAPRI_LLAMA_PATH.',
+      ),
       { code: 'CAPRI_LLAMA_BUNDLE_INCOMPLETE' },
     );
   initialize(rt);

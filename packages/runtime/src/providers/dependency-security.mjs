@@ -28,7 +28,7 @@ export function applyDependencySecurityPatches(workspace, { manifest } = {}) {
     const file = path.resolve(base, patch.file),
       packageFile = path.resolve(base, patch.packageFile);
     const boundary = path.join(base, 'node_modules') + path.sep;
-    const identity = process.platform === 'win32' ? file.toLowerCase() : file;
+    const identity = file;
     if (seen.has(identity)) throw new Error('Duplicate dependency security patch target.');
     seen.add(identity);
     if (

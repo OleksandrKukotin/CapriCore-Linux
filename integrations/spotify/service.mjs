@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { spotifySourceHash } from './native-build.mjs';
+import { platformUnavailable } from '../../packages/runtime/src/host/platform.mjs';
 
 export const ACTIONS = [
   'status',
@@ -190,17 +190,6 @@ export async function spotifyLinkTitle(uri, { fetchImpl = fetch, signal } = {}) 
   return metadata.title.trim();
 }
 
-function spotifySpawnFailure(error) {
-  if (error?.syscall?.startsWith('spawn') && ['UNKNOWN', 'EACCES', 'EPERM'].includes(error.code))
-    return Object.assign(
-      new Error(
-        'Windows could not start Capri.Spotify.exe. Check Windows Security → Protection history to see if the Spotify helper was blocked.',
-      ),
-      { code: 'CAPRI_SPOTIFY_HELPER_LAUNCH_FAILED', cause: error },
-    );
-  return error;
-}
-
 /** Private, serial stdio. Mutating commands are never retried automatically. */
 export class SpotifyWorker {
   constructor({ root, spawnImpl = spawn }) {
@@ -210,87 +199,8 @@ export class SpotifyWorker {
     this.sequence = 0;
   }
   start() {
-    const folder = path.join(this.root, '.runtime/spotify-bridge');
-    if (!existsSync(path.join(folder, 'build.json')))
-      throw new Error('Spotify bridge is not installed. Run setup-spotify.cmd.');
-    const build = JSON.parse(readFileSync(path.join(folder, 'build.json'), 'utf8'));
-    if (!/^[a-f0-9]{16}\/Capri\.Spotify\.exe$/.test(build.artifact ?? ''))
-      throw new Error('Invalid Spotify bridge build. Run setup-spotify.cmd.');
-    const exe = path.join(folder, build.artifact);
-    if (!existsSync(exe)) throw new Error('Spotify bridge is missing. Run setup-spotify.cmd.');
-    const hash = spotifySourceHash(this.root);
-    if (hash !== build.sourceSha256)
-      throw new Error('Spotify bridge needs rebuilding. Run setup-spotify.cmd.');
-    if (this.child && this.sourceHash === hash) return;
-    if (this.child) this.close();
-    const env = Object.fromEntries(
-      ['SystemRoot', 'WINDIR', 'PATH', 'APPDATA', 'LOCALAPPDATA', 'USERPROFILE', 'TEMP', 'TMP']
-        .filter((name) => process.env[name])
-        .map((name) => [name, process.env[name]]),
-    );
-    let child;
-    try {
-      child = this.spawnImpl(exe, [], {
-        cwd: this.root,
-        env,
-        windowsHide: true,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-    } catch (error) {
-      throw spotifySpawnFailure(error);
-    }
-    this.child = child;
-    this.sourceHash = hash;
-    let buffer = '';
-    const fail = () => {
-      if (this.child !== child) return;
-      this.close(
-        new Error(
-          'Spotify control stopped. The command outcome may be unknown; check playback before retrying.',
-        ),
-      );
-    };
-    child.on('error', (error) => {
-      if (this.child !== child) return;
-      const launchError = spotifySpawnFailure(error);
-      if (launchError !== error) this.close(launchError);
-      else fail();
-    });
-    child.on('exit', fail);
-    child.stdin.on('error', fail);
-    child.stderr.on('data', () => {});
-    child.stdout.setEncoding('utf8');
-    child.stdout.on('data', (chunk) => {
-      if (this.child !== child) return;
-      buffer += chunk;
-      if (buffer.length > 262144) {
-        fail();
-        return;
-      }
-      let end;
-      while ((end = buffer.indexOf('\n')) >= 0) {
-        const line = buffer.slice(0, end);
-        buffer = buffer.slice(end + 1);
-        let event;
-        try {
-          event = JSON.parse(line);
-        } catch {
-          fail();
-          return;
-        }
-        if (event.type === 'ready' && event.protocol === 1) continue;
-        if (event.type !== 'result' || typeof event.ok !== 'boolean') {
-          fail();
-          return;
-        }
-        const pending = this.pending.get(event.request);
-        if (pending) {
-          this.pending.delete(event.request);
-          clearTimeout(pending.timer);
-          pending.resolve(event);
-        }
-      }
-    });
+    // The Windows bridge drove Spotify through UI Automation. MPRIS replaces it.
+    throw platformUnavailable('Spotify control');
   }
   send(command) {
     this.start();

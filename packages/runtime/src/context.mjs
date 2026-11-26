@@ -230,8 +230,7 @@ export function relocateManagedPaths(existing, rt) {
   const previousRoot = path.resolve(workspace, '../..'),
     plugins = next.plugins?.load?.paths ?? [];
   const owned = ['filesystem', 'desktop-actions', 'perception', 'spotify', 'companion-tools'];
-  const normalize = (value) =>
-    process.platform === 'win32' ? path.normalize(value).toLowerCase() : path.normalize(value);
+  const normalize = (value) => path.normalize(value);
   const oldPaths = owned.map((name) => path.join(previousRoot, 'integrations', name));
   if (
     normalize(previousRoot) === normalize(root) ||

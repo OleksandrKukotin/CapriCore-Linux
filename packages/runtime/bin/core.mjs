@@ -36,7 +36,7 @@ try {
     );
     console.log(`Control UI: ${rt.gatewayUrl}/`);
     console.log(`Chat API: ${rt.gatewayUrl}/v1/chat/completions`);
-    console.log('Run capri.cmd to open the desktop companion.');
+    console.log('Run npm run desktop to open the desktop companion.');
     console.log('API token is stored privately in data/openclaw/gateway-token.');
   } else if (command === 'stop') {
     await stopCore(rt);
@@ -71,7 +71,7 @@ try {
           llama: local?.version ?? 'stopped',
           openclaw: gateway ? 'ready' : 'stopped',
           naturalVoice: companionVoice ?? 'stopped',
-          ui: 'Capri desktop companion (capri.cmd)',
+          ui: 'Capri desktop companion (npm run desktop)',
           agent: settings.agentId,
           model: settings.model,
           session: settings.sessionKey,

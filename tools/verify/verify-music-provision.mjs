@@ -16,19 +16,15 @@ for (const name of [
   'config',
   'integrations/music_runtime',
   '.runtime/music-detector',
-  '.runtime/router-venv/Scripts',
+  '.runtime/router-venv/bin',
 ])
   mkdirSync(path.join(fixture, name), { recursive: true });
 copyFileSync(
   path.join(root, 'config/music-detector.json'),
   path.join(fixture, 'config/music-detector.json'),
 );
-copyFileSync(
-  path.join(root, 'integrations/music_runtime/extract.ps1'),
-  path.join(fixture, 'integrations/music_runtime/extract.ps1'),
-);
 writeFileSync(
-  path.join(fixture, '.runtime/router-venv/Scripts/python.exe'),
+  path.join(fixture, '.runtime/router-venv/bin/python'),
   'fixture-path-only-never-executed',
 );
 copyFileSync(

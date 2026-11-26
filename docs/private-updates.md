@@ -1,6 +1,6 @@
 # Private experimental updates
 
-Capri v1.1.0 and later can check the private repository for experimental builds. Stable updates use [CapriChooms/CapriCore releases](https://github.com/CapriChooms/CapriCore/releases) without an account or token. See [update instructions](updates.md).
+Capri v1.1.0 and later can check the private repository for experimental builds. Stable updates use [CapriChooms/CapriCore releases](https://github.com/CapriChooms/CapriCore/releases) without an account or token. See update instructions.
 
 Anyone who has accepted an invitation to **CapriChooms/Capri** and has Read
 access can update inside Capri. Membership in the CapriChooms organization is

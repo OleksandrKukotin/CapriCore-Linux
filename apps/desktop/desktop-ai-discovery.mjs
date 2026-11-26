@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import http from 'node:http';
 import path from 'node:path';
-import { lstatSync } from 'node:fs';
+import { statSync } from 'node:fs';
 
 const APPS = [
   { id: 'chatgpt', name: 'ChatGPT', query: 'ChatGPT', connection: 'chatgpt' },
@@ -20,10 +20,10 @@ const SERVERS = [
     endpoints: ['http://127.0.0.1:13305/api/v1', 'http://127.0.0.1:13305/v1'],
   },
 ];
-export function installedAiClis({ env = process.env, stat = lstatSync } = {}) {
-  const directories = (env.PATH ?? env.Path ?? '')
+export function installedAiClis({ env = process.env, stat = statSync } = {}) {
+  const directories = (env.PATH ?? '')
     .split(path.delimiter)
-    .filter((dir) => dir && path.isAbsolute(dir) && !dir.startsWith('\\\\'))
+    .filter((dir) => dir && path.isAbsolute(dir))
     .slice(0, 64);
   const results = [];
   for (const [id, name, command] of [
@@ -32,14 +32,15 @@ export function installedAiClis({ env = process.env, stat = lstatSync } = {}) {
     ['gemini-cli', 'Gemini CLI', 'gemini'],
   ]) {
     const installed = directories.some((directory) =>
-      ['.exe', '.cmd', ''].some((extension) => {
+      {
+        // CLI installers usually link a versioned binary into ~/.local/bin.
         try {
-          const entry = stat(path.join(directory, command + extension));
-          return entry.isFile() && !entry.isSymbolicLink();
+          const entry = stat(path.join(directory, command));
+          return entry.isFile() && (entry.mode & 0o111) !== 0;
         } catch {
           return false;
         }
-      }),
+      },
     );
     if (installed) results.push({ id, name, installed: true, kind: 'cli' });
   }

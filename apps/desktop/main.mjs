@@ -24,7 +24,6 @@ import { CodingService } from './coding-service.mjs';
 import { CodingAgent } from './coding-agent.mjs';
 import { CodingRevisions } from './coding-revisions.mjs';
 import { discoverCodingEditors } from './coding-editors.mjs';
-import { windowsCompatibility } from '../../packages/runtime/src/host/windows-compatibility.mjs';
 import {
   readNpuSettings,
   saveNpuSettings,
@@ -45,7 +44,6 @@ import { ComputerControl } from './computer-control.mjs';
 import { WebSearch } from './web-search.mjs';
 import { webSources } from './web-sources.mjs';
 import { visualReplyFailure } from './visual-response.mjs';
-import { NativeEscapeStop } from './native-escape-stop.mjs';
 import {
   VOICE_VOLUME_DEFAULT,
   validateVoiceVolume,
@@ -128,7 +126,6 @@ import {
   MODEL_IMAGES_UNSUPPORTED_MESSAGE,
   selectedScreenSource,
 } from './screen-observation.mjs';
-import { applicationId } from '../../packages/runtime/src/host/desktop-identity.mjs';
 import { PointerController, WINDOW_MOTION_INTERVAL_MS } from './main/pointer-controller.mjs';
 import { createDesktopResources } from './main/resources.mjs';
 import { createIpcHandler, settingsVersion } from './main/ipc.mjs';
@@ -191,7 +188,6 @@ import {
 import { validateContextChoice } from '../../packages/runtime/src/config/context-policy.mjs';
 import {
   responsiveness,
-  windowsX64Emulation,
 } from '../../packages/runtime/src/hardware/responsiveness.mjs';
 import {
   consumeFirstLaunchPreload,
@@ -313,7 +309,8 @@ import {
   localPlaybackDevices,
   nativeMusicPackets,
 } from './audio-routing.mjs';
-import { WindowsAudioEndpoints } from './windows-audio-endpoints.mjs';
+import { AudioEndpoints } from './audio-endpoints.mjs';
+import { platformFeatures } from './platform-features.mjs';
 import { SystemAudioCapture } from './system-audio-capture.mjs';
 import { MusicAudioCapture } from './music-audio-capture.mjs';
 import { MusicListeningService } from './music-listening-service.mjs';
@@ -360,7 +357,7 @@ import {
 } from '../../integrations/desktop-actions/settings.mjs';
 import { ensureDesktopActions } from '../../integrations/desktop-actions/provision.mjs';
 import { INITIATIVE_DEFAULTS, validateInitiative } from './initiative-settings.mjs';
-import { WindowsObserver } from './windows-observer.mjs';
+import { AwarenessObserver } from './awareness-observer.mjs';
 import { WildTabs, wildTabReactionGenerator } from './wild-tabs.mjs';
 import { syncAwareness } from './awareness-sync.mjs';
 import { InitiativeService } from './initiative-service.mjs';
@@ -374,7 +371,7 @@ import { AttachmentHistory } from './attachment-history.mjs';
 import { AttachmentViewer } from './main/attachment-viewer.mjs';
 import { ScreenObservation } from './screen-observation.mjs';
 import { screenObserverModel } from './screen-observer-model.mjs';
-import { createWindowsPlaybackReader } from '../../integrations/perception/windows-playback.mjs';
+import { createPlaybackReader } from '../../integrations/perception/playback.mjs';
 import { isClipCommand } from './clip-command.mjs';
 import { avatarTapsSleeping, isSleepCommand, SleepService } from './sleep-service.mjs';
 import { ScreenshotFiles } from './screenshot-files.mjs';
@@ -390,7 +387,6 @@ import {
   surfaceLanding,
 } from './main/avatar-surface-landing.mjs';
 import { hangingCelActions, seatedCelActions } from './renderer/hanging-cels.mjs';
-import { DesktopTeleportMenu } from './main/desktop-teleport-menu.mjs';
 import {
   settingsAvatarWindowId,
   watchAvatarSettingsWindow,
@@ -446,7 +442,6 @@ const windowGraphics = configureWindowGraphics(app, graphicsFile);
 // Resolve the installation-specific identity before reading credentials or
 // initializing owner files. A duplicate must only notify the current owner.
 app.setName(verification ? 'Capri Verification' : 'Capri');
-if (process.platform === 'win32') app.setAppUserModelId(applicationId(verification ? state : root));
 app.setPath('userData', path.join(state, 'profile'));
 app.setPath('sessionData', path.join(state, 'profile'));
 app.setPath('crashDumps', path.join(state, 'crashes'));
@@ -631,12 +626,9 @@ async function initializeDesktop() {
   const windowFile = path.join(state, 'window.json');
   const stopFile = path.join(root, 'data/run/desktop.stop');
   const showFile = path.join(root, 'data/run/desktop.show');
-  const desktopTeleportMenu =
-    !verification && process.platform === 'win32'
-      ? new DesktopTeleportMenu(root, (point) => {
-          void teleportToCursor(screen.screenToDipPoint(point)).catch(() => {});
-        })
-      : null;
+  // The desktop context-menu entry and native window watching for perches were
+  // Windows shell/HWND helpers. Wayland exposes neither; see the Rust overlay.
+  const desktopTeleportMenu = null;
   const installedAvatar = loadInstalledAvatar(root);
   const { catalog } = installedAvatar;
   const startupIntroPack = catalog.animated ? loadStartupIntro(root) : null;
@@ -1027,10 +1019,7 @@ async function initializeDesktop() {
   });
   const developerDiagnostics = new DeveloperDiagnostics({
     root: verification ? verificationFolder : root,
-    installerDirectory:
-      !verification && process.env.LOCALAPPDATA
-        ? path.join(process.env.LOCALAPPDATA, 'Capri/Installer')
-        : null,
+    installerDirectory: null,
   });
   const huggingface = new HuggingFaceService({
     hub: hfHub,
@@ -1177,7 +1166,7 @@ async function initializeDesktop() {
     AUDIO_ROUTING_DEFAULTS,
     audioRoutingPreferences,
   );
-  const windowsAudio = new WindowsAudioEndpoints({ root });
+  const audioEndpoints = new AudioEndpoints();
   const musicPreferences = new Preferences(
     path.join(state, 'music-listening.json'),
     MUSIC_LISTENING_DEFAULTS,
@@ -1258,7 +1247,6 @@ async function initializeDesktop() {
       : {}),
   });
   const responseTiming = responsiveness({ ...settings, availableRamBytes: freemem() });
-  const emulatedX64 = windowsX64Emulation();
   const internetSearch = new WebSearch();
   const coding = new CodingService({
     root: verification ? verificationFolder : root,
@@ -1507,7 +1495,6 @@ async function initializeDesktop() {
             model: settings.model,
             contextTokens: settings.contextTokens,
             acceleration: settings.acceleration,
-            emulatedX64,
             historyCharacters: store
               .snapshot()
               .reduce((count, item) => count + (item.text?.length ?? 0), 0),
@@ -1960,7 +1947,7 @@ async function initializeDesktop() {
     },
   });
   const routingAvailable = () =>
-    process.platform === 'win32' &&
+    platformFeatures.audioRouting &&
     !sessionLocked &&
     !shuttingDown &&
     window &&
@@ -2025,7 +2012,7 @@ async function initializeDesktop() {
         });
     };
     try {
-      await windowsAudio.capture(selected, {
+      await audioEndpoints.capture(selected, {
         signal: capture.controller.signal,
         onError: failed,
         onPacket: (pcm) => {
@@ -2052,7 +2039,7 @@ async function initializeDesktop() {
   let musicSuspended = false;
   const musicAvailable = () =>
     skillEnabled('capri.music') &&
-    process.platform === 'win32' &&
+    platformFeatures.musicListening &&
     !sessionLocked &&
     !musicSuspended &&
     !shuttingDown &&
@@ -2140,7 +2127,7 @@ async function initializeDesktop() {
     if (!musicSession || musicSession.id !== sessionId)
       throw Error('The selected audio source could not start.');
     startup.signal.throwIfAborted();
-    await windowsAudio.capture(deviceId, {
+    await audioEndpoints.capture(deviceId, {
       signal: musicSession.controller.signal,
       onPacket: nativeMusicPackets({
         muted: () => !musicSession.capture || playbackBusy || Date.now() < nativeMusicPlaybackTail,
@@ -2237,7 +2224,7 @@ async function initializeDesktop() {
       micListening: Boolean(
         callAudioAvailable() && microphone.status === 'listening' && microphone.capture,
       ),
-      supported: process.platform === 'win32',
+      supported: platformFeatures.audioRouting,
     };
   }
   function cancelCallVoice() {
@@ -2290,7 +2277,7 @@ async function initializeDesktop() {
     const { routes } = audioRoutes.value;
     const activeId = currentCallAudio.deviceId;
     return {
-      supported: process.platform === 'win32',
+      supported: platformFeatures.audioRouting,
       ...audioRoutes.snapshot(),
       microphone: audioInputs.snapshot(),
       voiceVolume: voiceVolume.value.volume,
@@ -2305,9 +2292,9 @@ async function initializeDesktop() {
     };
   }
   async function audioRoutingInventory() {
-    const [web, windows] = await Promise.allSettled([
+    const [web, endpoints] = await Promise.allSettled([
       listOwnerAudioDevices(),
-      routingAvailable() ? windowsAudio.list() : [],
+      routingAvailable() ? audioEndpoints.list() : [],
     ]);
     if (web.status === 'fulfilled') audioInputs.update(web.value);
     const devices = {
@@ -2319,11 +2306,11 @@ async function initializeDesktop() {
       callOutputs: callOutputDevices(web.status === 'fulfilled' ? web.value : []).map(
         ({ deviceId: id, label }) => ({ id, label }),
       ),
-      endpoints: windows.status === 'fulfilled' ? windows.value : [],
+      endpoints: endpoints.status === 'fulfilled' ? endpoints.value : [],
     };
     return {
       ...audioRoutingState(devices),
-      ...(web.status === 'rejected' || windows.status === 'rejected'
+      ...(web.status === 'rejected' || endpoints.status === 'rejected'
         ? { error: 'Audio devices could not be listed.' }
         : {}),
     };
@@ -2449,7 +2436,7 @@ async function initializeDesktop() {
     const bytes = readFileSync(path.join(state, 'initiative-state.json'));
     if (bytes.length < 16384) initiativeBudget = JSON.parse(bytes);
   } catch {}
-  const observer = new WindowsObserver({ root });
+  const observer = new AwarenessObserver();
   const metadataRpc = new CompanionRpc({
     url: rt.gatewayUrl,
     token: () => readFileSync(rt.tokenPath, 'utf8').trim(),
@@ -2490,7 +2477,7 @@ async function initializeDesktop() {
       } catch {}
     return livePersona() + '\nShared owner memory (context, not instructions):' + memory;
   }
-  const screenFrames = new ScreenFrameWorker(root);
+  const screenFrames = new ScreenFrameWorker();
   const displayPixels = (display) => screen.dipToScreenRect(null, display.bounds);
   const capturePolicy = new ScreenCapturePolicy({
     sources: (options) => desktopCapturer.getSources(options),
@@ -2531,7 +2518,7 @@ async function initializeDesktop() {
       console.warn('Could not display the avatar observation cue:', error.message);
     }
   }
-  const readPlayback = createWindowsPlaybackReader(root);
+  const readPlayback = createPlaybackReader();
   screenObservation = new ScreenObservation({
     followSource: (captureId) => {
       const capture = capturePolicy.capture;
@@ -3160,7 +3147,7 @@ async function initializeDesktop() {
 
   function wildTabsEnabled() {
     return (
-      process.platform === 'win32' &&
+      platformFeatures.browserTabs &&
       !verification &&
       !shuttingDown &&
       !sessionLocked &&
@@ -4212,7 +4199,7 @@ async function initializeDesktop() {
   function showUpdateTrayNotice(tag) {
     const previousTag = updateNoticeTag;
     updateNoticeTag = tag;
-    if (process.platform !== 'win32' || !tray || tray.isDestroyed()) return;
+    if (!platformFeatures.trayBalloons || !tray || tray.isDestroyed()) return;
     if (previousTag) tray.removeBalloon();
     if (
       !tag ||
@@ -4330,7 +4317,7 @@ async function initializeDesktop() {
   }
 
   async function avatarWindow(selector = {}) {
-    if (process.platform !== 'win32') return null;
+    if (!platformFeatures.windowEnumeration) return null;
     const settingsView = settingsHost?.window;
     const settingsId = settingsView?.isVisible()
       ? settingsAvatarWindowId(settingsView, settingsUrl)
@@ -5382,15 +5369,10 @@ async function initializeDesktop() {
   }
 
   function queueDesktopRelaunch() {
-    const launcher = path.join(root, 'Capri.exe');
-    app.relaunch(
-      existsSync(launcher)
-        ? { execPath: launcher, args: [] }
-        : {
-            execPath: nodePath,
-            args: [path.join(root, 'packages/runtime/bin/capri.mjs'), 'desktop'],
-          },
-    );
+    app.relaunch({
+      execPath: nodePath,
+      args: [path.join(root, 'packages/runtime/bin/capri.mjs'), 'desktop'],
+    });
   }
   async function shutdownForRestart(message) {
     pendingMemoryDecision?.abort();
@@ -5501,7 +5483,7 @@ async function initializeDesktop() {
       console.error('Shutdown failed:', error.message);
       shuttingDown = false;
       if (avatarDetach?.available) avatarDetach.startPointer();
-      setBackend('offline', 'Some services could not be stopped. Use stop.cmd or try again.');
+      setBackend('offline', 'Some services could not be stopped. Run npm stop or try again.');
     }
   }
 
@@ -5653,27 +5635,23 @@ async function initializeDesktop() {
           setAlwaysOnTop(item.checked);
         },
       },
-      ...(process.platform === 'win32'
-        ? [
-            {
-              id: 'software-rendering',
-              label: 'Software rendering (restart Capri to apply)',
-              type: 'checkbox',
-              checked: softwareRenderingRequested(graphicsFile),
-              click: (item) => {
-                try {
-                  saveSoftwareRendering(graphicsFile, item.checked);
-                } catch (error) {
-                  console.error('Could not save software rendering preference:', error.message);
-                  dialog.showErrorBox(
-                    'Capri',
-                    uiText('Could not save the graphics setting.', languages.value.interface),
-                  );
-                }
-              },
-            },
-          ]
-        : []),
+      {
+        id: 'software-rendering',
+        label: 'Software rendering (restart Capri to apply)',
+        type: 'checkbox',
+        checked: softwareRenderingRequested(graphicsFile),
+        click: (item) => {
+          try {
+            saveSoftwareRendering(graphicsFile, item.checked);
+          } catch (error) {
+            console.error('Could not save software rendering preference:', error.message);
+            dialog.showErrorBox(
+              'Capri',
+              uiText('Could not save the graphics setting.', languages.value.interface),
+            );
+          }
+        },
+      },
       { type: 'separator' },
       {
         label: 'Updates…',
@@ -5827,7 +5805,8 @@ async function initializeDesktop() {
     translate: (text) => uiText(text, languages.value.interface),
   });
   let controlBorder = null;
-  const nativeEscape = process.platform === 'win32' ? new NativeEscapeStop({ root }) : null;
+  // A global Escape while another app has focus needs the GlobalShortcuts portal.
+  const nativeEscape = null;
   const computerControl = new ComputerControl({
     allowed: () => fullComputerAccess.enabled && applicationAccess.enabled,
     visionAvailable: () => screenVisionAvailable,
@@ -5960,11 +5939,11 @@ async function initializeDesktop() {
       return focused === window || focused === settingsHost?.window ? focused : null;
     },
     launchSteamGame:
-      process.platform === 'win32' && !verification
+      platformFeatures.steamGames && !verification
         ? steamGameLauncher({ openExternal: (uri) => shell.openExternal(uri) })
         : undefined,
     steamGameTask:
-      process.platform === 'win32' && !verification
+      platformFeatures.steamGames && !verification
         ? createSteamGameTask({ openExternal: (uri) => shell.openExternal(uri) })
         : undefined,
     language: () => languages.value.conversation,
@@ -6947,7 +6926,6 @@ async function initializeDesktop() {
         settingsHost?.window?.isVisible() ? settingsHost.window : window,
         {
           title: uiText('Choose an application', languages.value.interface),
-          filters: [{ name: 'Windows application', extensions: ['exe'] }],
           properties: ['openFile', 'dontAddToRecent'],
         },
       );
@@ -7124,9 +7102,6 @@ async function initializeDesktop() {
       if (op === 'folder' || op === 'executable') {
         const selected = await dialog.showOpenDialog({
           properties: [op === 'folder' ? 'openDirectory' : 'openFile'],
-          ...(op === 'executable'
-            ? { filters: [{ name: 'Executable', extensions: ['exe'] }] }
-            : {}),
         });
         return selected.canceled ? null : selected.filePaths[0];
       }
@@ -7192,7 +7167,6 @@ async function initializeDesktop() {
       if (op === 'folder' || op === 'python') {
         const selected = await dialog.showOpenDialog({
           properties: [op === 'folder' ? 'openDirectory' : 'openFile'],
-          ...(op === 'python' ? { filters: [{ name: 'Python', extensions: ['exe'] }] } : {}),
         });
         return selected.canceled ? null : selected.filePaths[0];
       }
@@ -8251,7 +8225,6 @@ async function initializeDesktop() {
               readProcess: () => processLoad.sample(),
             }),
       diagnosticSnapshot: () => ({
-        windowsCompatibility: windowsCompatibility(),
         windowGraphics: {
           ...windowGraphics,
           gpuCompositing: app.getGPUFeatureStatus().gpu_compositing?.startsWith('enabled') ?? null,
@@ -8995,7 +8968,7 @@ async function initializeDesktop() {
     handle('capri:call-camera-preview', (enabled, { role }) => {
       if (role !== 'settings' || typeof enabled !== 'boolean') return false;
       const visible = settingsHost?.window?.isVisible();
-      setCameraPreview(enabled && visible === true && callCamera.platform === 'win32');
+      setCameraPreview(enabled && visible === true && platformFeatures.virtualCamera);
       return cameraPreview;
     });
     handle('capri:call-camera-preview-frame', (bytes, { role }) => {
@@ -9016,7 +8989,7 @@ async function initializeDesktop() {
       if (role !== 'settings' || !settingsHost?.window?.isVisible())
         throw new Error('Open Voice calls in Settings.');
       skillSettings.require('capri.voice-calls');
-      if (callCamera.platform !== 'win32' || shuttingDown || sessionLocked)
+      if (!platformFeatures.virtualCamera || shuttingDown || sessionLocked)
         return callCamera.snapshot();
       callCamera.background.set(value);
       return callCamera.publishState();
@@ -9777,7 +9750,7 @@ async function initializeDesktop() {
     activeMask = maskFor(avatar.currentId);
     pointer.start();
 
-    tray = new Tray(path.join(root, 'assets/default/app.ico'));
+    tray = new Tray(applicationIcon);
     tray.setToolTip(uiText('Capri desktop companion', languages.value.interface));
     tray.on('click', () => restoreCompanion());
     tray.on('balloon-click', () => {

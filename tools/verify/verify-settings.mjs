@@ -85,56 +85,6 @@ try {
   };
   let settings = await findSettings();
   await settings.waitForSelector('[data-section="general"][aria-current="page"]');
-  // Check the Windows-presented pixels before any second open, focus or resize.
-  // DOM visibility or a renderer screenshot cannot detect a gray native window.
-  if (process.platform === 'win32') {
-    let frame;
-    const deadline = Date.now() + 10000;
-    while (Date.now() < deadline && !frame?.rendered) {
-      frame = await application.evaluate(async ({ BrowserWindow, desktopCapturer }) => {
-        const window = BrowserWindow.getAllWindows().find((w) =>
-          w.webContents.getURL().endsWith('/settings.html'),
-        );
-        const visible = window?.isVisible(),
-          opacity = window?.getOpacity();
-        if (!visible || opacity < 0.99) return { visible, opacity };
-        const sources = await desktopCapturer.getSources({
-          types: ['window'],
-          thumbnailSize: { width: 320, height: 320 },
-        });
-        const image = sources.find((source) => source.id === window.getMediaSourceId())?.thumbnail;
-        if (!image || image.isEmpty()) return { visible, opacity, thumbnail: false };
-        const bitmap = image.toBitmap();
-        let chromatic = 0,
-          accents = 0;
-        for (let pixel = 0; pixel < bitmap.length; pixel += 64) {
-          const [blue, green, red] = bitmap.subarray(pixel, pixel + 3);
-          if (blue - red >= 12) chromatic++;
-          if (green >= 110 && green - red >= 25) accents++;
-        }
-        const samples = bitmap.length / 64;
-        return {
-          visible,
-          opacity,
-          samples,
-          chromatic,
-          accents,
-          rendered: chromatic > samples / 5 && accents > 5,
-        };
-      });
-      if (!frame.rendered) await new Promise((resolve) => setTimeout(resolve, 150));
-    }
-    if (!frame.rendered) {
-      frame.notice = await settings.locator('#settings-notice').textContent();
-      frame.section = await settings.locator('[data-section][aria-current="page"]').count();
-    }
-    assert.equal(
-      Boolean(frame.rendered),
-      true,
-      `First Settings open did not present its themed native frame (${JSON.stringify(frame)})`,
-    );
-    record('First Settings open presents the themed Windows frame without a second click');
-  }
   const navigate = async (section) => {
     await settings.locator(`[data-section="${section}"]`).click();
     await settings.waitForFunction(
@@ -440,7 +390,6 @@ try {
       .find((w) => w.webContents.getURL().endsWith('/index.html'))
       .getBounds(),
   );
-  if (process.platform === 'win32') {
     // Verification-mode companions start hidden, so the real monitor stays idle.
     await application.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()
@@ -469,7 +418,7 @@ try {
     assert.match(await page.locator('[data-metric="RAM"]').innerText(), /\d.*GB/);
     assert.match(await page.locator('[data-metric="GPU"]').innerText(), /°C/);
     record('System charts display live CPU load, memory in GB, and a GPU temperature field');
-  }
+  
   for (const mode of ['portrait', 'core']) {
     await page.evaluate((mode) => {
       if (document.body.dataset.presence !== mode)

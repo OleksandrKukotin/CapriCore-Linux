@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { existsSync, readdirSync, readFileSync, lstatSync, realpathSync } from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { assertPrivatePath } from '../../packages/runtime/src/safe-file.mjs';
 export class CodingEditorBridge {
   constructor({
-    directory = process.env.LOCALAPPDATA
-      ? path.join(process.env.LOCALAPPDATA, 'Capri/CodingBridge')
-      : '',
+    directory = path.join(
+      process.env.XDG_STATE_HOME || path.join(homedir(), '.local/state'),
+      'capri/coding-bridge',
+    ),
     fetchImpl = fetch,
   } = {}) {
     Object.assign(this, { directory, fetchImpl });

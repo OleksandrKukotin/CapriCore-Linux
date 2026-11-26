@@ -15,7 +15,7 @@ def cuda_preflight(torch):
         report['compiledArchitectures'] = torch.cuda.get_arch_list()
         runtime = tuple(int(v) for v in (torch.version.cuda or '0.0').split('.')[:2])
         if not hip and report['capability'][0] >= 10 and runtime < (12, 8):
-            raise RuntimeError('This Blackwell/RTX 50 GPU requires the Capri blackwell voice runtime (PyTorch 2.7.1 / CUDA 12.8). Update Capri or rerun setup-voice-training.cmd; automatic hardware selection will repair its voice environment.')
+            raise RuntimeError('This Blackwell/RTX 50 GPU requires the Capri blackwell voice runtime (PyTorch 2.7.1 / CUDA 12.8). Update Capri or reinstall the voice environment; automatic hardware selection will repair its voice environment.')
         # is_available() alone passed on RTX 5060 Ti with incompatible cu124 wheels.
         value = torch.arange(16, device='cuda:0', dtype=torch.float32)
         if float(((value + 1) * 2).sum().item()) != 272.0:

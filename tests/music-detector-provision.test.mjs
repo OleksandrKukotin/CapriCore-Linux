@@ -34,7 +34,7 @@ function fixture() {
   mkdirSync(path.dirname(configFile), { recursive: true });
   const save = () => writeFileSync(configFile, JSON.stringify(config));
   save();
-  const python = path.join(root, '.runtime/router-venv/Scripts/python.exe');
+  const python = path.join(root, '.runtime/router-venv/bin/python');
   mkdirSync(path.dirname(python), { recursive: true });
   writeFileSync(python, 'fixture-never-executed');
   let downloads = 0,

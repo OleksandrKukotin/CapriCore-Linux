@@ -109,7 +109,7 @@ export function recognitionModelsInstalled(root, language, config) {
         return stat.isFile() && stat.size === bytes;
       });
     if (
-      !statSync(path.join(root, '.runtime/asr-venv/Scripts/python.exe')).isFile() ||
+      !statSync(path.join(root, '.runtime/asr-venv/bin/python')).isFile() ||
       !complete(config.vad.modelDir, Object.values(detector.files))
     )
       return false;

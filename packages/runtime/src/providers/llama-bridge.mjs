@@ -381,7 +381,6 @@ export function createLlamaBridge({ store, workers, config, version, configurati
                 : { model: model.name, embeddings, prompt_eval_count: packet.usage?.prompt_tokens },
             );
           },
-          () => !res.headersSent && !res.destroyed,
         );
       }
       if (
@@ -427,7 +426,6 @@ export function createLlamaBridge({ store, workers, config, version, configurati
             }),
           );
         },
-        () => !res.headersSent && !res.destroyed,
       );
     } catch (error) {
       if (signal.aborted || res.destroyed) return;

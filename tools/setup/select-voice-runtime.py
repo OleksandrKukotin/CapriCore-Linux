@@ -33,15 +33,10 @@ def select_profile(devices, visible=None, requested='auto', minimum_major=10):
 
 
 def gpu_inventory():
-    executable = shutil.which('nvidia-smi.exe') or shutil.which('nvidia-smi')
-    fallback = Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32/nvidia-smi.exe'
-    if executable is None and fallback.is_file():
-        executable = str(fallback)
+    executable = shutil.which('nvidia-smi')
     if not executable:
         return [], 'NVIDIA inventory unavailable'
     options = {'timeout': 8, 'capture_output': True, 'text': True, 'encoding': 'utf-8', 'errors': 'replace'}
-    if os.name == 'nt':
-        options['creationflags'] = subprocess.CREATE_NO_WINDOW
     try:
         result = subprocess.run([executable, '--query-gpu=index,uuid,name,compute_cap', '--format=csv,noheader,nounits'], **options)
         if result.returncode == 0:
@@ -56,17 +51,18 @@ def gpu_inventory():
 
 
 def amd_supported(names):
-    # Exact published ROCm 7.2.1 Windows Radeon matrix; no unsupported gfx spoofing.
+    # RDNA3/RDNA4 cards supported by the ROCm PyTorch wheels; no gfx target spoofing.
     return any(re.search(r'\b(?:RX (?:9070(?: XT)?|9060 XT|7900 XTX|7700)|(?:AI )?PRO (?:R9700|W7900(?: Dual Slot)?))\b', str(name), re.I) for name in names)
 
 
 def amd_inventory():
+    # Display controllers from pciutils; without lspci no AMD GPU is assumed.
     try:
-        inventory = subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', '@(Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name) | ConvertTo-Json -Compress'], capture_output=True, text=True, timeout=10, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
-        names = json.loads(inventory.stdout)
-        return [name for name in (names if isinstance(names, list) else [names])
-                if isinstance(name, str) and re.search(r'\b(?:AMD|Radeon)\b', name, re.I)]
-    except (OSError, ValueError, subprocess.TimeoutExpired):
+        inventory = subprocess.run(['lspci', '-mm'], capture_output=True, text=True, timeout=10)
+        names = [row for row in inventory.stdout.splitlines()
+                 if re.search(r'"(?:VGA compatible|3D|Display) controller"', row)]
+        return [name for name in names if re.search(r'\b(?:AMD|Radeon)\b', name, re.I)]
+    except (OSError, subprocess.TimeoutExpired):
         return []
 
 
