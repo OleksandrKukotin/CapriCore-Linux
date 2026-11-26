@@ -21,11 +21,7 @@ export function privateProjectPart(part) {
   return (
     part === '..' ||
     privateName.test(part) ||
-    /[:\x00-\x1f]/.test(part) ||
-    (process.platform === 'win32' &&
-      part !== '.' &&
-      (/[ .]$|[<>"|?*]/.test(part) ||
-        /^(?:aux|con|nul|prn|com[1-9¹²³]|lpt[1-9¹²³])(?:\.|$)/i.test(part)))
+    /[:\x00-\x1f]/.test(part)
   );
 }
 

@@ -3,7 +3,7 @@ import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 export const ELECTRON_RUNTIME_FILES = [
-  'electron.exe',
+  'electron',
   'icudtl.dat',
   'resources.pak',
   'v8_context_snapshot.bin',

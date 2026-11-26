@@ -3,7 +3,6 @@ import path from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { writeJsonAtomic } from '../../packages/runtime/src/atomic-json.mjs';
-import { spotifySourceHash } from './native-build.mjs';
 export function readSpotifyConfig(file) {
   const bytes = readFileSync(file);
   if (bytes.length > 2 * 1024 ** 2)
@@ -30,18 +29,9 @@ export function spotifyAccess(config, root, agentId) {
   );
 }
 export function spotifyBridgeReady(root) {
-  try {
-    const folder = path.join(root, '.runtime/spotify-bridge');
-    const build = readSpotifyConfig(path.join(folder, 'build.json'));
-    return (
-      /^[a-f0-9]{16}\/Capri\.Spotify\.exe$/.test(build.artifact ?? '') &&
-      build.sourceSha256 === spotifySourceHash(root) &&
-      existsSync(path.join(folder, build.artifact))
-    );
-  } catch {
-    return false;
+  // No Linux Spotify bridge yet (MPRIS will need no helper build).
+  return false;
   }
-}
 export function configureSpotify(existing, { root, agentId, enabled }) {
   if (typeof enabled !== 'boolean') throw new Error('Invalid Spotify permission.');
   const config = structuredClone(existing),

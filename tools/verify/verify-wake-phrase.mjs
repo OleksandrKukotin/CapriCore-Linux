@@ -39,7 +39,7 @@ writeFileSync(path.join(folder, 'synthetic-prefix.f32'), Buffer.from(await respo
 const fakeAudio = path.join(folder, 'fake-input.wav');
 const fixture = JSON.parse(
   execFileSync(
-    path.join(root, '.runtime/asr-venv/Scripts/python.exe'),
+    path.join(root, '.runtime/asr-venv/bin/python'),
     [
       '-c',
       `

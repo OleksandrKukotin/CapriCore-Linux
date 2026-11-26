@@ -17,7 +17,7 @@ export async function invokeSpotify(command, runtimeOptions) {
   });
   const result = response.result?.details;
   if (!response.ok || !result)
-    throw new Error('Spotify tool is unavailable. Run setup-spotify.cmd and start Capri.');
+    throw new Error('Spotify tool is unavailable. Start Capri with Spotify control enabled.');
   if (!result.ok)
     throw Object.assign(new Error(result.error?.message ?? 'Spotify command failed.'), {
       code: result.error?.code,

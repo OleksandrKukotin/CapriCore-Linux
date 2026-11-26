@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { execFile } from 'node:child_process';
-import { statfs } from 'node:fs/promises';
+import { readdir, readFile, statfs } from 'node:fs/promises';
 import { cpus } from 'node:os';
 import path from 'node:path';
-import { promisify } from 'node:util';
 import { memoryUsage } from '../../packages/runtime/src/hardware/memory.mjs';
-
-const run = promisify(execFile);
 
 export async function resourceDiskUsage(volumePath, readVolume = statfs) {
   try {
@@ -36,114 +32,46 @@ function loadPercent(previous, current) {
   return total > 0 && idle >= 0 && idle <= total ? (100 * (total - idle)) / total : null;
 }
 
-export function celsiusFromDecikelvin(value) {
-  if (!/^\d+$/.test(value)) return null;
-  const celsius = Number(value) / 10 - 273.15;
-  return celsius >= -20 && celsius <= 150 ? Math.round(celsius * 10) / 10 : null;
-}
+// CPU package sensors, best first: AMD (k10temp, zenpower), Intel (coretemp),
+// ARM SoCs (cpu_thermal). Labels pick the package/die reading over single cores.
+const CPU_SENSORS = ['k10temp', 'zenpower', 'coretemp', 'cpu_thermal'];
+const PACKAGE_LABEL = /^(?:Tdie|Tctl|Package id \d+)$/;
 
-const cpuTemperatureId = /^\/(?:amd|intel|generic)cpu\/\d+\/temperature\/\d+$/i;
-
-export function cpuPackageTemperature(sensors) {
+/** Choose the CPU package temperature from hwmon readings `{ chip, label, celsius }`. */
+export function cpuPackageTemperature(readings) {
   let best = null;
-  let priority = -1;
-  for (const { id, name, value } of sensors) {
-    if (!cpuTemperatureId.test(id) || typeof name !== 'string') continue;
-    const label = name.trim();
-    const rank = /^(?:CPU )?Package$|^(?:Core|CPU) \((?:Tctl\/Tdie|Tdie)\)$/i.test(label)
-      ? 2
-      : /^CPU Die \(average\)$|^Core (?:Max|Average)$/i.test(label)
-        ? 1
-        : /^(?:CPU )?Core #?\d+$|^(?:CPU )?CCD\d+ \(Tdie\)$/i.test(label)
-          ? 0
-          : -1;
-    if (rank < 0 || rank < priority) continue;
-    const formatted =
-      typeof value === 'string' && /^\s*(-?\d{1,3}(?:[.,]\d+)?)\s*(?:°C)?\s*$/u.exec(value);
-    const reading = formatted ? Number(formatted[1].replace(',', '.')) : value;
-    if (!Number.isFinite(reading) || reading < -20 || reading > 150) continue;
-    if (rank > priority || reading > best) {
-      best = reading;
-      priority = rank;
+  let bestRank = Infinity;
+  for (const { chip, label, celsius } of readings) {
+    const chipRank = CPU_SENSORS.indexOf(chip);
+    if (chipRank < 0 || !Number.isFinite(celsius) || celsius < -20 || celsius > 150) continue;
+    // Prefer Tdie over Tctl: Tctl carries a cooling offset on some Ryzen parts.
+    const labelRank = label === 'Tdie' ? 0 : PACKAGE_LABEL.test(label ?? '') ? 1 : 2;
+    const rank = chipRank * 10 + labelRank;
+    if (rank < bestRank) {
+      best = celsius;
+      bestRank = rank;
     }
   }
   return best === null ? null : Math.round(best * 10) / 10;
 }
 
-export function libreCpuTemperature(tree) {
-  const sensors = [];
-  const pending = [tree];
-  for (let inspected = 0; pending.length && inspected < 4096; inspected++) {
-    const node = pending.pop();
-    if (!node || typeof node !== 'object') continue;
-    if (node.Type === 'Temperature' && typeof node.SensorId === 'string')
-      sensors.push({ id: node.SensorId, name: node.Text, value: node.RawValue ?? node.Value });
-    if (Array.isArray(node.Children)) {
-      for (const child of node.Children) {
-        if (pending.length >= 4096) break;
-        pending.push(child);
-      }
+export async function readCpuTemperature(base = '/sys/class/hwmon') {
+  const readings = [];
+  for (const monitor of await readdir(base).catch(() => [])) {
+    const folder = path.join(base, monitor);
+    const chip = (await readFile(path.join(folder, 'name'), 'utf8').catch(() => '')).trim();
+    if (!CPU_SENSORS.includes(chip)) continue;
+    for (const entry of await readdir(folder).catch(() => [])) {
+      const match = /^temp(\d+)_input$/.exec(entry);
+      if (!match) continue;
+      const value = (await readFile(path.join(folder, entry), 'utf8').catch(() => '')).trim();
+      const label = (
+        await readFile(path.join(folder, `temp${match[1]}_label`), 'utf8').catch(() => '')
+      ).trim();
+      if (/^-?\d+$/.test(value)) readings.push({ chip, label, celsius: Number(value) / 1000 });
     }
   }
-  return cpuPackageTemperature(sensors);
-}
-
-async function readLibreCpuTemperature() {
-  try {
-    const response = await fetch('http://127.0.0.1:8085/data.json', {
-      redirect: 'error',
-      signal: AbortSignal.timeout(800),
-    });
-    if (!response.ok) {
-      await response.body?.cancel();
-      return null;
-    }
-    const chunks = [];
-    let bytes = 0;
-    for await (const chunk of response.body) {
-      bytes += chunk.byteLength;
-      if (bytes > 512 * 1024) return null;
-      chunks.push(chunk);
-    }
-    return libreCpuTemperature(JSON.parse(Buffer.concat(chunks).toString('utf8')));
-  } catch {
-    return null;
-  }
-}
-
-export async function readCpuTemperature() {
-  if (process.platform !== 'win32') return null;
-  const executable = path.join(
-    process.env.SystemRoot ?? 'C:\\Windows',
-    'System32/WindowsPowerShell/v1.0/powershell.exe',
-  );
-  // ACPI also reports skin, board and virtual zones. Use the CPU package
-  // provider when present or an explicitly CPU-named firmware zone.
-  const script = String.raw`
-    $ErrorActionPreference = 'SilentlyContinue'
-    $libre = [bool](Get-Process -Name LibreHardwareMonitor,LibreHardwareMonitor.Windows.Forms)
-    $sensors = @(foreach ($namespace in 'LibreHardwareMonitor','OpenHardwareMonitor') {
-      Get-CimInstance -Namespace "root/$namespace" -ClassName Sensor -Filter "SensorType = 'Temperature'" |
-        Where-Object Identifier -Match '^/(amd|intel|generic)cpu/\d+/temperature/\d+$' |
-        Select-Object @{Name='id';Expression={$_.Identifier}},@{Name='name';Expression={$_.Name}},@{Name='value';Expression={$_.Value}}
-    })
-    $acpi = Get-CimInstance -Namespace root/WMI -ClassName MSAcpi_ThermalZoneTemperature |
-      Where-Object { $_.Active -and $_.InstanceName -match '^ACPI\\ThermalZone\\(?:CPU(?:T|Z|TZ|\d+)?|CPUTEMP|TCPU|TZCP)(?:_\d+)?$' } |
-      Measure-Object -Property CurrentTemperature -Maximum |
-      Select-Object -ExpandProperty Maximum
-    @{libre=$libre; sensors=$sensors; acpi=[string]$acpi} | ConvertTo-Json -Compress
-  `;
-  const { stdout } = await run(
-    executable,
-    ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script],
-    { windowsHide: true, timeout: 2400, maxBuffer: 16384 },
-  );
-  const { libre, sensors, acpi } = JSON.parse(stdout);
-  return (
-    (libre ? await readLibreCpuTemperature() : null) ??
-    cpuPackageTemperature(sensors) ??
-    celsiusFromDecikelvin(acpi)
-  );
+  return cpuPackageTemperature(readings);
 }
 
 /** Sample on demand, sharing a bounded sensor read with concurrent callers. */

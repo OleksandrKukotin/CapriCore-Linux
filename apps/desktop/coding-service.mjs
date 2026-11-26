@@ -45,12 +45,17 @@ const fail = (text) => {
 const cleanEnv = () =>
   Object.fromEntries(
     Object.entries(process.env).filter(([key]) =>
-      /^(?:PATH|SystemRoot|WINDIR|TEMP|TMP|USERPROFILE|APPDATA|LOCALAPPDATA|ProgramFiles|ProgramData|COMSPEC)$/i.test(
+      /^(?:PATH|HOME|TMPDIR|LANG|LC_ALL|USER|SHELL|XDG_RUNTIME_DIR)$/.test(
         key,
       ),
     ),
   );
 const positive = (number, max) => Number.isInteger(number) && number > 0 && number <= max;
+/** A regular (non-link) file with an executable bit. */
+const executableFile = (file) => {
+  const info = lstatSync(file);
+  return info.isFile() && (info.mode & 0o111) !== 0;
+};
 
 function rangedText(result, line, endLine) {
   if (line === undefined && endLine === undefined) return result;
@@ -155,13 +160,12 @@ export class CodingService {
     if (
       value.editor &&
       (!IDE_KINDS.includes(value.editor.kind) ||
-        !path.isAbsolute(value.editor.executable) ||
-        !/\.exe$/i.test(value.editor.executable))
+        !path.isAbsolute(value.editor.executable))
     )
       fail('Choose a supported editor executable.');
     if (value.editor) {
       assertPrivatePath(value.editor.executable);
-      if (!lstatSync(value.editor.executable).isFile()) fail('Editor not found.');
+      if (!executableFile(value.editor.executable)) fail('Editor not found.');
     }
     if (!Array.isArray(value.tasks) || value.tasks.length > 12) fail('Too many project tasks.');
     const ids = new Set();
@@ -172,7 +176,6 @@ export class CodingService {
         !/^[\w -]{1,60}$/.test(task.id) ||
         ids.has(task.id) ||
         !path.isAbsolute(task.executable) ||
-        !/\.exe$/i.test(task.executable) ||
         !Array.isArray(task.args) ||
         task.args.length > 30 ||
         task.args.some(
@@ -184,9 +187,10 @@ export class CodingService {
       )
         fail('Invalid approved project task.');
       assertPrivatePath(task.executable);
-      if (!lstatSync(task.executable).isFile()) fail('Task executable not found.');
+      if (!executableFile(task.executable)) fail('Task executable not found.');
+      // Shells and launchers would turn a fixed approved task into arbitrary commands.
       if (
-        /^(?:cmd|powershell|pwsh|wscript|cscript|mshta|rundll32|regsvr32)\.exe$/i.test(
+        /^(?:sh|bash|dash|zsh|fish|ksh|csh|tcsh|busybox|env|sudo|doas|pkexec|su|xargs)$/.test(
           path.basename(task.executable),
         )
       )

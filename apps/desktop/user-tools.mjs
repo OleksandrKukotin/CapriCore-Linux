@@ -1,6 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { spawn, execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { createHash } from 'node:crypto';
 import {
   mkdir,
@@ -18,26 +16,11 @@ import { existsSync, readFileSync, lstatSync } from 'node:fs';
 import path from 'node:path';
 import { toolManifest, validateToolArguments } from './tool-manifest.mjs';
 import { writeJsonAtomic } from './storage.mjs';
-import { prepareNativeHelper } from './native-helper.mjs';
+import { platformUnavailable } from '../../packages/runtime/src/host/platform.mjs';
 const digest = (value) => createHash('sha256').update(value).digest('hex');
 const idValid = (value) => typeof value === 'string' && /^[a-z][a-z0-9_-]{0,39}$/.test(value);
 const secretPattern =
   /\b(?:sk-[a-z\d_-]{15,}|gh[pousr]_[a-z\d]{16,}|github_pat_[a-z\d_]{16,}|hf_[a-z\d]{16,})\b/gi;
-async function abortable(promise, signal) {
-  signal.throwIfAborted();
-  let abort;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise((_, reject) => {
-        abort = () => reject(signal.reason ?? new Error('Cancelled'));
-        signal.addEventListener('abort', abort, { once: true });
-      }),
-    ]);
-  } finally {
-    signal.removeEventListener('abort', abort);
-  }
-}
 async function regularBytes(file, limit) {
   const info = await lstat(file);
   if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1 || info.size > limit)
@@ -469,166 +452,11 @@ export class UserTools {
       if (runFolder) await removeRun(runFolder, this.runRoot).catch(() => {});
     }
   }
-  async isolated({ manifest, code, output, parameters, settings, inputFiles, signal, id }) {
-    if (process.platform !== 'win32')
-      throw new Error('Windows AppContainer isolation is required for user tools.');
-    const helper = await abortable(prepareNativeHelper(this.root, 'tool-sandbox'), signal);
-    const profile = 'Capri.Tool.' + digest(this.root + '\0' + id).slice(0, 24);
-    let executable, runtime, args;
-    const entry = path.join(code, ...manifest.entry.split('/'));
-    if (!existsSync(entry)) throw new Error('The tool entry file is missing.');
-    if (manifest.runtime === 'node') {
-      executable = this.node;
-      runtime = path.dirname(executable);
-      args = ['--preserve-symlinks', '--preserve-symlinks-main', entry, ...manifest.arguments];
-    } else if (manifest.runtime === 'python') {
-      const parent = path.join(this.root, '.runtime/python');
-      const candidate = (await readdir(parent))
-        .filter((name) => /^cpython-3\.11\.[\d]+-windows-x86_64-none$/.test(name))
-        .sort()
-        .at(-1);
-      if (!candidate) throw new Error('Install Capri’s Python runtime to run this tool.');
-      runtime = path.join(parent, candidate);
-      executable = path.join(runtime, 'python.exe');
-      args = ['-I', '-u', '-X', 'utf8', entry, ...manifest.arguments];
-    } else {
-      if (path.extname(entry).toLowerCase() !== '.exe')
-        throw new Error('Executable tools must use a local .exe entry.');
-      runtime = code;
-      executable = entry;
-      args = manifest.arguments;
-    }
-    for (const folder of [runtime, code, output])
-      if (
-        (await lstat(folder)).isSymbolicLink() ||
-        (await realpath(folder)) !== path.resolve(folder)
-      )
-        throw new Error('Linked runtime paths are not allowed.');
-    const windows = process.env.SystemRoot ?? 'C:\\Windows';
-    await promisify(execFile)(
-      path.join(windows, 'System32/icacls.exe'),
-      [output, '/setintegritylevel', '(OI)(CI)L', '/q'],
-      { windowsHide: true, timeout: 5000, signal },
-    );
-    signal.throwIfAborted();
-    return new Promise((resolve, reject) => {
-      // Windows resolves the AppContainer profile in the trusted launcher. The
-      // script gets a separate explicit environment block built by that launcher.
-      const child = spawn(helper, [], {
-        windowsHide: true,
-        stdio: ['pipe', 'pipe', 'ignore'],
-        env: {
-          SystemRoot: windows,
-          WINDIR: windows,
-          USERPROFILE: process.env.USERPROFILE,
-          LOCALAPPDATA: process.env.LOCALAPPDATA,
-          APPDATA: process.env.APPDATA,
-          PATH: path.join(windows, 'System32'),
-          TEMP: runRootFor(output),
-          TMP: runRootFor(output),
-        },
-      });
-      let text = '',
-        size = 0;
-      let cancelled = false,
-        killTimer;
-      const abort = () => {
-        if (cancelled) return;
-        cancelled = true;
-        child.stdin.write('stop\n');
-        killTimer = setTimeout(() => child.kill(), 2000);
-        killTimer.unref?.();
-      };
-      const timer = setTimeout(abort, manifest.timeoutMs + 7000);
-      timer.unref?.();
-      signal.addEventListener('abort', abort, { once: true });
-      child.stdin.on('error', () => {});
-      child.on('error', abort);
-      child.stdout.on('data', (chunk) => {
-        size += chunk.length;
-        if (size > 512 * 1024) abort();
-        else text += chunk.toString('utf8');
-      });
-      child.once('close', async () => {
-        clearTimeout(timer);
-        signal.removeEventListener('abort', abort);
-        clearTimeout(killTimer);
-        if (cancelled)
-          await promisify(execFile)(helper, ['--cleanup', profile], {
-            windowsHide: true,
-            timeout: 3000,
-          }).catch(() => {});
-        if (cancelled) {
-          reject(new Error('The user tool was cancelled or timed out.'));
-          return;
-        }
-        let result;
-        try {
-          result = JSON.parse(text);
-          if (result.ok !== true || result.appContainer !== true) throw new Error();
-          resolve(JSON.parse(result.output));
-        } catch {
-          const code = Number.isInteger(result?.exitCode)
-            ? ' exit ' + result.exitCode
-            : Number.isInteger(result?.code)
-              ? ' Windows ' + result.code
-              : '';
-          const stage = [
-            'request',
-            'profile',
-            'permissions',
-            'network',
-            'job',
-            'create',
-            'token',
-            'assign',
-            'run',
-          ].includes(result?.stage)
-            ? ' (' + result.stage + code + ')'
-            : code;
-          if (result?.stage === 'network') {
-            reject(
-              new Error(
-                'Windows could not enforce this tool’s network block. The tool was not started. (Windows ' +
-                  (Number.isInteger(result.code) ? result.code : 0) +
-                  ')',
-              ),
-            );
-            return;
-          }
-          const reason = [
-            'access_denied',
-            'operation_denied',
-            'module_unavailable',
-            'memory_limit',
-            'tool_exit',
-          ].includes(result?.reason)
-            ? ' ' + result.reason
-            : '';
-          reject(
-            new Error(
-              'The isolated tool failed, timed out, returned invalid JSON or was blocked by Windows.' +
-                stage +
-                reason,
-            ),
-          );
-        }
-      });
-      child.stdin.write(
-        JSON.stringify({
-          profile,
-          code,
-          output,
-          runtime,
-          executable,
-          arguments: args,
-          network: manifest.permissions.network,
-          timeoutMs: manifest.timeoutMs,
-          input:
-            JSON.stringify({ parameters, settings, inputFiles, outputDirectory: output }) + '\n',
-        }) + '\n',
-      );
-    });
+  // Tools ran in a Windows AppContainer with a job object and network block. The
+  // Linux sandbox is bubblewrap (--unshare-all --die-with-parent) inside a
+  // systemd-run scope with MemoryMax/TasksMax; see docs/linux/windows-heritage.md.
+  async isolated() {
+    throw platformUnavailable('Sandboxed user tools');
   }
   async context(text, { signal } = {}) {
     if (typeof text !== 'string') return '';
@@ -682,4 +510,3 @@ export class UserTools {
     this.cache.clear();
   }
 }
-const runRootFor = (output) => path.dirname(output);

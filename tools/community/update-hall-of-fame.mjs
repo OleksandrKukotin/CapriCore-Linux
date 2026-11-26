@@ -69,7 +69,7 @@ export function collaboratorArguments(repository, page) {
 
 export function queryCollaboratorPage(repository, page) {
   const bundled = path.join(root, '.runtime/github-cli-2.103.3/bin/gh.exe');
-  const executable = existsSync(bundled) ? bundled : process.platform === 'win32' ? 'gh.exe' : 'gh';
+  const executable = existsSync(bundled) ? bundled : 'gh';
   const environment = { ...process.env, GH_PROMPT_DISABLED: '1', GH_NO_UPDATE_NOTIFIER: '1' };
   delete environment.GH_DEBUG;
   // shell:false and validated arguments prevent a repository value becoming a

@@ -1,7 +1,14 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { initializeOwnerMemory } from './owner-memory.mjs';
 import { applyInferenceProfile } from './config/inference-profile.mjs';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  copyFileSync,
+  unlinkSync,
+} from 'node:fs';
 import path from 'node:path';
 import { root, paths } from './host/paths.mjs';
 import { settings, generationParams } from './config/settings.mjs';
@@ -230,8 +237,7 @@ export function relocateManagedPaths(existing, rt) {
   const previousRoot = path.resolve(workspace, '../..'),
     plugins = next.plugins?.load?.paths ?? [];
   const owned = ['filesystem', 'desktop-actions', 'perception', 'spotify', 'companion-tools'];
-  const normalize = (value) =>
-    process.platform === 'win32' ? path.normalize(value).toLowerCase() : path.normalize(value);
+  const normalize = (value) => path.normalize(value);
   const oldPaths = owned.map((name) => path.join(previousRoot, 'integrations', name));
   if (
     normalize(previousRoot) === normalize(root) ||
@@ -277,8 +283,11 @@ export function initialize(rt = runtime()) {
   initializeOwnerMemory(rt.workspace, {
     repairShippedDefaults: existsSync(path.join(root, '.capri-install.json')),
   });
-  if (!existsSync(rt.configPath)) writeJsonAtomic(rt.configPath, createGatewayConfiguration(rt));
-  else {
+  if (!existsSync(rt.configPath)) {
+    const fresh = createGatewayConfiguration(rt);
+    applyMemoryAvailability(fresh, rt);
+    writeJsonAtomic(rt.configPath, fresh);
+  } else {
     const previous = JSON.parse(readFileSync(rt.configPath, 'utf8')),
       next = relocateManagedPaths(previous, rt);
     next.logging = {
@@ -333,10 +342,32 @@ export function initialize(rt = runtime()) {
       copyFileSync(rt.configPath, path.join(backups, `context-window-${randomUUID()}.json`));
     }
     applyInferenceProfile(next, rt, settings);
+    applyMemoryAvailability(next, rt);
     if (JSON.stringify(previous) !== JSON.stringify(next)) writeJsonAtomic(rt.configPath, next);
   }
   return rt;
 }
+
+/**
+ * Turn memory search off while its local embedding service is unavailable, and
+ * back on only once core startup confirms it works again (rt.localMemory ===
+ * true), and only if Capri was the one that turned it off. Other callers leave
+ * the setting alone.
+ */
+export function applyMemoryAvailability(config, rt, marker = memorySuspensionMarker(rt)) {
+  const search = config.memory?.search;
+  if (!search) return;
+  if (rt.localMemory === false) {
+    if (search.enabled !== false) {
+      search.enabled = false;
+      writeJsonAtomic(marker, { suspended: true });
+    }
+  } else if (rt.localMemory === true && existsSync(marker)) {
+    search.enabled = true;
+    unlinkSync(marker);
+  }
+}
+const memorySuspensionMarker = (rt) => path.join(rt.stateDir, 'memory-search-suspended.json');
 export function headers(rt = runtime()) {
   return {
     authorization: `Bearer ${readFileSync(rt.tokenPath, 'utf8').trim()}`,
@@ -347,10 +378,16 @@ export function headers(rt = runtime()) {
 export function personaPrompt(rt = runtime(), { personality, style } = {}) {
   // Older installations retain their editable profile. Neutralize the exact
   // factory wording on the way to the model, including for read-only profiles.
-  const promptPersonality = (personality ?? readPersonality(rt.workspace)).replace(
-    /^You are Capri, a fictional personal companion inspired by Cyberpunk: Edgerunners 2, living in the owner's Windows desktop\. Speak in the first person and in the conversation language selected by the interface\. Be present in the conversation: respond as Capri, rather than explaining how somebody could portray her\.(?=\r?$)/m,
-    "You are Capri, a fictional personal companion inspired by Cyberpunk: Edgerunners 2, living in the owner's Windows desktop. Speak in the first person. Be present in the conversation: respond as Capri, rather than explaining how somebody could portray her.",
-  );
+  const promptPersonality = (personality ?? readPersonality(rt.workspace))
+    .replace(
+      /^You are Capri, a fictional personal companion inspired by Cyberpunk: Edgerunners 2, living in the owner's (?:Windows|Linux) desktop\. Speak in the first person and in the conversation language selected by the interface\. Be present in the conversation: respond as Capri, rather than explaining how somebody could portray her\.(?=\r?$)/m,
+      "You are Capri, a fictional personal companion inspired by Cyberpunk: Edgerunners 2, living in the owner's Linux desktop. Speak in the first person. Be present in the conversation: respond as Capri, rather than explaining how somebody could portray her.",
+    )
+    // Unedited profiles from the Windows releases still describe the old platform.
+    .replace(
+      /^(You are Capri, a fictional personal companion inspired by Cyberpunk: Edgerunners 2, living in the owner's) Windows desktop\./m,
+      '$1 Linux desktop.',
+    );
   return (
     PERSONALITY_PROMPT_HEADER +
     '\n' +

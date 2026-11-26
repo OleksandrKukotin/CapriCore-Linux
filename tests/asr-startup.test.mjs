@@ -24,7 +24,7 @@ function fixture(t) {
     mkdirSync(path.dirname(target), { recursive: true });
     writeFileSync(target, content);
   };
-  file('.runtime/asr-venv/Scripts/python.exe', 'fixture');
+  file('.runtime/asr-venv/bin/python', 'fixture');
   const child = new EventEmitter();
   for (const channel of ['stdin', 'stdout', 'stderr']) child[channel] = new PassThrough();
   child.kill = () => {};

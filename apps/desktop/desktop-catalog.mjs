@@ -28,19 +28,19 @@ function regular(file, allowHardlinks = false) {
     if (existsSync(cursor) && lstatSync(cursor).isSymbolicLink())
       throw new Error('Linked paths are not supported.');
   const stat = lstatSync(absolute);
-  if (!stat.isFile() || (!allowHardlinks && stat.nlink !== 1) || absolute.startsWith('\\\\'))
+  if (!stat.isFile() || (!allowHardlinks && stat.nlink !== 1))
     throw new Error('Choose a regular local file.');
   return { file: realpathSync(absolute), stat };
 }
 function executable(file) {
-  if (
-    typeof file !== 'string' ||
-    !path.isAbsolute(file) ||
-    path.extname(file).toLowerCase() !== '.exe'
-  )
-    throw new Error('Choose a local .exe application.');
-  // Launching a fixed local .exe does not modify its file or other hard links.
-  return regular(file, true).file;
+  if (typeof file !== 'string' || !path.isAbsolute(file))
+    throw new Error('Choose a local application.');
+  // Package launchers are often links (/usr/bin/firefox); record their target.
+  // Launching a fixed local executable does not modify it or other hard links.
+  const target = realpathSync(file);
+  const { stat } = regular(target, true);
+  if ((stat.mode & 0o111) === 0) throw new Error('Choose an executable application.');
+  return target;
 }
 /** Owner-selected executables only. Native controls are short-lived inspection capabilities. */
 export class DesktopCatalog {

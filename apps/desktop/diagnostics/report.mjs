@@ -54,12 +54,11 @@ async function tail(base, relative, limit = 256 * KB, binary = false) {
     realpath(file),
     realpath(boundary),
   ]);
-  const normalized = (s) => (process.platform === 'win32' ? s.toLowerCase() : s);
   if (
-    normalized(parent) !== normalized(boundary) ||
+    parent !== boundary ||
     !info.isFile() ||
     info.isSymbolicLink() ||
-    !normalized(actual).startsWith(normalized(parent + path.sep))
+    !actual.startsWith(parent + path.sep)
   )
     throw new Error('Linked or invalid diagnostic source');
   const handle = await open(file, 'r');
@@ -103,7 +102,7 @@ const failure = (error) => ({
 });
 
 export async function probeVoiceEnvironment(root) {
-  const executable = path.join(root, '.runtime/voice-training-venv/Scripts/python.exe');
+  const executable = path.join(root, '.runtime/voice-training-venv/bin/python');
   try {
     if (!(await lstat(executable)).isFile())
       return { available: false, error: 'Voice Python is missing' };
@@ -143,9 +142,7 @@ export async function createDiagnosticReport({
   versions = process.versions,
   hardware = probeHardware,
   pythonProbe = probeVoiceEnvironment,
-  installerDirectory = process.env.LOCALAPPDATA
-    ? path.join(process.env.LOCALAPPDATA, 'Capri/Installer')
-    : null,
+  installerDirectory = null,
   health = async () => ({ available: false, error: 'Health check not provided' }),
   resourceProbe = async () => ({ available: false }),
 }) {
@@ -252,7 +249,7 @@ export async function createDiagnosticReport({
   }
   const voiceFiles = await Promise.all(
     [
-      '.runtime/voice-training-venv/Scripts/python.exe',
+      '.runtime/voice-training-venv/bin/python',
       ...(voiceConfig.profileDir
         ? [
             'voice-profile.json',
@@ -362,7 +359,7 @@ export async function createDiagnosticReport({
     files: voiceFiles.map((item, index) => ({
       ...item,
       file:
-        item.file === '.runtime/voice-training-venv/Scripts/python.exe'
+        item.file === '.runtime/voice-training-venv/bin/python'
           ? item.file
           : `voice-component-${index}`,
     })),
@@ -375,8 +372,7 @@ export async function createDiagnosticReport({
       try {
         const actual = await realpath(base);
         if (
-          (process.platform === 'win32' ? actual.toLowerCase() : actual) !==
-          (process.platform === 'win32' ? path.resolve(base).toLowerCase() : path.resolve(base))
+          actual !== path.resolve(base)
         )
           throw new Error('Linked diagnostic directory');
         const list = await readdir(base, { withFileTypes: true }),

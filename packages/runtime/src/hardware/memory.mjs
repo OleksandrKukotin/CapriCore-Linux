@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { freemem, totalmem } from 'node:os';
 import { execFile } from 'node:child_process';
+import { readdirSync, readFileSync } from 'node:fs';
 import { promisify } from 'node:util';
 import path from 'node:path';
 import { findExecutable } from '../host/paths.mjs';
-import { windowsGpuSampler } from './windows-gpu.mjs';
+import { drmCards, readDrmCard } from './probe.mjs';
 
 const run = promisify(execFile);
 const MiB = 1024 ** 2;
@@ -55,11 +56,7 @@ export function parseGpuMemory(stdout, { telemetry = false } = {}) {
     });
 }
 async function readNvidiaMemory() {
-  const executable = findExecutable('nvidia-smi', {
-    extra: [
-      process.env.SystemRoot ? path.join(process.env.SystemRoot, 'System32/nvidia-smi.exe') : null,
-    ],
-  });
+  const executable = findExecutable('nvidia-smi');
   if (!executable) return [];
   const { stdout } = await run(
     executable,
@@ -67,18 +64,60 @@ async function readNvidiaMemory() {
       '--query-gpu=index,uuid,name,memory.total,memory.free,temperature.gpu,utilization.gpu',
       '--format=csv,noheader,nounits',
     ],
-    { windowsHide: true, timeout: 2500, maxBuffer: 65536 },
+    { timeout: 2500, maxBuffer: 65536 },
   );
   return parseGpuMemory(stdout, { telemetry: true });
 }
 
-export function mergeGpuReadings(nvidia, windows) {
-  return [...nvidia, ...windows.filter((gpu) => gpu.vendor !== 'nvidia' || !nvidia.length)];
+/**
+ * Live readings from DRM sysfs. amdgpu reports VRAM use, busy percent and a
+ * hwmon temperature; other drivers expose no memory counters and are skipped.
+ */
+export function readDrmMemory(base = '/sys/class/drm') {
+  const number = (file) => {
+    try {
+      const text = readFileSync(file, 'utf8').trim();
+      return /^\d+$/.test(text) ? Number(text) : null;
+    } catch {
+      return null;
+    }
+  };
+  return drmCards(base).flatMap((card) => {
+    const device = path.join(base, card, 'device');
+    const adapter = readDrmCard(base, card);
+    const total = number(path.join(device, 'mem_info_vram_total'));
+    const used = number(path.join(device, 'mem_info_vram_used'));
+    if (!adapter || total === null || used === null || used > total) return [];
+    let temperature = null;
+    try {
+      const monitor = readdirSync(path.join(device, 'hwmon'))[0];
+      const milli = monitor && number(path.join(device, 'hwmon', monitor, 'temp1_input'));
+      if (milli !== null && milli >= -20000 && milli <= 150000) temperature = milli / 1000;
+    } catch {
+      /* No hwmon sensor for this card. */
+    }
+    const busy = number(path.join(device, 'gpu_busy_percent'));
+    return [
+      {
+        id: 'drm-' + card,
+        name: adapter.name,
+        vendor: adapter.vendor,
+        memoryKind: adapter.memoryKind,
+        ...memoryUsage(total, total - used),
+        utilization: busy !== null && busy <= 100 ? busy : null,
+        temperatureCelsius: temperature,
+      },
+    ];
+  });
+}
+
+export function mergeGpuReadings(nvidia, native) {
+  return [...nvidia, ...native.filter((gpu) => gpu.vendor !== 'nvidia' || !nvidia.length)];
 }
 async function readGpuMemory() {
   const [driver, native] = await Promise.allSettled([
     readNvidiaMemory(),
-    process.platform === 'win32' ? windowsGpuSampler.sample() : Promise.resolve([]),
+    Promise.resolve().then(() => readDrmMemory()),
   ]);
   return mergeGpuReadings(
     driver.status === 'fulfilled' ? driver.value : [],

@@ -64,7 +64,7 @@ export async function startCompanionVoice({ language = 'en', signal, modelId } =
   const deviceKey = voiceDevicePreference(readModelDevices(root).voice, selected.backend);
   const { python, env: runtimeEnv } = voiceRuntime(root, selected, deviceKey);
   if (!existsSync(python))
-    throw new Error('Install the voice environment with setup-voice-training.cmd.');
+    throw new Error('Install the voice environment first.');
   const marker = managedProcess('companion-voice');
   if (marker && (marker.deviceKey ?? 'auto') !== deviceKey) await stopManaged('companion-voice');
   if (requiresPrivacyRestart(managedProcess('companion-voice')))
@@ -153,7 +153,7 @@ export async function startCompanionVoice({ language = 'en', signal, modelId } =
   )
     throw voiceStartupFailure(
       'CAPRI_VOICE_START_PROFILE_MISMATCH',
-      'Running voice service does not match the selected profile. Restart Capri with stop.cmd.',
+      'Running voice service does not match the selected profile. Restart Capri (npm stop).',
     );
   return result;
 }

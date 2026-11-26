@@ -135,11 +135,10 @@ export class YouTubeMusicService {
   constructor({
     root,
     openExternal,
-    platform = process.platform,
     prepare = prepareNativeHelper,
     run = nativeCommand,
   }) {
-    Object.assign(this, { root, openExternal, platform, prepare, run });
+    Object.assign(this, { root, openExternal, prepare, run });
     this.lifetime = new AbortController();
     this.tail = Promise.resolve();
     this.calls = new Map();
@@ -172,74 +171,10 @@ export class YouTubeMusicService {
     return task;
   }
 
-  async perform(command, signal) {
+  async perform(_command, signal) {
     signal.throwIfAborted();
-    if (this.platform !== 'win32') return { ok: false, status: 'unsupported' };
-    const { action, query } = command;
-    const mayNavigate = navigationActions.has(action);
-    let helper;
-    try {
-      helper = await this.prepare(this.root, 'youtube-music', [
-        'WPF/UIAutomationClient.dll',
-        'WPF/UIAutomationTypes.dll',
-        'WPF/WindowsBase.dll',
-        'System.Web.dll',
-      ]);
-    } catch {
-      signal.throwIfAborted();
-      return { ok: false, status: 'helper_unavailable' };
-    }
-    signal.throwIfAborted();
-    try {
-      const previous = this.binding;
-      let result = await this.run(
-        helper,
-        previous ? { ...command, binding: previous } : command,
-        signal,
-      );
-      if (previous && result.status === 'tab_not_found') {
-        this.binding = undefined;
-        // A lost binding is reported before the helper changes a document.
-        // Transport controls still belong to the tab where playback was established.
-        if (action === 'status' || mayNavigate) result = await this.run(helper, command, signal);
-      }
-      // The browser can accept the previous launch before its tab is visible to UI Automation.
-      let remaining = this.browserLaunchPendingUntil - performance.now();
-      while (mayNavigate && result.status === 'tab_not_found' && remaining > 0) {
-        await delay(Math.min(250, remaining), undefined, { signal });
-        result = await this.run(helper, command, signal);
-        remaining = this.browserLaunchPendingUntil - performance.now();
-      }
-      if (mayNavigate && result.status === 'tab_not_found') {
-        signal.throwIfAborted();
-        try {
-          await this.openExternal(query ? searchUrl(query) : home);
-        } catch {
-          signal.throwIfAborted();
-          return { ok: false, status: 'browser_open_failed' };
-        }
-        this.browserLaunchPendingUntil = performance.now() + browserLaunchGraceMs;
-        signal.throwIfAborted();
-        if (action !== 'play')
-          return { ok: true, status: action === 'open' ? 'opened' : 'search_opened' };
-        result = await this.run(helper, { ...command, waitForSearch: true }, signal);
-      }
-      const { binding, ...details } = result;
-      // Keep follow-up controls with the exact browser document that was verified.
-      if (details.ok && binding) {
-        this.binding = binding;
-        this.browserLaunchPendingUntil = 0;
-      }
-      return details;
-    } catch {
-      signal.throwIfAborted();
-      if (action === 'play' || action === 'start')
-        return { ok: false, status: 'playback_unverified' };
-      return {
-        ok: false,
-        status: action === 'status' ? 'helper_unavailable' : 'control_unverified',
-      };
-    }
+    // Browser tab control used a Windows helper; MPRIS from the browser replaces it.
+    return { ok: false, status: 'unsupported' };
   }
 
   close() {

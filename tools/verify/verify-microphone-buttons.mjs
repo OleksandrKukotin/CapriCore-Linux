@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { _electron } from 'playwright-core';
@@ -79,18 +79,13 @@ try {
     });
     const pid = await app.evaluate(() => process.pid);
     const workers = () =>
-      JSON.parse(
-        execFileSync(
-          'powershell.exe',
-          [
-            '-NoProfile',
-            '-NonInteractive',
-            '-Command',
-            `ConvertTo-Json -Compress -InputObject @(Get-CimInstance Win32_Process | Where-Object { $_.ParentProcessId -eq ${pid} -and $_.CommandLine -match 'integrations[.]asr_runtime[.]worker' } | Select-Object -ExpandProperty ProcessId)`,
-          ],
-          { windowsHide: true, encoding: 'utf8' },
-        ),
-      );
+      // Direct children of the desktop process running the ASR worker.
+      spawnSync('pgrep', ['-P', String(pid), '-f', 'integrations[.]asr_runtime[.]worker'], {
+        encoding: 'utf8',
+      })
+        .stdout.split('\n')
+        .filter(Boolean)
+        .map(Number);
     const page = await app.firstWindow();
     page.on('pageerror', (error) => errors.push(error.message));
     await page.waitForFunction(() => document.body.dataset.phase === 'ready');

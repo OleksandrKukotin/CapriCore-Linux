@@ -8,7 +8,6 @@ import { LlamaWorkers } from '../src/providers/llama-workers.mjs';
 import { launch, stopProcess } from '../src/host/processes.mjs';
 import { root, paths, requireExecutable } from '../src/host/paths.mjs';
 import { llamaPath } from '../src/host/executables.mjs';
-import { createLlamaRuntimeView, llamaBundleReady } from '../src/host/llama-bundle.mjs';
 import { settings } from '../src/config/settings.mjs';
 
 const executable = requireExecutable(llamaPath, 'llama.cpp');
@@ -20,20 +19,19 @@ if (device && device !== 'unavailable' && !/^Vulkan\d{1,2}$/.test(device))
   throw new Error('Invalid local Vulkan device.');
 const overheadMiB = Number(process.env.CAPRI_LLAMA_RESERVE_MIB) || 768;
 if (overheadMiB < 0 || overheadMiB > 8192) throw new Error('Invalid local VRAM reserve.');
+// Workers get a clean environment: only what the loader and the Vulkan ICDs need.
 const env = {};
 for (const key of [
-  'SystemRoot',
-  'WINDIR',
   'PATH',
-  'PATHEXT',
-  'TEMP',
-  'TMP',
-  'USERPROFILE',
-  'LOCALAPPDATA',
+  'HOME',
+  'TMPDIR',
+  'LD_LIBRARY_PATH',
+  'XDG_RUNTIME_DIR',
+  'VK_ICD_FILENAMES',
+  'VK_DRIVER_FILES',
+  'VK_ADD_DRIVER_FILES',
 ])
   if (process.env[key]) env[key] = process.env[key];
-const canIsolate = process.platform === 'win32' && llamaBundleReady(executable);
-const views = new Map();
 
 const roleName = (role) => (role === 'chat' ? 'llama-chat' : 'llama-embedding');
 // A crash may leave an owned native worker. Validate its saved process identity
@@ -45,22 +43,9 @@ const workers = new LlamaWorkers({
     process.env.CAPRI_LLAMA_FORCE_CPU === '1' ? { ...settings, acceleration: 'cpu' } : settings,
   device,
   overheadMiB,
-  canRetryIllegalInstruction: canIsolate,
-  start: async (role, args, extra, { allowGpu, baseline }) => {
+  start: async (role, args, extra) => {
     const name = roleName(role);
-    let target = executable;
-    if (canIsolate && (!allowGpu || baseline)) {
-      const key = `${allowGpu}:${baseline}`;
-      if (!views.has(key))
-        views.set(
-          key,
-          createLlamaRuntimeView(executable, path.join(paths.cache, 'llama-worker-runtime'), {
-            allowGpu,
-            baseline,
-          }),
-        );
-      target = views.get(key).executable;
-    }
+    const target = executable;
     const directory = path.dirname(target);
     let ended = false;
     const exit = Promise.withResolvers();
@@ -69,7 +54,12 @@ const workers = new LlamaWorkers({
       await launch(name, target, args, undefined, {
         cwd: directory,
         cleanEnv: true,
-        env: { ...env, ...extra, PATH: [directory, env.PATH ?? ''].join(path.delimiter) },
+        env: {
+          ...env,
+          ...extra,
+          // Release bundles keep libllama/libggml* beside the executable.
+          LD_LIBRARY_PATH: [directory, env.LD_LIBRARY_PATH ?? ''].filter(Boolean).join(path.delimiter),
+        },
         onExit: (code) => {
           ended = true;
           exit.resolve(code);
@@ -103,7 +93,6 @@ const close = () => {
   server.closeAllConnections();
   closing = workers.close().then(
     () => {
-      for (const view of views.values()) view.remove();
       process.exitCode = 0;
     },
     () => {

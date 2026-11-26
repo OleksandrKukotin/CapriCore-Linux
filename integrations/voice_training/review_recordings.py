@@ -106,9 +106,6 @@ def main():
         source = json.loads(sys.stdin.read(32768))['source']
         if '--transcribe-recordings' in sys.argv:
             import contextlib
-            from integrations.asr_runtime.native_runtime import load_sherpa_runtime
-
-            _runtime = load_sherpa_runtime()
             from integrations.asr_runtime.model import ParakeetRecognizer, settings
 
             with contextlib.redirect_stdout(sys.stderr):

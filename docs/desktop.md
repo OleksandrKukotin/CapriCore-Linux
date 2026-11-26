@@ -9,7 +9,7 @@ a larger local model.
 
 ## Start and talk
 
-Complete the [installation wizard](installation-wizard.md), then open
+Complete the [installation wizard](installation.md), then open
 **Capri.exe** or its shortcut. A first model load can take longer than subsequent
 replies. The microphone and Capri's voice start **off**; installing their packs
 does not enable or load them automatically.

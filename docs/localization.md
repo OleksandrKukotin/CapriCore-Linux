@@ -3,7 +3,7 @@
 The Windows Setup.exe also includes all 50 interface languages. Its language is
 chosen on the Welcome page and is independent of the conversation/voice language.
 The initial selection follows the Windows UI culture, with English fallback.
-See [installer localization](installation-wizard.md#installer-localization).
+See [installer localization](installation.md).
 
 The desktop has 50 interface locales. Open Menu → Languages… → Interface language, then apply. Language names appear in their own language, with English kept first for recovery. Interface changes apply immediately and persist on restart. They do not change conversation language, recognition, the voice, microphone permissions, file permissions or owner memory. UI-only changes also work when a speech model is absent.
 

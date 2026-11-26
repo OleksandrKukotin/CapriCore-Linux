@@ -27,6 +27,20 @@ export function discordFrame(opcode, body) {
 }
 
 /** Local RPC only: no account token and no conversation-dependent activity. */
+/** Discord's IPC sockets: native, Flatpak and Snap builds, ids 0-9 each. */
+export function discordIpcPaths(env = process.env) {
+  const runtime = env.XDG_RUNTIME_DIR;
+  const directories = [
+    ...(runtime
+      ? [runtime, `${runtime}/app/com.discordapp.Discord`, `${runtime}/snap.discord`]
+      : []),
+    env.TMPDIR || '/tmp',
+  ];
+  return directories.flatMap((directory) =>
+    Array.from({ length: 10 }, (_, index) => `${directory}/discord-ipc-${index}`),
+  );
+}
+
 export class DiscordPresence {
   constructor({
     preferences,
@@ -83,7 +97,7 @@ export class DiscordPresence {
       this.publish('setup-required');
       return;
     }
-    if (this.platform !== 'win32') {
+    if (this.platform !== 'linux') {
       this.publish('unavailable');
       return;
     }
@@ -92,7 +106,8 @@ export class DiscordPresence {
   }
   tryPipe(index, epoch) {
     if (epoch !== this.epoch) return;
-    const socket = this.connect({ path: '\\\\?\\pipe\\discord-ipc-' + index });
+    const candidates = discordIpcPaths();
+    const socket = this.connect({ path: candidates[index] });
     this.socket = socket;
     let buffer = Buffer.alloc(0),
       ended = false,
@@ -103,7 +118,7 @@ export class DiscordPresence {
       socket.destroy();
       if (epoch !== this.epoch) return;
       this.socket = null;
-      if (!ready && index < 9) {
+      if (!ready && index < candidates.length - 1) {
         this.tryPipe(index + 1, epoch);
         return;
       }

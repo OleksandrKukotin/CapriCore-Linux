@@ -66,7 +66,7 @@ export const DESKTOP_SCHEMA = {
       type: 'string',
       maxLength: 2048,
       description:
-        'For launch_executable: exact local .exe path returned by find_app or explicitly supplied by the owner. No arguments.',
+        'For launch_executable: exact local executable path returned by find_app or explicitly supplied by the owner. No arguments.',
     },
     goal: {
       type: 'string',

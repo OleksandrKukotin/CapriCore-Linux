@@ -69,9 +69,9 @@ export class ResolveAdapter {
     signal?.throwIfAborted();
     if (!this.allowed()) throw Error('Computer access was revoked.');
     const executable = native.resolveExecutable;
-    if (!executable || path.basename(executable).toLowerCase() !== 'resolve.exe')
-      return { available: false };
-    const interpreter = path.join(path.dirname(executable), 'fuscript.exe');
+    // DaVinci Resolve for Linux installs /opt/resolve/bin/resolve with fuscript beside it.
+    if (!executable || path.basename(executable) !== 'resolve') return { available: false };
+    const interpreter = path.join(path.dirname(executable), 'fuscript');
     if (!existsSync(interpreter)) return { available: false };
     const live = await this.bridge({ action: 'computer_state' }, { signal });
     if (

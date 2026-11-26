@@ -1,11 +1,11 @@
 import { availableParallelism, totalmem, freemem, cpus, platform, arch, release } from 'node:os';
 import { execFile } from 'node:child_process';
+import { readdirSync, readFileSync } from 'node:fs';
 import { promisify } from 'node:util';
 import path from 'node:path';
-import { findExecutable, root } from '../host/paths.mjs';
+import { findExecutable } from '../host/paths.mjs';
 const run = promisify(execFile);
-const probeOptions = { windowsHide: true, timeout: 5000, maxBuffer: 65536, encoding: 'utf8' };
-const inventoryFile = path.join(root, 'packages/installer/windows/gpu-inventory.ps1');
+const probeOptions = { timeout: 5000, maxBuffer: 65536, encoding: 'utf8' };
 const softwareAdapter =
   /\b(?:software|microsoft basic render|microsoft remote display|remote display adapter)\b/i;
 const memoryMiB = (value) =>
@@ -45,37 +45,91 @@ const freeMemoryMiB = (value, total) =>
   value <= total
     ? value
     : null;
-function windowsAdapter(value) {
-  if (!value || typeof value !== 'object' || value.software === true || value.remote === true)
-    return null;
-  const name = gpuName(value.name);
-  if (!name) return null;
-  const vramMiB = memoryMiB(value.vramMiB);
-  const memoryKind =
-    vramMiB !== null && ['dedicated', 'shared'].includes(value.memoryKind)
-      ? value.memoryKind
-      : 'unknown';
-  const luid = luidOf(value.luid);
+const PCI_VENDORS = { '0x1002': 'amd', '0x10de': 'nvidia', '0x8086': 'intel' };
+const MiB = 1024 * 1024;
+/** An APU's carve-out is small next to its GTT window; both are system RAM. */
+const SHARED_CARVEOUT_MiB = 2048;
+
+/**
+ * Normalize one DRM card read from sysfs. Only amdgpu reports VRAM size and use;
+ * other drivers (i915/xe integrated, nouveau) stay 'unknown' unless integrated.
+ */
+export function drmAdapter({ vendorId, deviceId, name, vramBytes, vramUsedBytes, gttBytes }) {
+  const vendor = PCI_VENDORS[String(vendorId).toLowerCase()] ?? 'unknown';
+  const label = gpuName(name) ?? gpuName(`${vendor.toUpperCase()} GPU [${vendorId}:${deviceId}]`);
+  if (!label) return null;
+  const vramMiB = memoryMiB(Math.floor(Number(vramBytes) / MiB));
+  const gttMiB = memoryMiB(Math.floor(Number(gttBytes) / MiB));
+  const integrated =
+    vendor === 'intel' ||
+    (vramMiB !== null && vramMiB <= SHARED_CARVEOUT_MiB && gttMiB !== null && gttMiB > vramMiB);
+  const memoryKind = integrated ? 'shared' : vramMiB !== null ? 'dedicated' : 'unknown';
+  const used = memoryMiB(Math.floor(Number(vramUsedBytes) / MiB));
   return {
-    name,
-    vendor: vendorOf(value.vendor, name),
-    vramMiB,
+    name: label,
+    vendor,
+    vramMiB: memoryKind === 'unknown' ? null : vramMiB,
     memoryKind,
-    luid,
     freeVramMiB:
-      memoryKind === 'dedicated' && luid ? freeMemoryMiB(value.freeVramMiB, vramMiB) : null,
+      memoryKind === 'dedicated' && used !== null ? freeMemoryMiB(vramMiB - used, vramMiB) : null,
     cudaCandidate: false,
   };
 }
-/** Only a successful DXGI envelope can establish capacity; a valid empty list is authoritative. */
-export function parseWindowsGpuInventory(text) {
-  const value = JSON.parse(typeof text === 'string' ? text.replace(/^\uFEFF/, '').trim() : '');
-  if (value?.success !== true || !Array.isArray(value.adapters) || value.adapters.length > 64)
-    throw new Error('Windows dedicated GPU inventory unavailable');
-  const adapters = value.adapters.map(windowsAdapter).filter(Boolean);
-  return adapters.filter(
-    (gpu, index) => !gpu.luid || adapters.findIndex((item) => item.luid === gpu.luid) === index,
-  );
+
+/** Device names from the system PCI database (hwdata), when it is installed. */
+function pciName(vendorId, deviceId, file = '/usr/share/hwdata/pci.ids') {
+  try {
+    const vendor = vendorId.replace(/^0x/, '').toLowerCase();
+    const device = deviceId.replace(/^0x/, '').toLowerCase();
+    const lines = readFileSync(file, 'utf8').split('\n');
+    const start = lines.findIndex((line) => line.startsWith(vendor + '  '));
+    if (start < 0) return null;
+    for (const line of lines.slice(start + 1)) {
+      if (!line.startsWith('\t')) break;
+      if (line.startsWith('\t' + device + '  ')) return line.slice(device.length + 3).trim();
+    }
+  } catch {
+    /* hwdata is optional. */
+  }
+  return null;
+}
+
+const readText = (file) => {
+  try {
+    return readFileSync(file, 'utf8').trim();
+  } catch {
+    return null;
+  }
+};
+
+/** One DRM card (for example `card1`), or null when it is not a PCI GPU. */
+export function readDrmCard(base, card) {
+  const device = path.join(base, card, 'device');
+  const vendorId = readText(path.join(device, 'vendor'));
+  const deviceId = readText(path.join(device, 'device'));
+  if (!vendorId || !deviceId) return null;
+  return drmAdapter({
+    vendorId,
+    deviceId,
+    name: pciName(vendorId, deviceId),
+    vramBytes: readText(path.join(device, 'mem_info_vram_total')),
+    vramUsedBytes: readText(path.join(device, 'mem_info_vram_used')),
+    gttBytes: readText(path.join(device, 'mem_info_gtt_total')),
+  });
+}
+
+export function drmCards(base = '/sys/class/drm') {
+  try {
+    return readdirSync(base).filter((entry) => /^card\d+$/.test(entry));
+  } catch {
+    return [];
+  }
+}
+
+export function readDrmInventory(base = '/sys/class/drm') {
+  return drmCards(base)
+    .map((card) => readDrmCard(base, card))
+    .filter(Boolean);
 }
 export function parseNvidia(text) {
   if (typeof text !== 'string') return [];
@@ -111,8 +165,8 @@ const nameKey = (name) =>
     .replace(/^nvidia\s+/i, '')
     .toLowerCase();
 /** Keep each physical adapter separate; NVIDIA's driver-reported total takes precedence. */
-export function mergeGpuInventory(windows, nvidia) {
-  const remaining = [...windows];
+export function mergeGpuInventory(native, nvidia) {
+  const remaining = [...native];
   const drivers = [...nvidia];
   const merged = [];
   const join = (gpu, native) => ({
@@ -126,7 +180,7 @@ export function mergeGpuInventory(windows, nvidia) {
     drivers.splice(drivers.indexOf(gpu), 1);
     remaining.splice(remaining.indexOf(native), 1);
   };
-  // Driver order and DXGI order need not agree, even for the same model name.
+  // Driver order and sysfs order need not agree, even for the same model name.
   for (const gpu of [...drivers]) {
     const luid = luidOf(gpu.luid);
     const native = luid && remaining.find((item) => item.vendor === 'nvidia' && item.luid === luid);
@@ -208,6 +262,7 @@ export async function probeHardware({
   platform: hostPlatform = platform(),
   arch: hostArch = arch(),
   env = process.env,
+  readGpus = readDrmInventory,
 } = {}) {
   const report = {
     platform: hostPlatform,
@@ -220,11 +275,7 @@ export async function probeHardware({
     gpus: [],
     warnings: [],
   };
-  const nvidia = locateExecutable('nvidia-smi', {
-    env,
-    platform: hostPlatform,
-    extra: [env.SystemRoot ? path.join(env.SystemRoot, 'System32/nvidia-smi.exe') : null],
-  });
+  const nvidia = locateExecutable('nvidia-smi', { env, platform: hostPlatform });
   const queryNvidia = async () => {
     if (!nvidia) return [];
     try {
@@ -239,72 +290,13 @@ export async function probeHardware({
       return [];
     }
   };
-  const queryWindows = async () => {
-    if (report.platform !== 'win32') return [];
-    const powershell =
-      locateExecutable('powershell', {
-        env,
-        platform: hostPlatform,
-        extra: [
-          env.SystemRoot
-            ? path.join(env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe')
-            : null,
-        ],
-      }) ?? 'powershell.exe';
-    try {
-      const { stdout } = await runCommand(
-        powershell,
-        [
-          '-NoProfile',
-          '-NonInteractive',
-          '-ExecutionPolicy',
-          'Bypass',
-          '-File',
-          inventoryFile,
-          '-Json',
-        ],
-        { ...probeOptions, env },
-      );
-      return parseWindowsGpuInventory(stdout);
-    } catch {
-      report.warnings.push(
-        'Windows dedicated GPU inventory unavailable; other memory sizes are unknown.',
-      );
-    }
-    try {
-      const { stdout } = await runCommand(
-        powershell,
-        [
-          '-NoProfile',
-          '-NonInteractive',
-          '-Command',
-          '@(Get-CimInstance Win32_VideoController -ErrorAction Stop | Select-Object -ExpandProperty Name) | ConvertTo-Json -Compress',
-        ],
-        { ...probeOptions, env },
-      );
-      const names = JSON.parse(stdout);
-      const gpus = [];
-      for (const value of Array.isArray(names) ? names : [names]) {
-        const name = gpuName(value);
-        if (name && !gpus.some((gpu) => nameKey(gpu.name) === nameKey(name)))
-          gpus.push({
-            name,
-            vendor: vendorOf(null, name),
-            vramMiB: null,
-            memoryKind: 'unknown',
-            freeVramMiB: null,
-            cudaCandidate: false,
-          });
-      }
-      return gpus;
-    } catch {
-      report.warnings.push('Windows GPU inventory unavailable; no memory sizes are assumed.');
-      return [];
-    }
-  };
-  const [nvidiaGpus, windowsGpus] = await Promise.all([queryNvidia(), queryWindows()]);
-  report.gpus = mergeGpuInventory(windowsGpus, nvidiaGpus);
-  if (report.platform !== 'win32' || report.arch !== 'x64')
-    report.warnings.push('The desktop is currently qualified for Windows x64 only.');
+  const nvidiaGpus = await queryNvidia();
+  // The NVIDIA driver row is authoritative; sysfs has no VRAM facts for it.
+  const nativeGpus = readGpus().filter(
+    (gpu) => !(gpu.vendor === 'nvidia' && nvidiaGpus.length),
+  );
+  report.gpus = mergeGpuInventory(nativeGpus, nvidiaGpus);
+  if (report.platform !== 'linux' || report.arch !== 'x64')
+    report.warnings.push('The desktop is currently qualified for Linux x64 only.');
   return report;
 }

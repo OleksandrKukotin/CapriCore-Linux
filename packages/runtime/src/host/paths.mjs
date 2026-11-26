@@ -20,14 +20,11 @@ const isFile = (file) => {
 
 export function findExecutable(
   name,
-  { env = process.env, platform = process.platform, extra = [] } = {},
+  { env = process.env, extra = [] } = {},
 ) {
-  const extension = platform === 'win32' ? '.exe' : '';
-  const folders = (env.PATH ?? env.Path ?? '')
-    .split(platform === 'win32' ? ';' : ':')
-    .filter(Boolean);
+  const folders = (env.PATH ?? '').split(':').filter(Boolean);
   return (
-    [...extra, ...folders.map((folder) => path.join(folder, name + extension))].find(
+    [...extra, ...folders.map((folder) => path.join(folder, name))].find(
       (file) => file && isFile(file),
     ) ?? null
   );
@@ -35,7 +32,7 @@ export function findExecutable(
 
 export function resolveExecutables(
   settings,
-  { env = process.env, executable = process.execPath, platform = process.platform } = {},
+  { env = process.env, executable = process.execPath } = {},
 ) {
   const explicit = (variable, fallback) => {
     if (!env[variable]) return fallback;
@@ -43,21 +40,19 @@ export function resolveExecutables(
       throw new Error(variable + ' must point to an existing executable.');
     return env[variable];
   };
-  const bundledNode = path.join(paths.cache, `node-v${settings.nodeVersion}-win-x64/node.exe`);
+  const bundledNode = path.join(paths.cache, `node-v${settings.nodeVersion}-linux-x64/bin/node`);
   const node = explicit(
     'CAPRI_NODE_PATH',
     findExecutable('node', {
       env,
-      platform,
-      extra: [/^node(?:\.exe)?$/i.test(path.basename(executable)) ? executable : null, bundledNode],
+      extra: [path.basename(executable) === 'node' ? executable : null, bundledNode],
     }),
   );
   const llama = explicit(
     'CAPRI_LLAMA_PATH',
     findExecutable('llama-server', {
       env,
-      platform,
-      extra: [path.join(paths.cache, `llama-${settings.llamaVersion}-vulkan/llama-server.exe`)],
+      extra: [path.join(paths.cache, `llama-${settings.llamaVersion}-vulkan/llama-server`)],
     }),
   );
   return Object.freeze({

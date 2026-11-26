@@ -1,3 +1,4 @@
+import { inheritedEnvironment } from '../../packages/runtime/src/host/python.mjs';
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -33,16 +34,12 @@ export class RequestRouter {
   start() {
     if (this.closed || this.failed || !this.config.enabled) return Promise.resolve(false);
     if (this.startPromise) return this.startPromise;
-    const python = path.join(this.root, '.runtime/router-venv/Scripts/python.exe');
+    const python = path.join(this.root, '.runtime/router-venv/bin/python');
     if (!this.exists(python)) return Promise.resolve(false);
     this.startPromise = new Promise((resolve) => {
       this.resolveStart = resolve;
     });
-    const env = Object.fromEntries(
-      ['SystemRoot', 'WINDIR', 'PATH', 'TEMP', 'TMP', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA']
-        .filter((name) => process.env[name])
-        .map((name) => [name, process.env[name]]),
-    );
+    const env = inheritedEnvironment();
     Object.assign(env, {
       PYTHONUTF8: '1',
       PYTHONIOENCODING: 'utf-8',

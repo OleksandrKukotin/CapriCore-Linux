@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { execFile } from 'node:child_process';
-import { existsSync, lstatSync, mkdirSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
-import { release } from 'node:os';
-import { promisify } from 'node:util';
+import { platformUnavailable } from '../../packages/runtime/src/host/platform.mjs';
 import packs from '../../config/npu-models.json' with { type: 'json' };
 import {
   downloadArtifact,
@@ -14,112 +20,45 @@ import {
 import { NpuInference, npuPython } from '../../packages/runtime/src/providers/npu-inference.mjs';
 import { readNpuSettings } from '../../packages/runtime/src/providers/npu-settings.mjs';
 
-const run = promisify(execFile);
-const powershell = (args, options) =>
-  run(
-    path.join(
-      process.env.SystemRoot ?? 'C:/Windows',
-      'System32/WindowsPowerShell/v1.0/powershell.exe',
-    ),
-    ['-NoProfile', '-NonInteractive', ...args],
-    { windowsHide: true, maxBuffer: 256 * 1024, ...options },
-  );
-const amdRuntimeRequired = 'Install AMD Ryzen AI Software 1.9 or newer, then refresh devices.';
-const driverRequired = 'Install or enable the NPU driver in Windows, then refresh devices.';
-const windowsRequired = 'This NPU setup requires a newer version of Windows 11.';
+const amdRuntimeRequired = 'Install AMD Ryzen AI Software for Linux, then refresh devices.';
+const driverRequired = 'Load the NPU kernel driver (intel_vpu or amdxdna), then refresh devices.';
 const labels = { openvino: 'Intel NPU', vitis: 'AMD Ryzen AI NPU', qnn: 'Qualcomm NPU' };
 const installLinks = {
-  openvino: 'https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html',
-  vitis: 'https://ryzenai.docs.amd.com/en/latest/inst.html',
+  openvino: 'https://github.com/intel/linux-npu-driver',
+  vitis: 'https://ryzenai.docs.amd.com/en/latest/linux.html',
 };
-const windowsBuild = () => Number(release().split('.').at(-1));
-const amdNpuId = /VEN_1022&DEV_(?:1502|17F0|17F2|17F3|1B0B|1B0C)\b/i;
+const NPU_DRIVERS = { intel_vpu: 'openvino', amdxdna: 'vitis' };
 
-export function identifyNpus(rows) {
+/** NPUs bound to a kernel accel driver, read from `/sys/class/accel`. */
+export function discoverNpus(base = '/sys/class/accel') {
+  let devices;
+  try {
+    devices = readdirSync(base).filter((name) => /^accel\d+$/.test(name));
+  } catch {
+    return [];
+  }
   const found = new Map();
-  for (const row of rows) {
-    const id = String(row.PNPDeviceID ?? '');
-    const name = String(row.Name ?? '');
-    const accelerator = row.PNPClass === 'ComputeAccelerator';
-    const npuName = /\b(?:NPU|IPU Device|XDNA|AI Boost)\b/i.test(name);
-    if (!accelerator && !npuName && !amdNpuId.test(id)) continue;
-    const backend =
-      /VEN_1022&|AMDI[0-9A-F]{4}/i.test(id) || /\b(?:AMD|Ryzen)\b/i.test(name)
-        ? 'vitis'
-        : /VEN_8086&/i.test(id) || /\bIntel\b/i.test(name)
-          ? 'openvino'
-          : null;
-    if (!backend) continue;
-    const driverReady = row.ConfigManagerErrorCode === 0;
-    found.set(backend, Boolean(found.get(backend)) || driverReady);
+  for (const device of devices) {
+    try {
+      const uevent = readFileSync(path.join(base, device, 'device/uevent'), 'utf8');
+      const backend = NPU_DRIVERS[/^DRIVER=(.+)$/m.exec(uevent)?.[1]];
+      // A bound driver is what makes the accel node exist; it is ready to use.
+      if (backend) found.set(backend, true);
+    } catch {
+      /* A device without readable metadata is not offered. */
+    }
   }
   return [...found].map(([backend, driverReady]) => ({ backend, driverReady }));
 }
 
-export async function discoverNpus() {
-  if (process.platform !== 'win32' || process.arch !== 'x64') return [];
-  try {
-    const { stdout } = await powershell(
-      [
-        '-Command',
-        'Get-CimInstance Win32_PnPEntity -Filter "Present = TRUE" | ' +
-          'Where-Object { $_.PNPClass -eq "ComputeAccelerator" -or ' +
-          String.raw`$_.Name -match "\b(NPU|IPU Device|XDNA|AI Boost)\b" -or ` +
-          '$_.PNPDeviceID -match "' +
-          amdNpuId.source +
-          '" } | ' +
-          'Select-Object PNPClass,PNPDeviceID,Name,ConfigManagerErrorCode | ConvertTo-Json -Compress',
-      ],
-      { timeout: 6500 },
-    );
-    const rows = stdout.trim() ? JSON.parse(stdout) : [];
-    return identifyNpus(Array.isArray(rows) ? rows : [rows]);
-  } catch {
-    return [];
-  }
-}
-
+/** Ryzen AI Software ships its own Python; a configured path is used when present. */
 function officialAmdPython() {
-  const base = path.join(
-    process.env.ProgramW6432 ?? process.env.ProgramFiles ?? 'C:/Program Files',
-    'RyzenAI',
-  );
-  try {
-    for (const entry of readdirSync(noLinks(base), { withFileTypes: true })
-      .filter(
-        (item) =>
-          item.isDirectory() &&
-          /^ryzen-ai-(?:1\.(?:9|\d{2,})|[2-9]\d*\.\d+)\.\d+$/i.test(item.name),
-      )
-      .sort((left, right) => right.name.localeCompare(left.name, 'en', { numeric: true }))) {
-      const python = path.join(base, entry.name, 'Scripts/python.exe');
-      try {
-        const info = lstatSync(noLinks(python));
-        if (info.isFile()) return python;
-      } catch (error) {
-        if (error.code !== 'ENOENT') throw error;
-      }
-    }
-  } catch {
-    // Unreadable vendor locations are never used to launch an interpreter.
-  }
   return '';
 }
 
-export async function prepareIntelNpu(root) {
-  await powershell(
-    [
-      '-ExecutionPolicy',
-      'Bypass',
-      '-File',
-      path.join(root, 'tools/setup/setup-npu.ps1'),
-      '-ProjectRoot',
-      root,
-    ],
-    { timeout: 900000 },
-  ).catch(() => {
-    throw new Error('Intel NPU runtime preparation failed. Check the connection and try again.');
-  });
+export async function prepareIntelNpu() {
+  // The OpenVINO venv recipe is in docs/linux/windows-heritage.md ("Python runtime provisioning").
+  throw platformUnavailable('Intel NPU runtime preparation');
 }
 
 async function downloadPack(root, backend, pack, onProgress, download = downloadArtifact) {
@@ -174,7 +113,6 @@ export class NpuSetupService {
     root,
     discover = discoverNpus,
     amdPython = officialAmdPython,
-    build = windowsBuild,
     installIntel = prepareIntelNpu,
     downloadModel = downloadPack,
     Inference = NpuInference,
@@ -183,7 +121,6 @@ export class NpuSetupService {
       root,
       discover,
       amdPython,
-      build,
       installIntel,
       downloadModel,
       Inference,
@@ -205,11 +142,9 @@ export class NpuSetupService {
         const pack = packs[backend];
         const prerequisite = !driverReady
           ? driverRequired
-          : this.build() < (backend === 'vitis' ? 26100 : 22621)
-            ? windowsRequired
-            : backend === 'vitis' && !this.amdPython()
-              ? amdRuntimeRequired
-              : null;
+          : backend === 'vitis' && !this.amdPython()
+            ? amdRuntimeRequired
+            : null;
         return {
           id: 'npu-setup-' + backend,
           name: labels[backend],
@@ -219,8 +154,7 @@ export class NpuSetupService {
           model: pack.name,
           bytes: pack.files.reduce((sum, file) => sum + file.bytes, 0),
           reason: prerequisite,
-          installLink:
-            prerequisite !== windowsRequired && Boolean(prerequisite && installLinks[backend]),
+          installLink: Boolean(prerequisite && installLinks[backend]),
         };
       });
     if (saved)

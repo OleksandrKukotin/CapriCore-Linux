@@ -10,10 +10,11 @@ export function runCommand(
 ) {
   signal?.throwIfAborted();
   return new Promise((resolve, reject) => {
+    // Its own process group, so cancellation reaches every descendant (pip, uv, git).
     const child = spawn(executable, args, {
       cwd,
       env,
-      windowsHide: true,
+      detached: true,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let tail = '',
@@ -22,12 +23,11 @@ export function runCommand(
       terminationTimer;
     const kill = () => {
       if (child.exitCode !== null || !child.pid) return;
-      if (process.platform === 'win32')
-        spawn('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {
-          windowsHide: true,
-          stdio: 'ignore',
-        }).unref();
-      else child.kill('SIGTERM');
+      try {
+        process.kill(-child.pid, 'SIGTERM');
+      } catch {
+        child.kill('SIGTERM');
+      }
     };
     const terminate = (error) => {
       if (terminationError) return;

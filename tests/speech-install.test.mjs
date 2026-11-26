@@ -11,9 +11,6 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { spawn } from 'node:child_process';
-import { setTimeout as delay } from 'node:timers/promises';
-import { processStartedAt } from '../packages/runtime/src/host/processes.mjs';
 import { root } from '../packages/runtime/src/host/paths.mjs';
 import {
   installSpeechComponents,
@@ -26,6 +23,7 @@ import { cacheBundledVoicePack } from '../packages/installer/src/voice-pack.mjs'
 import { listReleases } from '../packages/updater/src/github.mjs';
 import { downloadUpdate } from '../packages/updater/src/download.mjs';
 import { REPOSITORY } from '../packages/updater/src/releases.mjs';
+import { fakePythonToolchain } from './fixtures/fake-python-toolchain.mjs';
 
 function fixture() {
   const parent = path.join(root, '.runtime/speech-install-unit');
@@ -34,31 +32,12 @@ function fixture() {
   mkdirSync(path.join(folder, 'config'), { recursive: true });
   for (const file of [
     'companion-asr.json',
-    'installer.json',
     'companion-voice.json',
     'voice-upstream.json',
     'release.json',
   ])
     copyFileSync(path.join(root, 'config', file), path.join(folder, 'config', file));
   return folder;
-}
-function unpackCommand(args) {
-  const component = args[args.indexOf('-Component') + 1];
-  const names = {
-    archive: 'archive.ps1',
-    voice: 'setup-voice-training.ps1',
-    multilingual: 'setup-multilingual-voice.ps1',
-    'recognition-en': 'setup-streaming-asr.ps1',
-    'recognition-multi': 'setup-multilingual-asr.ps1',
-    'recognition-fast-multi': 'setup-fast-multilingual-asr.ps1',
-  };
-  assert.equal(path.basename(args[args.indexOf('-File') + 1]), 'owned-speech.ps1');
-  return [
-    names[component],
-    ...JSON.parse(
-      Buffer.from(args[args.indexOf('-ArgumentsBase64') + 1], 'base64').toString('utf8'),
-    ),
-  ];
 }
 function publicVoiceRepair({ credential = async () => null, releases, signal } = {}) {
   const folder = fixture();
@@ -99,13 +78,17 @@ function publicVoiceRepair({ credential = async () => null, releases, signal } =
     assert.equal(url.pathname, `/repos/${REPOSITORY}/releases/assets/42`);
     return new Response(bytes);
   };
+  const tools = fakePythonToolchain(folder, {
+    onRun: (_file, args) => {
+      if (args.includes('download')) ready = true;
+    },
+  });
   const options = {
     root: folder,
-    node: process.execPath,
     free: () => 20 * 2 ** 30,
-    ownerStamp: () => '1',
     voiceReady: () => ready,
     hardware: async () => ({ gpus: [{ vendor: 'NVIDIA' }] }),
+    gitAvailable: () => true,
     credential,
     signal,
     releases:
@@ -116,43 +99,32 @@ function publicVoiceRepair({ credential = async () => null, releases, signal } =
       }),
     downloadPack: (asset, destination, options) =>
       downloadUpdate(asset, destination, { ...options, fetchImpl }),
-    download: async () => 'verified-runtime-fixture.zip',
-    execute: async (_file, command) => {
-      const args = unpackCommand(command);
-      if (args[0] === 'archive.ps1') {
-        const destination = args[args.indexOf('-Destination') + 1];
-        if (destination.includes('speech-packs')) {
-          mkdirSync(path.join(destination, 'references'), { recursive: true });
-          writeFileSync(path.join(destination, 'adapter.json'), '{}');
-          writeFileSync(path.join(destination, 'adapter.safetensors'), 'adapter fixture');
-          writeFileSync(path.join(destination, 'references/neutral.wav'), 'reference fixture');
-          writeFileSync(
-            path.join(destination, 'voice-profile.json'),
-            JSON.stringify({
-              schemaVersion: 1,
-              id: 'capri-en-v1',
-              language: 'en',
-              engine: 'chatterbox-turbo',
-              baseModel: model,
-              adapter: 'adapter.safetensors',
-              adapterConfig: 'adapter.json',
-              adapterSha256: hash('adapter fixture'),
-              references: {
-                neutral: { file: 'references/neutral.wav', sha256: hash('reference fixture') },
-              },
-            }),
-          );
-        } else {
-          const executable = path.join(
-            destination,
-            destination.endsWith('git') ? 'cmd/git.exe' : 'uv.exe',
-          );
-          mkdirSync(path.dirname(executable), { recursive: true });
-          writeFileSync(executable, 'synthetic runtime fixture');
-        }
-      }
-      if (args[0] === 'setup-voice-training.ps1') ready = true;
+    extract: async (_archive, destination, { maximumBytes }) => {
+      assert.equal(maximumBytes, 256 * 1024 ** 2);
+      assert(destination.includes('speech-packs'));
+      mkdirSync(path.join(destination, 'references'), { recursive: true });
+      writeFileSync(path.join(destination, 'adapter.json'), '{}');
+      writeFileSync(path.join(destination, 'adapter.safetensors'), 'adapter fixture');
+      writeFileSync(path.join(destination, 'references/neutral.wav'), 'reference fixture');
+      writeFileSync(
+        path.join(destination, 'voice-profile.json'),
+        JSON.stringify({
+          schemaVersion: 1,
+          id: 'capri-en-v1',
+          language: 'en',
+          engine: 'chatterbox-turbo',
+          baseModel: model,
+          adapter: 'adapter.safetensors',
+          adapterConfig: 'adapter.json',
+          adapterSha256: hash('adapter fixture'),
+          references: {
+            neutral: { file: 'references/neutral.wav', sha256: hash('reference fixture') },
+          },
+        }),
+      );
     },
+    execute: tools.execute,
+    findUv: tools.findUv,
   };
   return {
     folder,
@@ -284,44 +256,33 @@ test('component repair releases its lock on invalid configuration and never inst
   assert.equal(existsSync(path.join(folder, '.runtime/installer/install.lock.json')), false);
 });
 test('recognition-only installation downloads the necessary recognizer without voice dependencies', async (t) => {
-  for (const [language, setup] of [
-    ['en', 'setup-streaming-asr.ps1'],
-    ['pt-BR', 'setup-fast-multilingual-asr.ps1'],
+  for (const [language, script] of [
+    ['en', /provision-streaming-asr/],
+    ['pt-BR', /provision-multilingual-candidates/],
   ])
     await t.test(language, async () => {
-      const folder = fixture(),
-        commands = [];
+      const folder = fixture();
       let ready = false;
+      const tools = fakePythonToolchain(folder, {
+        onRun: (_file, args) => {
+          if (args.some((v) => script.test(v))) ready = true;
+        },
+      });
       await installSpeechComponents(
         { speech: 'off', recognition: language },
         {
           root: folder,
-          node: process.execPath,
           free: () => 4 * 2 ** 30,
-          ownerStamp: () => '1',
           hardware: () => {
             throw new Error('GPU probe must not run');
           },
           recognitionReady: () => ready,
-          download: async () => 'verified-fixture.zip',
-          execute: async (file, args) => {
-            args = unpackCommand(args);
-            commands.push(args);
-            if (args.some((v) => v.endsWith('archive.ps1'))) {
-              mkdirSync(path.join(folder, '.runtime/uv'), { recursive: true });
-              writeFileSync(path.join(folder, '.runtime/uv/uv.exe'), 'fixture');
-            }
-            if (args.some((v) => v.endsWith(setup))) ready = true;
-          },
+          execute: tools.execute,
+          findUv: tools.findUv,
         },
       );
       assert.equal(ready, true);
-      assert.equal(
-        commands.some((args) =>
-          args.some((v) => /voice-training|multilingual-voice|setup-multilingual-asr/.test(v)),
-        ),
-        false,
-      );
+      assert.equal(tools.ran(/voice-training|select-voice-runtime|^whisper$/).length, 0);
     });
 });
 test('speech preflight reports required and available space before downloading', async () => {
@@ -333,8 +294,9 @@ test('speech preflight reports required and available space before downloading',
         node: process.execPath,
         hardware: async () => ({ gpus: [{ vendor: 'NVIDIA' }] }),
         voiceReady: () => false,
+        gitAvailable: () => true,
         free: () => 2 * 2 ** 30,
-        download: () => assert.fail('must check disk space before downloading'),
+        execute: () => assert.fail('must check disk space before running anything'),
       },
     ),
     { code: 'CAPRI_DISK_SPACE', message: /Required: .* GiB\. Available: 2\.00 GiB/ },
@@ -377,123 +339,48 @@ test('non-English installation prepares the voice environment and the selected m
     'The included seed must not overwrite editable voice exports',
   );
   let ready = false;
+  const tools = fakePythonToolchain(folder, {
+    onRun: (_file, args) => {
+      if (args.includes('tts')) ready = true;
+    },
+  });
   await installSpeechComponents(
     { speech: 'pt', recognition: 'off' },
     {
       root: folder,
-      node: process.execPath,
       free: () => 14 * 2 ** 30,
       voiceReady: () => ready,
-      ownerStamp: () => '1',
       hardware: async () => ({ gpus: [{ vendor: 'NVIDIA' }] }),
-      download: async () => 'verified-fixture.zip',
+      gitAvailable: () => true,
       releases: () => {
         throw new Error('An installed profile must not require GitHub');
       },
-      execute: async (file, args) => {
-        args = unpackCommand(args);
-        calls.push(args);
-        if (args.some((v) => v.endsWith('archive.ps1'))) {
-          const destination = args[args.indexOf('-Destination') + 1];
-          const exe = path.join(
-            destination,
-            destination.endsWith('git') ? 'cmd/git.exe' : 'uv.exe',
-          );
-          mkdirSync(path.dirname(exe), { recursive: true });
-          writeFileSync(exe, 'fixture');
-        }
-        if (args.some((v) => v.endsWith('setup-multilingual-voice.ps1'))) ready = true;
-      },
+      execute: tools.execute,
+      findUv: tools.findUv,
     },
   );
-  const dependencies = calls.find((args) =>
-    args.some((v) => v.endsWith('setup-voice-training.ps1')),
-  );
-  assert.equal(dependencies.includes('-DependenciesOnly'), true);
-  const multilingual = calls.find((args) =>
-    args.some((v) => v.endsWith('setup-multilingual-voice.ps1')),
-  );
-  assert.equal(multilingual.at(-1), 'pt');
-  assert.equal(
-    calls.some((args) => args.some((v) => /setup-multilingual-asr|capri.mjs/.test(v))),
-    false,
+  assert.equal(tools.ran(/uv-retry/).length, 1, 'voice dependencies are installed');
+  assert.equal(tools.ran(/^doctor$|^download$/).length, 0, 'dependencies only, no English weights');
+  const [multilingual] = tools.ran(/provision-multilingual\.py/);
+  assert.deepEqual(multilingual.args.slice(-4), ['--component', 'tts', '--language', 'pt']);
+  assert.equal(tools.ran(/provision-streaming-asr|capri\.mjs/).length, 0);
+});
+test('voice installation stops with an actionable error when git is missing', async () => {
+  await assert.rejects(
+    installSpeechComponents(
+      { speech: 'en', recognition: 'off' },
+      {
+        root: fixture(),
+        voiceReady: () => false,
+        hardware: async () => ({ gpus: [{ vendor: 'NVIDIA' }] }),
+        gitAvailable: () => false,
+        free: () => assert.fail('git is checked before storage'),
+        execute: () => assert.fail('nothing runs without git'),
+      },
+    ),
+    { code: 'CAPRI_GIT_REQUIRED' },
   );
 });
-test(
-  'native speech command stops when its exact Capri owner exits',
-  { skip: process.platform !== 'win32', timeout: 30000 },
-  async () => {
-    const folder = fixture();
-    for (const name of [
-      'tools/setup/owned-speech.ps1',
-      'packages/installer/windows/speech-owner.cs',
-    ]) {
-      const target = path.join(folder, name);
-      mkdirSync(path.dirname(target), { recursive: true });
-      copyFileSync(path.join(root, name), target);
-    }
-    const marker = path.join(folder, 'worker-started');
-    writeFileSync(
-      path.join(folder, 'tools/setup/setup-voice-training.ps1'),
-      "param([switch]$DependenciesOnly); if(-not $DependenciesOnly){throw 'The named dependency-only switch was lost'}; [IO.File]::WriteAllText((Join-Path $PSScriptRoot '../../worker-started'),'started'); Start-Sleep -Seconds 30",
-    );
-    const owner = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], {
-      windowsHide: true,
-      stdio: 'ignore',
-    });
-    let worker,
-      closed = false,
-      errorOutput = '';
-    try {
-      await new Promise((resolve, reject) => {
-        owner.once('spawn', resolve);
-        owner.once('error', reject);
-      });
-      const stamp = processStartedAt(owner.pid);
-      assert.match(stamp, /^[0-9]+$/);
-      worker = spawn(
-        'powershell.exe',
-        [
-          '-NoProfile',
-          '-NonInteractive',
-          '-ExecutionPolicy',
-          'Bypass',
-          '-File',
-          path.join(folder, 'tools/setup/owned-speech.ps1'),
-          '-Component',
-          'voice',
-          '-OwnerPid',
-          String(owner.pid),
-          '-OwnerStamp',
-          stamp,
-          '-ArgumentsBase64',
-          Buffer.from(JSON.stringify(['-DependenciesOnly'])).toString('base64'),
-        ],
-        { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] },
-      );
-      worker.stderr.on('data', (chunk) => {
-        errorOutput = (errorOutput + chunk.toString()).slice(-4000);
-      });
-      worker.once('exit', () => {
-        closed = true;
-      });
-      const deadline = Date.now() + 12000;
-      while (!existsSync(marker) && !closed && Date.now() < deadline) await delay(50);
-      assert.equal(
-        existsSync(marker),
-        true,
-        'The owned fixture must start before owner-loss verification: ' + errorOutput,
-      );
-      owner.kill();
-      const stopDeadline = Date.now() + 8000;
-      while (!closed && Date.now() < stopDeadline) await delay(50);
-      assert.equal(closed, true, 'No unattended speech command may survive its owner');
-    } finally {
-      if (owner.exitCode === null) owner.kill();
-      if (worker && !closed) worker.kill();
-    }
-  },
-);
 test('speech progress reconnects, cancellation stops the owned task, and retry completes without changing user settings', async () => {
   const folder = fixture(),
     events = [];
@@ -622,12 +509,9 @@ test('French voice on an unsupported Radeon stops before disk or network work wi
         ...options,
         voiceReady: () => false,
         hardware: async () => ({
-          platform: 'win32',
-          osRelease: '10.0.26100',
           gpus: [{ vendor: 'amd', name: 'AMD Radeon RX 6700 XT' }],
         }),
         free: () => assert.fail('Unsupported GPU is checked before storage.'),
-        download: () => assert.fail('Unsupported GPU must not download CUDA or model files.'),
         execute: () => assert.fail('Unsupported GPU must not run any voice runtime.'),
       }),
   });

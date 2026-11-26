@@ -125,7 +125,7 @@ try {
   await sendEvent({
     type: 'voice.error',
     message:
-      'The selected voice could not start. Text replies remain available. Check setup-multilingual.cmd.',
+      'The selected voice could not start. Text replies remain available. Check the installed voice components.',
   });
   await page.locator('#notice-report').waitFor({ state: 'visible' });
   assert.equal(await page.locator('#notice').getAttribute('data-severity'), 'error');

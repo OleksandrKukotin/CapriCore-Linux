@@ -11,7 +11,7 @@ class MissingSpeechModel(ValueError):
     """Safe diagnostic code: no recording, text, credentials or machine paths."""
     def __init__(self, component, filename, reason='missing'):
         self.component, self.filename, self.reason = component, filename, reason
-        super().__init__(f'{component} model file {filename} is {reason}; run setup-multilingual.cmd')
+        super().__init__(f'{component} model file {filename} is {reason}; reinstall the multilingual speech components')
 
 
 def verified_model(component):

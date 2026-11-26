@@ -40,7 +40,7 @@ export async function githubCredential(root, env = process.env) {
   if (existsSync(runtimes))
     for (const name of readdirSync(runtimes))
       if (/^github-cli-[0-9.]+$/.test(name))
-        candidates.push(path.join(runtimes, name, 'bin/gh.exe'));
+        candidates.push(path.join(runtimes, name, 'bin/gh'));
   for (const file of candidates) {
     try {
       const { stdout } = await execute(file, ['auth', 'token', '--hostname', 'github.com'], {

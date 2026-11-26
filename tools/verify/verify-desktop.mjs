@@ -16,7 +16,6 @@ import {
   chat as coreChat,
 } from '../../packages/runtime/src/index.mjs';
 import { loadAvatarCatalog, ACTIVE_AVATAR_CATALOG } from '../../apps/desktop/avatar-catalog.mjs';
-import { ensureDesktopIdentity } from '../../packages/runtime/src/host/desktop-identity.mjs';
 
 const real = process.argv.includes('--real');
 const routing = process.argv.includes('--routing');
@@ -26,7 +25,7 @@ const folder = mkdtempSync(path.join(folderRoot, real ? 'real-' : 'fixture-'));
 const require = createRequire(import.meta.url);
 const executablePath = process.argv.includes('--unbranded')
   ? require('electron')
-  : await ensureDesktopIdentity(require('electron'));
+  : require('electron');
 const report = { timestamp: new Date().toISOString(), realModel: real, checks: [], folder };
 const record = (name, detail = {}) => {
   report.checks.push({ name, passed: true, ...detail });

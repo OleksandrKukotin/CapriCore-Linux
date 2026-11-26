@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { pointInRect, resizeWindowBounds, spriteDragHit, spritePressKind } from '../geometry.mjs';
+import { platformFeatures } from '../platform-features.mjs';
 
 export const WINDOW_MOTION_INTERVAL_MS = 8;
 const POINTER_POLL_INTERVAL_MS = 16;
@@ -16,6 +17,7 @@ export class PointerController {
     placeDrag = (bounds) => bounds,
     verification = false,
     now = Date.now,
+    passthrough = platformFeatures.pointerPassthrough,
   }) {
     Object.assign(this, {
       window,
@@ -27,10 +29,12 @@ export class PointerController {
       placeDrag,
       verification,
       now,
+      passthrough,
     });
     this.drag = null;
     this.avatarPress = null;
-    this.ignored = true;
+    // Matches createSecureWindow: click-through from the start only with passthrough.
+    this.ignored = passthrough;
   }
   beginWindow(resize) {
     this.endAvatar();
@@ -82,6 +86,8 @@ export class PointerController {
     this.endAvatar();
   }
   setInteractive(interactive) {
+    // Without passthrough the window must never stop receiving the mouse.
+    interactive ||= !this.passthrough;
     if (this.ignored === interactive) {
       this.ignored = !interactive;
       this.window.setIgnoreMouseEvents(this.ignored, { forward: true });

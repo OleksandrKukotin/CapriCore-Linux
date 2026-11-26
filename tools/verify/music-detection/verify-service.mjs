@@ -12,7 +12,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const assetRoot = path.resolve(process.argv[2] ?? root);
 const fixture = path.join(assetRoot, '.runtime/music-detection-research');
 const data = path.join(fixture, 'benchmark');
-const python = path.join(assetRoot, '.runtime/router-venv/Scripts/python.exe');
+const python = path.join(assetRoot, '.runtime/router-venv/bin/python');
 assert(existsSync(python), 'Install the existing CPU router runtime first.');
 
 function readPcm16(name, seconds = 10) {
@@ -74,11 +74,14 @@ const service = new MusicListeningService({
     assert(
       Object.keys(options.env).every((key) =>
         [
-          'SystemRoot',
-          'WINDIR',
           'PATH',
-          'TEMP',
-          'TMP',
+          'HOME',
+          'TMPDIR',
+          'LANG',
+          'LC_ALL',
+          'LD_LIBRARY_PATH',
+          'XDG_RUNTIME_DIR',
+          'XDG_CACHE_HOME',
           'PYTHONUTF8',
           'PYTHONIOENCODING',
           'PYTHONDONTWRITEBYTECODE',

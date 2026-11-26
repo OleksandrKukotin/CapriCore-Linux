@@ -5,7 +5,6 @@ import { promisify } from 'node:util';
 import { root, paths } from './host/paths.mjs';
 import { initialize } from './context.mjs';
 import { launch, managedProcess } from './host/processes.mjs';
-import { ensureDesktopIdentity } from './host/desktop-identity.mjs';
 import { runtime } from './context.mjs';
 import { electronBundleReady } from './host/electron-bundle.mjs';
 import { updateBlocksStartup } from './host/update-state.mjs';
@@ -33,10 +32,8 @@ export async function startDesktop({ wait = false } = {}) {
     throw new Error(
       'An update is in progress or was interrupted. Wait for it to finish, or repair this folder with the full installer.',
     );
-  if (process.platform !== 'win32' || process.arch !== 'x64')
-    throw new Error(
-      'This desktop preview currently targets Windows x64. Runtime unit tests also run on Linux.',
-    );
+  if (process.platform !== 'linux' || process.arch !== 'x64')
+    throw new Error('This desktop preview currently targets Linux x64.');
   if (!existsSync(path.join(root, 'config/core.local.json')))
     throw new Error('Run npm run setup first to choose a hardware profile.');
   const existing = managedProcess('desktop');
@@ -53,8 +50,7 @@ export async function startDesktop({ wait = false } = {}) {
     );
   const rt = runtime();
   initialize(rt);
-  let executable = path.join(root, 'node_modules/electron/dist/electron.exe');
-  executable = await ensureDesktopIdentity(executable);
+  const executable = path.join(root, 'node_modules/electron/dist/electron');
   for (const action of ['stop', 'show'])
     try {
       unlinkSync(path.join(paths.data, 'run', `desktop.${action}`));

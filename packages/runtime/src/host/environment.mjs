@@ -9,7 +9,7 @@ export function environment(rt = runtime()) {
   const directories = [nodePath].filter(Boolean).map((file) => path.dirname(file));
   return {
     ...process.env,
-    PATH: [...directories, process.env.PATH ?? process.env.Path ?? ''].join(path.delimiter),
+    PATH: [...directories, process.env.PATH ?? ''].join(path.delimiter),
     CAPRI_NODE_PATH: nodePath ?? '',
     OPENCLAW_STATE_DIR: rt.stateDir,
     OPENCLAW_CONFIG_PATH: rt.configPath,
@@ -21,8 +21,7 @@ export function environment(rt = runtime()) {
     CAPRI_CPU_THREADS: String(
       Math.max(1, Math.min(settings.cpuThreads ?? 8, availableParallelism())),
     ),
-    TEMP: path.join(paths.cache, 'tmp'),
-    TMP: path.join(paths.cache, 'tmp'),
+    TMPDIR: path.join(paths.cache, 'tmp'),
     PYTHONUTF8: '1',
     PYTHONIOENCODING: 'utf-8',
     GIT_CEILING_DIRECTORIES: path.dirname(rt.workspace),

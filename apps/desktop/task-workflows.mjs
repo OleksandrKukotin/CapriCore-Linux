@@ -34,8 +34,6 @@ export function validateWorkflow(value) {
       !actions.has(step.action) ||
       typeof step.executable !== 'string' ||
       !path.isAbsolute(step.executable) ||
-      !step.executable.toLowerCase().endsWith('.exe') ||
-      step.executable.startsWith('\\\\') ||
       !Number.isInteger(step.delayMs) ||
       step.delayMs < 0 ||
       step.delayMs > 3000
@@ -162,25 +160,12 @@ export class TaskWorkflows {
   async start() {
     if (this.recorder || this.playing)
       throw new Error('Stop the current workflow operation first.');
-    const executable = await prepareNativeHelper(this.root, 'task-recorder', [
-      'System.Windows.Forms.dll',
-      'WPF/UIAutomationClient.dll',
-      'WPF/UIAutomationTypes.dll',
-      'WPF/WindowsBase.dll',
-    ]);
+    const executable = await prepareNativeHelper(this.root, 'task-recorder');
     if (this.closed) throw new Error('Workflows are closed.');
     this.draft = [];
-    const windows = process.env.SystemRoot ?? 'C:\\Windows';
     const child = (this.recorder = this.spawnImpl(executable, [String(process.pid)], {
-      windowsHide: true,
       stdio: ['pipe', 'pipe', 'ignore'],
-      env: {
-        SystemRoot: windows,
-        WINDIR: windows,
-        PATH: path.join(windows, 'System32'),
-        TEMP: this.folder,
-        TMP: this.folder,
-      },
+      env: { PATH: '/usr/bin:/bin', TMPDIR: this.folder },
     }));
     let output = '',
       bytes = 0;

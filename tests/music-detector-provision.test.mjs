@@ -34,7 +34,7 @@ function fixture() {
   mkdirSync(path.dirname(configFile), { recursive: true });
   const save = () => writeFileSync(configFile, JSON.stringify(config));
   save();
-  const python = path.join(root, '.runtime/router-venv/Scripts/python.exe');
+  const python = path.join(root, '.runtime/router-venv/bin/python');
   mkdirSync(path.dirname(python), { recursive: true });
   writeFileSync(python, 'fixture-never-executed');
   let downloads = 0,
@@ -59,22 +59,21 @@ function fixture() {
         headers: { 'content-length': String(archive.length) },
       });
     },
-    async execute(command, args, options) {
+    async extract(file, destination, { accept, maximumBytes }) {
       extractions++;
-      assert.equal(command, 'powershell.exe');
-      assert(args.includes('-NonInteractive'));
-      assert.equal(options.cwd, root);
-      const destination = args[args.indexOf('-Destination') + 1];
       assert(
         path.resolve(destination).startsWith(path.join(root, '.runtime/music-detector') + path.sep),
       );
-      assert.equal(path.basename(args[args.indexOf('-Archive') + 1]), hash(archive) + '.zip');
+      assert.equal(path.basename(file), hash(archive) + '.zip');
+      assert(maximumBytes <= 80 * 1024 ** 2);
+      assert.equal(accept('yamnet-onnx-float/yamnet.onnx'), true);
+      assert.equal(accept('../yamnet.onnx'), false);
       for (const [name, data] of payloads) writeFileSync(path.join(destination, name), data);
     },
   };
 }
 const prepare = (f, options = {}) =>
-  prepareMusicDetector(f.root, { fetchImpl: f.fetchImpl, execute: f.execute, ...options });
+  prepareMusicDetector(f.root, { fetchImpl: f.fetchImpl, extract: f.extract, ...options });
 
 test('the music model accepts only four pinned fixed files with unique safe names', () => {
   for (const change of [
@@ -104,9 +103,7 @@ test('the music model accepts only four pinned fixed files with unique safe name
 test('a checked official archive is staged, checked again and cached without subsequent network or extraction', async () => {
   const f = fixture(),
     progress = [];
-  assert(
-    musicPython(f.root).endsWith('router-venv' + path.sep + 'Scripts' + path.sep + 'python.exe'),
-  );
+  assert(musicPython(f.root).endsWith(path.join('router-venv', 'bin', 'python')));
   const first = await prepare(f, { progress: (value) => progress.push(value) });
   assert.equal(f.downloads(), 1);
   assert.equal(f.extractions(), 1);
@@ -119,7 +116,7 @@ test('a checked official archive is staged, checked again and cached without sub
     assert.equal(hash(readFileSync(path.join(first.folder, spec.name))), spec.sha256);
   const cached = await prepare(f, {
     fetchImpl: () => assert.fail('Verified model cache must not download'),
-    execute: () => assert.fail('Verified model cache must not extract'),
+    extract: () => assert.fail('Verified model cache must not extract'),
   });
   assert.equal(cached.folder, first.folder);
   writeFileSync(path.join(first.folder, 'yamnet.onnx'), 'tampered');
@@ -135,10 +132,8 @@ test('an invalid extracted model never becomes an installed detector', async () 
   const f = fixture();
   await assert.rejects(
     prepare(f, {
-      execute: async (...args) => {
-        await f.execute(...args);
-        const argv = args[1],
-          temporary = argv[argv.indexOf('-Destination') + 1];
+      extract: async (file, temporary, options) => {
+        await f.extract(file, temporary, options);
         writeFileSync(path.join(temporary, 'yamnet.data'), 'corrupted-model');
       },
     }),

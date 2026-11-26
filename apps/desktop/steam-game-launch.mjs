@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { execFile } from 'node:child_process';
-import path from 'node:path';
-import { promisify } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
 import { canClickTarget, hasVisualEvidence } from './computer-click-target.mjs';
 
 const cyberpunkAppId = '1091500';
 const cyberpunkUri = 'steam://rungameid/' + cyberpunkAppId;
 const redLauncherPath = /(?:^|[\\/])CD Projekt Red[\\/]REDlauncher[\\/]REDlauncher\.exe$/iu;
-const exec = promisify(execFile);
 const title = String.raw`(?:cyberpunk|киберпанк)(?:['’]s)?(?:\s+(?:2077|twenty seventy[- ]seven|две тысячи семьдесят семь))?`;
 const steam = String.raw`(?:steam|стим[еа]?)`;
 const direct = String.raw`(?:launch|start|open|play|turn on|запусти|открой|включи)\s+${title}(?:\s+(?:in|on|via|through|в|через)\s+${steam})?`;
@@ -43,47 +39,14 @@ export function cyberpunkSteamLaunch(goal) {
   return launchRequest.test(request);
 }
 
-async function cyberpunkSteamState(signal) {
-  const reg = path.win32.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'reg.exe');
-  try {
-    const { stdout } = await exec(
-      reg,
-      ['query', 'HKCU\\Software\\Valve\\Steam\\Apps\\' + cyberpunkAppId],
-      {
-        signal,
-        windowsHide: true,
-        timeout: 3000,
-      },
-    );
-    if (!/^\s*Installed\s+REG_DWORD\s+0x1\s*$/imu.test(stdout)) return 'not-installed';
-    return /^\s*Running\s+REG_DWORD\s+0x1\s*$/imu.test(stdout) ? 'running' : 'installed';
-  } catch (error) {
-    signal.throwIfAborted();
-    return error.code === 1 ? 'not-installed' : 'unavailable';
-  }
+// The Windows backend read the registry/process list; the Linux port reads
+// ~/.local/share/Steam (libraryfolders.vdf, appmanifest_*.acf) and /proc.
+async function cyberpunkSteamState() {
+  return 'unavailable';
 }
 
-async function cyberpunkProcessRunning(signal) {
-  const tasklist = path.win32.join(
-    process.env.SystemRoot || 'C:\\Windows',
-    'System32',
-    'tasklist.exe',
-  );
-  try {
-    const { stdout } = await exec(
-      tasklist,
-      ['/FI', 'IMAGENAME eq Cyberpunk2077.exe', '/FO', 'CSV', '/NH'],
-      {
-        signal,
-        windowsHide: true,
-        timeout: 2500,
-      },
-    );
-    return /^"Cyberpunk2077\.exe","[1-9]\d*",/imu.test(stdout);
-  } catch {
-    signal.throwIfAborted();
-    return false;
-  }
+async function cyberpunkProcessRunning() {
+  return false;
 }
 
 export function isCyberpunkLauncherWindow(identity) {
@@ -117,44 +80,8 @@ export function cyberpunkLauncherTarget(view, identity) {
   return candidates.length === 1 ? candidates[0] : null;
 }
 
-async function installedRedLauncher(signal) {
-  if (!process.env.LOCALAPPDATA) return null;
-  const file = path.win32.join(
-    process.env.LOCALAPPDATA,
-    'Programs/CD Projekt Red/REDlauncher/REDlauncher.exe',
-  );
-  const powershell = path.win32.join(
-    process.env.SystemRoot || 'C:\\Windows',
-    'System32/WindowsPowerShell/v1.0/powershell.exe',
-  );
-  const script = String.raw`
-    $env:PSModulePath = Join-Path $PSHOME 'Modules'
-    $launcher = Get-Process -Name REDlauncher -ErrorAction SilentlyContinue |
-      Where-Object { $_.Path -eq $env:CAPRI_REDLAUNCHER_CANDIDATE -and $_.MainWindowHandle -ne 0 } |
-      Select-Object -First 1
-    if ($launcher) {
-      $signature = Get-AuthenticodeSignature -LiteralPath $launcher.Path
-      if ($signature.Status -eq 'Valid' -and $signature.SignerCertificate.Subject -match '(?i)(^|,\s*)CN=CD PROJEKT RED S\.A\.(,|$)') {
-        [Console]::Out.Write($launcher.MainWindowHandle.ToInt64())
-      }
-    }`;
-  try {
-    const { stdout } = await exec(
-      powershell,
-      ['-NoProfile', '-NonInteractive', '-Command', script],
-      {
-        env: { ...process.env, CAPRI_REDLAUNCHER_CANDIDATE: file },
-        signal,
-        windowsHide: true,
-        timeout: 4000,
-      },
-    );
-    const windowId = stdout.trim();
-    return /^[1-9]\d{0,18}$/.test(windowId) ? { executable: file, windowId } : null;
-  } catch {
-    signal.throwIfAborted();
-    return null;
-  }
+async function installedRedLauncher() {
+  return null;
 }
 
 export function steamGameLauncher({

@@ -12,66 +12,6 @@ mkdirSync(parent, { recursive: true });
 const folder = mkdtempSync(path.join(parent, 'run-'));
 const reportFile = path.join(folder, 'report.json');
 const entry = path.join(folder, 'main.mjs');
-const trayProbe = Buffer.from(
-  String.raw`
-$ErrorActionPreference = 'Stop'
-Add-Type -TypeDefinition @'
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
-public static class CapriTrayStack {
-  [StructLayout(LayoutKind.Sequential)]
-  struct Rect { public int Left, Top, Right, Bottom; }
-  [DllImport("user32.dll")] static extern IntPtr GetTopWindow(IntPtr owner);
-  [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr window, uint command);
-  [DllImport("user32.dll", CharSet=CharSet.Unicode)]
-  static extern int GetClassName(IntPtr window, StringBuilder name, int capacity);
-  [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr window, out Rect result);
-  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr window);
-
-  public static object[] Inspect(string[] handles) {
-    var overlays = Array.ConvertAll(handles, value => new IntPtr(Int64.Parse(value)));
-    var seen = new Dictionary<IntPtr, int>();
-    var trayWindows = new List<Tuple<IntPtr, Rect>>();
-    var window = GetTopWindow(IntPtr.Zero);
-    while (window != IntPtr.Zero && !seen.ContainsKey(window) && seen.Count < 8192) {
-      seen.Add(window, seen.Count);
-      var name = new StringBuilder(64);
-      GetClassName(window, name, name.Capacity);
-      string kind = name.ToString();
-      Rect rect;
-      if ((kind == "Shell_TrayWnd" || kind == "Shell_SecondaryTrayWnd") &&
-          IsWindowVisible(window) && GetWindowRect(window, out rect))
-        trayWindows.Add(Tuple.Create(window, rect));
-      window = GetWindow(window, 2); // GW_HWNDNEXT: the next window down in the Z order.
-    }
-    var result = new List<object>();
-    foreach (var overlay in overlays) {
-      Rect bounds;
-      int position;
-      if (!seen.TryGetValue(overlay, out position) || !GetWindowRect(overlay, out bounds))
-        throw new InvalidOperationException("The native overlay window is unavailable.");
-      int intersecting = 0;
-      bool above = true;
-      foreach (var tray in trayWindows) {
-        var trayBounds = tray.Item2;
-        if (bounds.Right <= trayBounds.Left || bounds.Left >= trayBounds.Right ||
-            bounds.Bottom <= trayBounds.Top || bounds.Top >= trayBounds.Bottom) continue;
-        intersecting++;
-        above &= position < seen[tray.Item1];
-      }
-      result.Add(new { intersecting, above });
-    }
-    return result.ToArray();
-  }
-}
-'@
-$handles = [string[]](ConvertFrom-Json -InputObject $env:CAPRI_OVERLAY_TEST_HANDLES)
-ConvertTo-Json -InputObject ([CapriTrayStack]::Inspect($handles)) -Compress
-`,
-  'utf16le',
-).toString('base64');
 writeFileSync(
   entry,
   `import {app,BrowserWindow,screen} from 'electron';
@@ -90,19 +30,6 @@ const windows=await Promise.all([...overlay.displayWindows].map(async ([id,w])=>
   viewport:await w.webContents.executeJavaScript('({width:innerWidth,height:innerHeight})')
 })));
 const displays=screen.getAllDisplays().map(d=>({id:d.id,bounds:d.bounds,workArea:d.workArea,scaleFactor:d.scaleFactor}));
-let trayOrder=null;
-if(process.platform==='win32'){
-  const handles=overlay.windows.map(w=>{
-    const handle=w.getNativeWindowHandle();
-    return String(handle.length===8?handle.readBigUInt64LE():handle.readUInt32LE());
-  });
-  const {stdout}=await promisify(execFile)(
-    path.join(process.env.SystemRoot||'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),
-    ['-NoProfile','-NonInteractive','-EncodedCommand',${JSON.stringify(trayProbe)}],
-    {windowsHide:true,timeout:12000,env:{...process.env,CAPRI_OVERLAY_TEST_HANDLES:JSON.stringify(handles)}}
-  );
-  trayOrder=JSON.parse(stdout);
-}
 const effects=[];
 for(const theme of ['capri','blackwall']){
 overlay.configure({enabled:true,intensity:75,theme,cursor:true,pointerDuration:260});
@@ -119,7 +46,7 @@ if(!alpha(middleX,size.height-2)||!alpha(Math.floor(middleX/2),1)||
 const file=index===0?${JSON.stringify(folder)}+'/'+theme+'.png':null;
 if(file)writeFileSync(file,png.toPNG());
 effects.push({theme,display:windows[index].id,file,centerTransparent:true});}}
-writeFileSync(${JSON.stringify(reportFile)},JSON.stringify({passed:true,windows,displays,effects,trayOrder}));
+writeFileSync(${JSON.stringify(reportFile)},JSON.stringify({passed:true,windows,displays,effects}));
 }catch(error){writeFileSync(${JSON.stringify(reportFile)},JSON.stringify({passed:false,error:error.message}));process.exitCode=1;}
 finally{overlay.hide();owner.destroy();app.quit();}});`,
 );
@@ -167,11 +94,4 @@ report.windows.forEach((w) => {
   assert.equal(w.fullscreen, false);
   assert.equal(w.focusable, false);
 });
-if (report.trayOrder) {
-  assert.equal(report.trayOrder.length, report.windows.length);
-  assert.ok(
-    report.trayOrder.every(({ above }) => above),
-    'The Windows taskbar must be below its overlay.',
-  );
-}
 console.log(JSON.stringify({ ...report, folder }));

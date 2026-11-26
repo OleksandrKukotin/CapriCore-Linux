@@ -8,7 +8,6 @@ import { createServer } from 'node:http';
 import { setTimeout as delay } from 'node:timers/promises';
 import { _electron as electron } from 'playwright-core';
 import { root, runtime, initialize, environment } from '../../packages/runtime/src/index.mjs';
-import { ensureDesktopIdentity } from '../../packages/runtime/src/host/desktop-identity.mjs';
 
 const parent = path.join(root, '.runtime/process-identity-verification');
 mkdirSync(parent, { recursive: true });
@@ -32,7 +31,7 @@ try {
   };
   delete env.ELECTRON_RUN_AS_NODE;
   application = await electron.launch({
-    executablePath: await ensureDesktopIdentity(createRequire(import.meta.url)('electron')),
+    executablePath: createRequire(import.meta.url)('electron'),
     args: [path.join(root, 'apps/desktop/main.mjs'), '--verification'],
     env,
   });
@@ -54,7 +53,7 @@ try {
       stdio: 'ignore',
     });
     workers.push(node);
-    const python = path.join(projectRoot, '.runtime/asr-venv/Scripts/python.exe');
+    const python = path.join(projectRoot, '.runtime/asr-venv/bin/python');
     const { existsSync } = process.getBuiltinModule('fs');
     if (existsSync(python))
       workers.push(

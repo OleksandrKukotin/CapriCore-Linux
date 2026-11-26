@@ -9,7 +9,7 @@ const execute = promisify(execFile);
 
 export function breezeEnvironment(folder, ordinal) {
   const env = { TEMP: folder, TMP: folder };
-  for (const key of ['SystemRoot', 'WINDIR', 'USERPROFILE', 'LOCALAPPDATA', 'APPDATA'])
+  for (const key of ['HOME', 'LD_LIBRARY_PATH', 'XDG_RUNTIME_DIR', 'VK_ICD_FILENAMES'])
     if (process.env[key]) env[key] = process.env[key];
   if (ordinal !== undefined) env.GGML_VK_VISIBLE_DEVICES = String(ordinal);
   return env;

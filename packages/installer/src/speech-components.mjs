@@ -1,27 +1,28 @@
-import { voiceGpuSupported } from '../../runtime/src/hardware/voice-gpu.mjs';
 // SPDX-License-Identifier: GPL-3.0-only
-import { existsSync, mkdirSync, mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import { LANGUAGE_PACKS } from '../../../apps/desktop/renderer/language-settings.mjs';
 import {
   speechModelsInstalled,
   recognitionModelsInstalled,
 } from '../../../apps/desktop/language-models.mjs';
-import { noLinks, readJson, diskFree, assertDiskSpace } from './policy.mjs';
-import { estimateSpeechStorage } from './storage-estimate.mjs';
-import { runCommand } from './commands.mjs';
-import { fetchArtifact, fileHash } from './download.mjs';
-import { installationLock } from './lock.mjs';
-import { validateVoicePack, importVoicePack } from './voice-pack.mjs';
-import { writeJsonAtomic } from '../../runtime/src/atomic-json.mjs';
+import { voiceGpuSupported } from '../../runtime/src/hardware/voice-gpu.mjs';
 import { probeHardware } from '../../runtime/src/hardware/probe.mjs';
+import { findExecutable } from '../../runtime/src/host/paths.mjs';
+import { writeJsonAtomic } from '../../runtime/src/atomic-json.mjs';
 import { listReleases, githubCredential } from '../../updater/src/github.mjs';
 import { downloadUpdate } from '../../updater/src/download.mjs';
 import { compareVersions } from '../../updater/src/releases.mjs';
-import { processStartedAt } from '../../runtime/src/host/processes.mjs';
+import { noLinks, readJson, diskFree, assertDiskSpace } from './policy.mjs';
+import { estimateSpeechStorage } from './storage-estimate.mjs';
+import { runCommand } from './commands.mjs';
+import { installationLock } from './lock.mjs';
+import { validateVoicePack, importVoicePack } from './voice-pack.mjs';
+import { extractZip } from './zip.mjs';
+import { recognitionKind, speechSetup } from './speech-setup.mjs';
 
 export const SPEECH_GPU_UNSUPPORTED =
-  'Voice needs NVIDIA CUDA or a supported AMD ROCm GPU on Windows 11 (experimental). This PC can still use text replies and microphone recognition. Integrated graphics and Intel voice acceleration are not supported.';
+  'Voice needs NVIDIA CUDA or a supported AMD ROCm GPU (experimental). This PC can still use text replies and microphone recognition. Integrated graphics and Intel voice acceleration are not supported.';
 
 export function speechComponentSelection(value) {
   if (
@@ -75,23 +76,23 @@ export async function installSpeechComponents(
   selection,
   {
     root,
-    node,
     signal,
     emit = () => {},
     execute = runCommand,
-    download = fetchArtifact,
+    findUv,
     hardware = probeHardware,
     free = diskFree,
     credential = githubCredential,
     releases = listReleases,
     downloadPack = downloadUpdate,
+    extract = extractZip,
     voiceReady = speechModelsInstalled,
     recognitionReady = recognitionModelsInstalled,
-    ownerStamp = () => processStartedAt(process.pid),
+    gitAvailable = () => Boolean(findExecutable('git')),
   } = {},
 ) {
   selection = speechComponentSelection(selection);
-  if (!path.isAbsolute(root))
+  if (!path.isAbsolute(root ?? ''))
     throw new Error('Speech installation requires an absolute Capri folder.');
   signal?.throwIfAborted();
   const cache = path.join(root, '.runtime/installer');
@@ -115,6 +116,16 @@ export async function installSpeechComponents(
           code: 'CAPRI_VOICE_GPU_UNSUPPORTED',
         });
       rocmVoice = !detected.gpus?.some((gpu) => /nvidia/i.test(gpu.vendor ?? gpu.name ?? ''));
+      // The voice lock installs packages from git revisions.
+      if (!gitAvailable())
+        throw Object.assign(
+          new Error(
+            'Voice installation needs git. Install it with your package manager and retry.',
+          ),
+          {
+            code: 'CAPRI_GIT_REQUIRED',
+          },
+        );
     }
     const { requiredBytes } = estimateSpeechStorage(
       {
@@ -124,68 +135,13 @@ export async function installSpeechComponents(
       { rocmVoice },
     );
     assertDiskSpace(root, free(root), requiredBytes);
-    const env = {
-      ...process.env,
-      PATH: [
-        path.dirname(node),
-        path.join(root, '.runtime/uv'),
-        path.join(root, '.runtime/git/cmd'),
-        process.env.PATH ?? process.env.Path ?? '',
-      ].join(path.delimiter),
-      UV_NO_CONFIG: '1',
-      UV_CACHE_DIR: path.join(root, '.runtime/uv-cache'),
-      TEMP: path.join(root, '.runtime/tmp'),
-      TMP: path.join(root, '.runtime/tmp'),
-      PYTHONUTF8: '1',
-      PYTHONIOENCODING: 'utf-8',
-    };
-    for (const name of [
-      'NODE_OPTIONS',
-      'NODE_PATH',
-      'PYTHONPATH',
-      'CAPRI_INSTALL_PAUSE_FILE',
-      'CAPRI_DESKTOP_VERIFICATION_DIR',
-    ])
-      delete env[name];
-    noLinks(env.TEMP);
-    mkdirSync(env.TEMP, { recursive: true });
-    const stamp = ownerStamp();
-    if (!/^[0-9]+$/.test(stamp ?? ''))
-      throw new Error('The speech installer owner could not be verified. Restart Capri and retry.');
-    const scripts = {
-      'packages/installer/windows/archive.ps1': 'archive',
-      'tools/setup/setup-voice-training.ps1': 'voice',
-      'tools/setup/setup-multilingual-voice.ps1': 'multilingual',
-      'tools/setup/setup-streaming-asr.ps1': 'recognition-en',
-      'tools/setup/setup-multilingual-asr.ps1': 'recognition-multi',
-      'tools/setup/setup-fast-multilingual-asr.ps1': 'recognition-fast-multi',
-    };
-    const ps = (name, args = []) =>
-      execute(
-        'powershell.exe',
-        [
-          '-NoProfile',
-          '-NonInteractive',
-          '-ExecutionPolicy',
-          'Bypass',
-          '-File',
-          path.join(root, 'tools/setup/owned-speech.ps1'),
-          '-Component',
-          scripts[name],
-          '-OwnerPid',
-          String(process.pid),
-          '-OwnerStamp',
-          stamp,
-          '-ArgumentsBase64',
-          Buffer.from(JSON.stringify(args), 'utf8').toString('base64'),
-        ],
-        {
-          cwd: root,
-          env,
-          signal,
-          output: (message) => report({ message }),
-        },
-      );
+    const setup = speechSetup({
+      root,
+      signal,
+      execute,
+      findUv,
+      output: (message) => report({ message }),
+    });
     const step = async (name, task) => {
       signal?.throwIfAborted();
       stage = name;
@@ -193,55 +149,8 @@ export async function installSpeechComponents(
       await task();
       signal?.throwIfAborted();
     };
-    const manifest = readJson(path.join(root, 'config/installer.json'));
-    const runtime = async (name, relative) => {
-      const spec = manifest.artifacts[name],
-        executable = path.join(root, relative),
-        stamp = path.join(cache, name + '.json');
-      noLinks(executable);
-      noLinks(stamp);
-      try {
-        const receipt = readJson(stamp);
-        if (
-          receipt.sha256 === spec.sha256 &&
-          receipt.executableSha256 === (await fileHash(executable, signal))
-        )
-          return;
-      } catch {
-        signal?.throwIfAborted();
-      }
-      const archive = await download(spec, path.join(cache, 'downloads'), {
-        signal,
-        progress: (progress) => report({ progress }),
-      });
-      const destination = path.join(root, '.runtime', spec.directory);
-      noLinks(destination);
-      await ps('packages/installer/windows/archive.ps1', [
-        '-Archive',
-        archive,
-        '-Destination',
-        destination,
-      ]);
-      if (!existsSync(executable))
-        throw new Error('A required speech runtime could not be installed.');
-      writeJsonAtomic(stamp, {
-        sha256: spec.sha256,
-        version: spec.version,
-        executableSha256: await fileHash(executable, signal),
-      });
-    };
-    await step('python', () => runtime('uv', '.runtime/uv/uv.exe'));
     if (needAsr)
-      await step('recognition', () =>
-        ps(
-          'tools/setup/' +
-            (selection.recognition === 'en'
-              ? 'setup-streaming-asr.ps1'
-              : ['auto-europe', 'pt-BR'].includes(selection.recognition)
-                ? 'setup-fast-multilingual-asr.ps1'
-                : 'setup-multilingual-asr.ps1'),
-        ),
-      );
+      await step('recognition', () => setup.recognition(recognitionKind(selection.recognition)));
     if (needVoice) {
       await step('voice-pack', async () => {
         const settings = readJson(path.join(root, 'config/companion-voice.json'));
@@ -292,29 +201,16 @@ export async function installSpeechComponents(
           noLinks(parent);
           mkdirSync(parent, { recursive: true });
           folder = mkdtempSync(path.join(parent, 'pack-'));
-          await ps('packages/installer/windows/archive.ps1', [
-            '-Archive',
-            archive,
-            '-Destination',
-            folder,
-            '-MaximumBytes',
-            String(256 * 1024 ** 2),
-          ]);
+          await extract(archive, folder, { maximumBytes: 256 * 1024 ** 2, signal });
         }
         settings.profileDir = importVoicePack(folder, root, expected);
         writeJsonAtomic(path.join(root, 'config/companion-voice.json'), settings);
       });
-      await step('voice-runtime', async () => {
-        await runtime('git', '.runtime/git/cmd/git.exe');
-        await ps(
-          'tools/setup/setup-voice-training.ps1',
-          selection.speech === 'en' ? [] : ['-DependenciesOnly'],
-        );
-      });
+      await step('voice-runtime', () =>
+        setup.voice({ dependenciesOnly: selection.speech !== 'en' }),
+      );
       if (selection.speech !== 'en')
-        await step('voice-models', () =>
-          ps('tools/setup/setup-multilingual-voice.ps1', ['-Language', selection.speech]),
-        );
+        await step('voice-models', () => setup.multilingualVoice(selection.speech));
     }
     await step('verify', async () => {
       if (selection.speech !== 'off' && !voiceReady(root, selection.speech))

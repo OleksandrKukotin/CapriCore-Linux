@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { execFile } from 'node:child_process';
-import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import { promisify } from 'node:util';
 import { canClickTarget } from './computer-click-target.mjs';
 import { isSteamClient, steamGamePage } from './steam-task-state.mjs';
 import {
@@ -15,8 +12,6 @@ import {
   romanizeSteamTitle,
 } from './steam-library.mjs';
 
-const exec = promisify(execFile);
-const systemRoot = process.env.SystemRoot || 'C:\\Windows';
 const normalized = (text) =>
   String(text ?? '')
     .normalize('NFKC')
@@ -24,51 +19,14 @@ const normalized = (text) =>
     .toLowerCase();
 const driveOf = (library) => /^[a-z](?=:)/iu.exec(library)?.[0].toUpperCase() ?? null;
 
-async function windowsSteamExecutable(signal) {
-  try {
-    const { stdout } = await exec(
-      path.win32.join(systemRoot, 'System32', 'reg.exe'),
-      ['query', 'HKCU\\Software\\Valve\\Steam', '/v', 'SteamExe'],
-      { signal, windowsHide: true, timeout: 3000 },
-    );
-    const file = stdout.match(/^\s*SteamExe\s+REG_SZ\s+(.+?)\s*$/imu)?.[1];
-    if (!file || !isSteamExecutable(file)) return null;
-    const steam = path.normalize(file);
-    return (await stat(steam)).isFile() ? steam : null;
-  } catch {
-    signal.throwIfAborted();
-    return null;
-  }
+// The Windows backend read the registry/process list; the Linux port reads
+// ~/.local/share/Steam (libraryfolders.vdf, appmanifest_*.acf) and /proc.
+async function steamClient() {
+  return null;
 }
 
-export async function steamGameProcessRunning({ appId, installPath }, signal) {
-  if (!/^[1-9]\d{0,9}$/u.test(appId) || !installPath) return false;
-  try {
-    const { stdout } = await exec(
-      path.win32.join(systemRoot, 'System32', 'WindowsPowerShell/v1.0/powershell.exe'),
-      [
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        "$app = 'HKCU:\\Software\\Valve\\Steam\\Apps\\' + $env:CAPRI_STEAM_GAME_ID; " +
-          'if ((Get-ItemPropertyValue -LiteralPath $app -Name Running -ErrorAction SilentlyContinue) -ne 1) { return }; ' +
-          "$root = [IO.Path]::GetFullPath($env:CAPRI_STEAM_GAME_FOLDER).TrimEnd('\\') + '\\'; " +
-          '$match = Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and $_.Path -and ' +
-          '$_.Path.StartsWith($root, [StringComparison]::OrdinalIgnoreCase) } | Select-Object -First 1; ' +
-          "if ($match) { [Console]::Out.Write('running') }",
-      ],
-      {
-        env: { ...process.env, CAPRI_STEAM_GAME_ID: appId, CAPRI_STEAM_GAME_FOLDER: installPath },
-        signal,
-        windowsHide: true,
-        timeout: 3500,
-      },
-    );
-    return stdout.trim() === 'running';
-  } catch {
-    signal.throwIfAborted();
-    return false;
-  }
+export async function steamGameProcessRunning() {
+  return false;
 }
 
 const titleEntities = { amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ' };
@@ -185,7 +143,7 @@ function steamDownloadAction(view, game, drive) {
 
 export function createSteamGameTask({
   openExternal,
-  findClient = windowsSteamExecutable,
+  findClient = steamClient,
   findStoreGame = findSteamStoreGame,
   gameRunning = steamGameProcessRunning,
   launchTimeout = 25_000,

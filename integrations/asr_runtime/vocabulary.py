@@ -3,21 +3,7 @@ import hashlib
 import json
 import math
 import os
-import sys
 from pathlib import Path
-
-
-def _native_vocabulary_path(target):
-    value = str(target)
-    if sys.platform != 'win32' or value.isascii():
-        return value
-    # SentencePiece opens this file with a narrow Windows file API. A relative
-    # ASCII path works from the worker's Unicode cwd without short-name support,
-    # copying models, changing the system code page or moving private data.
-    relative = os.path.relpath(target, Path.cwd())
-    if relative.isascii():
-        return relative
-    raise ValueError('Start speech recognition from the Capri installation directory')
 
 
 def contextual_phrases(root, language):
@@ -54,4 +40,4 @@ def bpe_vocabulary(root, tokens):
         partial = target.with_name(target.name + f'.{os.getpid()}.tmp')
         partial.write_bytes(content)
         os.replace(partial, target)
-    return _native_vocabulary_path(target)
+    return str(target)

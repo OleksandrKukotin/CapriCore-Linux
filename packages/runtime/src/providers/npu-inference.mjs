@@ -31,10 +31,9 @@ export function npuErrorMessage(code) {
 export function npuPython(root, config) {
   if (config.python) return config.python;
   if (config.backend !== 'openvino') return '';
-  const prepared = path.join(root, '.runtime/npu-openvino/Scripts/python.exe');
-  if (existsSync(prepared)) return prepared;
-  // An explicitly prepared private runtime is required; never use the Windows Store alias.
-  return '';
+  const prepared = path.join(root, '.runtime/npu-openvino/bin/python');
+  // An explicitly prepared private runtime is required; never a system Python.
+  return existsSync(prepared) ? prepared : '';
 }
 
 export class NpuWorker {
@@ -46,18 +45,7 @@ export class NpuWorker {
     if (this.child) return;
     if (!this.python || !existsSync(this.python)) throw failure('CAPRI_NPU_RUNTIME_MISSING');
     const env = {};
-    for (const name of [
-      'SystemRoot',
-      'WINDIR',
-      'TEMP',
-      'TMP',
-      'USERPROFILE',
-      'LOCALAPPDATA',
-      'APPDATA',
-      'ProgramFiles',
-      'ProgramData',
-      'PATH',
-    ])
+    for (const name of ['PATH', 'HOME', 'TMPDIR', 'LD_LIBRARY_PATH', 'XDG_RUNTIME_DIR'])
       if (process.env[name]) env[name] = process.env[name];
     if (this.backend === 'vitis') {
       const scripts = path.dirname(this.python);

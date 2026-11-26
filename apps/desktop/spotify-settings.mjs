@@ -58,7 +58,7 @@ export class SpotifySettings {
             env: {
               ...Object.fromEntries(
                 Object.entries(process.env).filter(([key]) =>
-                  /^(SystemRoot|WINDIR|PATH|APPDATA|LOCALAPPDATA|USERPROFILE|TEMP|TMP)$/i.test(key),
+                  /^(PATH|HOME|TMPDIR|LANG|LC_ALL|XDG_RUNTIME_DIR)$/.test(key),
                 ),
               ),
               CAPRI_NODE_PATH: this.node,

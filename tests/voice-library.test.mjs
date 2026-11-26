@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
-import { runCommand } from '../packages/installer/src/commands.mjs';
+import { fakePythonToolchain } from './fixtures/fake-python-toolchain.mjs';
 import { privateLog } from '../packages/runtime/src/privacy-log.mjs';
 import { diagnosticState } from '../apps/desktop/diagnostics/state.mjs';
 import catalog from '../config/tts-catalog.json' with { type: 'json' };
@@ -57,7 +56,7 @@ function fixture(t) {
     },
   });
   write('data/voices/capri/en/exports/original/voice-profile.json', { id: 'original' });
-  write('.runtime/voice-training-venv/Scripts/python.exe', 'fixture');
+  write('.runtime/voice-training-venv/bin/python', 'fixture');
   write('data/speech/turbo/model-receipt.json', {});
   write('data/speech/multilingual/weights.safetensors', 'abc');
   write('data/voices/capri/en/metadata.csv', 'fixture,'.repeat(30));
@@ -130,27 +129,28 @@ test('Qwen installs in its own runtime and selected CPU voices do not require th
   });
   let prepared = false,
     stopped = false;
+  const tools = fakePythonToolchain(root, {
+    onRun: (_file, _args, options) => {
+      assert.equal(stopped, true);
+      assert.equal(prepared, true);
+      assert.equal(options.env.HF_TOKEN, undefined);
+      if (_args.includes('integrations.voice_runtime.qwen_provision')) {
+        write('data/speech/qwen/model.safetensors', 'abc');
+        options.output('{"stage":"models","progress":50}');
+      }
+    },
+  });
   const library = new VoiceCatalogService({
     root,
     free: () => 20 * 1024 ** 3,
-    ownerStamp: () => '123',
     beforeChange: async () => {
       stopped = true;
     },
     prepare: async () => {
       prepared = true;
     },
-    run: async (executable, args, options) => {
-      assert.equal(stopped, true);
-      assert.equal(prepared, true);
-      assert.equal(executable, 'powershell.exe');
-      assert.ok(args.includes('qwen'));
-      assert.ok(args.includes('-OwnerStamp'));
-      assert.equal(options.env.HF_TOKEN, undefined);
-      write('.runtime/qwen-tts-venv/Scripts/python.exe', 'fixture');
-      write('data/speech/qwen/model.safetensors', 'abc');
-      options.output('{"stage":"models","progress":50}');
-    },
+    findUv: tools.findUv,
+    run: tools.execute,
   });
   assert.equal(
     library.install({ modelId: 'qwen3-tts-0.6b-base', language: 'ru' }).phase,
@@ -159,6 +159,8 @@ test('Qwen installs in its own runtime and selected CPU voices do not require th
   await library.task;
   assert.equal(library.snapshot().phase, 'ready');
   assert.equal(library.busy(), false);
+  assert.equal(tools.ran(/requirements-qwen-tts\.lock/).length, 1);
+  assert.equal(tools.ran(/^--russian$/).length, 0);
   await library.select({ modelId: 'qwen3-tts-0.6b-base', language: 'ru' });
   assert.equal(voiceBackendChanged(root, 'ru', 'en'), true);
   assert.equal(voiceBackendChanged(root, 'en', 'ru'), true);
@@ -180,8 +182,8 @@ test('voice installation checks free space and cancellation releases the shared 
   const library = new VoiceCatalogService({
     root,
     free: () => 20 * 1024 ** 3,
-    ownerStamp: () => '123',
     prepare: async () => {},
+    findUv: async () => '/nonexistent/uv',
     run: (_file, _args, { signal }) =>
       new Promise((resolve, reject) =>
         signal.addEventListener('abort', () => reject(signal.reason), { once: true }),
@@ -209,33 +211,22 @@ test('Russian LoRA requires its reference and accent files and keeps an independ
   write('config/qwen-ru-voice.json', spec);
   write('config/qwen-tts-upstream.json', group('qwen'));
   write('data/speech/qwen/fixture', 'abc');
+  const tools = fakePythonToolchain(root, {
+    onRun: (_file, args) => {
+      if (args.includes('integrations.voice_runtime.qwen_provision')) {
+        assert.deepEqual(args.slice(-1), ['--russian']);
+        write('data/speech/russian/fixture', 'abc');
+        write('data/speech/accent/fixture', 'abc');
+      }
+    },
+  });
   const library = new VoiceCatalogService({
     root,
     free: () => 20 * 1024 ** 3,
-    ownerStamp: () => '123',
     prepare: async () => {},
     emit: ({ stage, progress }) => stages.push([stage, progress]),
-    run: async (_executable, args, { output }) => {
-      const encoded = args[args.indexOf('-ArgumentsBase64') + 1];
-      const switches = JSON.parse(Buffer.from(encoded, 'base64'));
-      if (switches.includes('-Cuda')) {
-        assert.deepEqual(switches, ['-Russian', '-Cuda']);
-        output('{"stage":"cuda-download","received":8,"total":4}');
-        output('{"stage":"cuda-download","received":2,"total":4}');
-        output('{"stage":"dependencies"}');
-        output('{"stage":"verify"}');
-        write('.runtime/qwen-tts-cuda-venv/Scripts/python.exe', 'fixture');
-        write('.runtime/qwen-tts-cuda-venv/cuda-ready.json', {
-          schemaVersion: 1,
-          backend: 'cu128',
-        });
-        return;
-      }
-      assert.deepEqual(switches, ['-Russian']);
-      write('.runtime/qwen-tts-venv/Scripts/python.exe', 'fixture');
-      write('data/speech/russian/fixture', 'abc');
-      write('data/speech/accent/fixture', 'abc');
-    },
+    findUv: tools.findUv,
+    run: tools.execute,
   });
   const model = () => library.snapshot().models.find((item) => item.id === RUSSIAN_QWEN_ID);
   assert.deepEqual(model().languages, ['ru']);
@@ -255,17 +246,14 @@ test('Russian LoRA requires its reference and accent files and keeps an independ
   assert.equal(new VoiceCatalogService({ root }).snapshot().selections.ru, RUSSIAN_QWEN_ID);
   assert.equal(voiceBackendChanged(root, 'ru', 'en'), true);
   assert.equal(speechModelsInstalled(root, 'ru'), true);
-  stages.length = 0;
+  // NVIDIA Qwen wheels are still pinned for Windows only; the request fails before any work.
+  const commands = tools.commands.length;
   library.install({ modelId: RUSSIAN_QWEN_ID, language: 'ru', cuda: true });
   await library.task;
-  assert.equal(library.snapshot().russianQwenCudaReady, true);
-  assert.deepEqual(stages, [
-    ['python', null],
-    ['cuda-download', { received: 2, total: 4 }],
-    ['dependencies', null],
-    ['verify', null],
-    [null, 100],
-  ]);
+  assert.equal(library.snapshot().phase, 'error');
+  assert.match(library.snapshot().error, /Accelerated Qwen voice/);
+  assert.equal(library.snapshot().russianQwenCudaReady, false);
+  assert.equal(tools.commands.length, commands);
   write('data/speech/accent/fixture', 'incomplete');
   assert.equal(model().installed, false);
   assert.equal(speechModelsInstalled(root, 'ru'), false);
@@ -275,7 +263,6 @@ test('Russian LoRA requires its reference and accent files and keeps an independ
 test('Qwen ROCm installs as a shared runtime without replacing CPU or CUDA', async (t) => {
   const { root, write } = fixture(t);
   const model = catalog.models.find(({ id }) => id === 'qwen3-tts-0.6b-base');
-  const windows = { platform: 'win32', osRelease: '10.0.26100' };
   let gpu = 'AMD Radeon RX 7700 XT';
   let installs = 0;
   write('config/qwen-tts-upstream.json', {
@@ -283,25 +270,17 @@ test('Qwen ROCm installs as a shared runtime without replacing CPU or CUDA', asy
     files: [{ file: 'fixture', bytes: 3 }],
   });
   write('data/speech/qwen/fixture', 'abc');
-  write('.runtime/qwen-tts-venv/Scripts/python.exe', 'CPU');
-  write('.runtime/qwen-tts-cuda-venv/Scripts/python.exe', 'CUDA');
+  write('.runtime/qwen-tts-venv/bin/python', 'CPU');
+  write('.runtime/qwen-tts-cuda-venv/bin/python', 'CUDA');
   write('.runtime/qwen-tts-cuda-venv/cuda-ready.json', { schemaVersion: 1, backend: 'cu128' });
   const options = {
     root,
-    hardware: async () => ({ ...windows, gpus: [{ name: gpu }] }),
+    hardware: async () => ({ gpus: [{ name: gpu }] }),
     free: () => 20 * 1024 ** 3,
-    ownerStamp: () => '123',
     prepare: async () => {},
-    run: async (_executable, args, { output }) => {
+    findUv: async () => '/fixture/uv',
+    run: async () => {
       installs++;
-      const encoded = args[args.indexOf('-ArgumentsBase64') + 1];
-      assert.deepEqual(JSON.parse(Buffer.from(encoded, 'base64')), ['-Rocm']);
-      output('{"stage":"rocm-download","received":1,"total":2}');
-      write('.runtime/qwen-tts-rocm-venv/Scripts/python.exe', 'ROCm');
-      write('.runtime/qwen-tts-rocm-venv/rocm-ready.json', {
-        schemaVersion: 1,
-        backend: 'rocm7.2.1',
-      });
     },
   };
   const selection = { modelId: model.id, language: 'en', rocm: true };
@@ -315,8 +294,13 @@ test('Qwen ROCm installs as a shared runtime without replacing CPU or CUDA', asy
   assert.equal((await library.refresh()).qwenRocmSupported, true);
   library.install(selection);
   await library.task;
-  assert.equal(installs, 1);
-  assert.equal(library.snapshot().qwenRocmReady, true);
+  // ROCm Qwen wheels are still pinned for Windows only: refused before any work,
+  // leaving the CPU and CUDA runtimes as they were.
+  assert.equal(installs, 0);
+  assert.match(library.snapshot().error, /Accelerated Qwen voice/);
+  assert.equal(library.snapshot().qwenRocmReady, false);
+  write('.runtime/qwen-tts-rocm-venv/bin/python', 'ROCm');
+  write('.runtime/qwen-tts-rocm-venv/rocm-ready.json', { schemaVersion: 1, backend: 'rocm7.2.1' });
   assert.deepEqual(
     voiceRuntimes(root, model).map(({ backend }) => backend),
     ['rocm', 'cpu'],
@@ -331,67 +315,14 @@ test('Qwen ROCm installs as a shared runtime without replacing CPU or CUDA', asy
   );
 });
 
-test(
-  'Qwen installation retains native EXE recognition in the real PowerShell Python bootstrap',
-  { skip: process.platform !== 'win32' },
-  async (t) => {
-    const { root, write } = fixture(t);
-    const python = path.join(
-      root,
-      '.runtime/python/cpython-3.11.17-windows-x86_64-none/python.exe',
-    );
-    mkdirSync(path.dirname(python), { recursive: true });
-    write('.runtime/uv/uv.exe', 'unused runtime fixture');
-    const cs = path.join(root, 'Python.cs');
-    writeFileSync(
-      cs,
-      'class PythonFixture {static void Main(){System.Console.WriteLine("Python 3.11.17");}}',
-    );
-    const compile = spawnSync(
-      path.join(process.env.SystemRoot, 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'),
-      ['/nologo', '/target:exe', `/out:${python}`, cs],
-      { encoding: 'utf8', windowsHide: true },
-    );
-    assert.equal(compile.status, 0, compile.stdout + compile.stderr);
-    const helper = path.resolve('tools/setup/python-runtime.ps1').replaceAll("'", "''");
-    write('config/qwen-tts-upstream.json', {
-      directory: 'data/speech/qwen',
-      files: [{ file: 'model.safetensors', bytes: 3 }],
-    });
-    let verified = false;
-    const library = new VoiceCatalogService({
-      root,
-      free: () => 20 * 1024 ** 3,
-      ownerStamp: () => '123',
-      prepare: async () => {},
-      run: async (_exe, _args, options) => {
-        assert.equal(options.env.PATHEXT, '.COM;.EXE;.BAT;.CMD');
-        const script = `. '${helper}'; $r=Get-CapriPythonRuntime -ProjectRoot '${root.replaceAll("'", "''")}'; if($r.Version -ne '3.11.17'){exit 41}`;
-        await runCommand(
-          'powershell.exe',
-          ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
-          options,
-        );
-        verified = true;
-        write('.runtime/qwen-tts-venv/Scripts/python.exe', 'fixture');
-        write('data/speech/qwen/model.safetensors', 'abc');
-      },
-    });
-    library.install({ modelId: 'qwen3-tts-0.6b-base', language: 'ru' });
-    await library.task;
-    assert.equal(verified, true);
-    assert.equal(library.snapshot().phase, 'ready');
-  },
-);
-
 test('Qwen failure diagnostics retain the stage and fixed reason without raw output or secrets', async (t) => {
   const { root } = fixture(t);
   const canary = 'PRIVATE-ERROR-TEXT-credential-983174';
   const library = new VoiceCatalogService({
     root,
     free: () => 20 * 1024 ** 3,
-    ownerStamp: () => '123',
     prepare: async () => {},
+    findUv: async () => '/fixture/uv',
     run: async () => {
       const error = new Error('Component failed: ' + canary);
       error.outputTail = 'The local Python runtime does not match pinned Python 3.11.17. ' + canary;

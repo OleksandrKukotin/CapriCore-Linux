@@ -1,5 +1,4 @@
-import { spawn, execFile, execFileSync } from 'node:child_process';
-import { promisify } from 'node:util';
+import { spawn } from 'node:child_process';
 import {
   existsSync,
   readFileSync,
@@ -18,33 +17,15 @@ import { writeJsonAtomic } from '../atomic-json.mjs';
 import { waitFor } from '../http.mjs';
 import { assertPrivatePath } from '../safe-file.mjs';
 import { privateLogRecord } from '../privacy-log.mjs';
-const execFileAsync = promisify(execFile);
 
 export function markerPath(name) {
   if (!/^[a-z0-9-]{1,64}$/i.test(name)) throw new Error('Invalid managed process name');
   return path.join(paths.data, 'run', name + '.json');
 }
-function systemPowerShell() {
-  const windows = process.env.SystemRoot || process.env.WINDIR;
-  return windows && path.isAbsolute(windows)
-    ? path.join(windows, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
-    : 'powershell.exe';
-}
 
 export function processStartedAt(pid) {
   if (!Number.isInteger(pid) || pid < 1) return null;
   try {
-    if (process.platform === 'win32')
-      return execFileSync(
-        systemPowerShell(),
-        [
-          '-NoProfile',
-          '-NonInteractive',
-          '-Command',
-          `$capriProcess=Get-Process -Id ${pid} -ErrorAction Stop; $capriProcess.StartTime.ToUniversalTime().Ticks`,
-        ],
-        { windowsHide: true, encoding: 'utf8', timeout: 10000, stdio: ['ignore', 'pipe', 'pipe'] },
-      ).trim();
     const stat = readFileSync(`/proc/${pid}/stat`, 'utf8');
     return stat.slice(stat.lastIndexOf(')') + 2).split(' ')[19];
   } catch {
@@ -79,7 +60,7 @@ export function requiresPrivacyRestart(marker) {
 export function markerBelongsHere(marker) {
   if (!marker || typeof marker !== 'object') return false;
   const normalize = (value) =>
-    process.platform === 'win32' ? path.resolve(value).toLowerCase() : path.resolve(value);
+    path.resolve(value);
   if (typeof marker.projectRoot === 'string')
     return path.isAbsolute(marker.projectRoot) && normalize(marker.projectRoot) === normalize(root);
   // Adopt pre-migration markers only when their executable/script is inside this checkout.
@@ -161,10 +142,8 @@ export function launch(
       ...(!cleanEnv ? environment(rt) : {}),
       ...env,
     },
-    windowsHide: true,
-    // The GUI must survive a short-lived launcher. Console services inherit
-    // the windowless GUI instead of requesting a new console process group.
-    detached: process.platform !== 'win32',
+    // The GUI and services must survive a short-lived launcher.
+    detached: true,
     stdio: 'ignore',
   });
   child.once('error', (error) => record('stderr', { event: 'spawn-failed', code: error.code }));
@@ -238,29 +217,7 @@ export async function stopProcess(name, { expected } = {}) {
     const supervised = marker.args?.[0]?.endsWith('gateway-host.mjs');
     const graceful = supervised || ['desktop', 'companion-voice', 'llama'].includes(name);
     const timeout = supervised ? 350000 : graceful ? 60000 : 20000;
-    if (process.platform === 'win32') {
-      await execFileAsync(
-        systemPowerShell(),
-        [
-          '-NoProfile',
-          '-NonInteractive',
-          '-ExecutionPolicy',
-          'Bypass',
-          '-File',
-          path.join(root, 'packages/runtime/src/host/stop-windows-process.ps1'),
-          '-ProcessId',
-          String(marker.pid),
-          '-StartedAt',
-          marker.startedAt,
-          '-StopFile',
-          path.join(paths.data, 'run', name + '.stop'),
-          '-WaitMilliseconds',
-          String(timeout),
-          ...(graceful ? ['-Graceful'] : []),
-        ],
-        { windowsHide: true, timeout: timeout + 10000, maxBuffer: 65536 },
-      );
-    } else if (processStartedAt(marker.pid) === marker.startedAt) {
+    if (processStartedAt(marker.pid) === marker.startedAt) {
       if (graceful) writeFileSync(path.join(paths.data, 'run', name + '.stop'), 'stop\n');
       else process.kill(marker.pid, 'SIGTERM');
       await waitFor(() => !managedProcess(name), {

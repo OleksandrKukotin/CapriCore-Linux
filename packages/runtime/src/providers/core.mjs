@@ -27,52 +27,67 @@ export async function startCore(
 ) {
   signal?.throwIfAborted();
   onStage('core', 'running');
-  const local = await startLlama(rt, { signal, voiceExpected, voiceReady });
-  signal?.throwIfAborted();
-  if (
-    rt.remote?.enabled &&
-    rt.remote.skipLocalModelOnApi !== false &&
-    settings.model !== settings.embeddingModel
-  ) {
-    // An owned inference worker can survive a desktop restart with keep_alive=-1.
-    // Release only the configured chat model; memory and other local services
-    // keep their own residency policy.
-    const { models = [] } = await request(`${rt.ollamaUrl}/api/ps`, { timeout: 3000, signal });
-    signal?.throwIfAborted();
-    if (models.some((model) => model.name === settings.model)) {
-      const released = await request(`${rt.ollamaUrl}/api/generate`, {
-        method: 'POST',
-        timeout: 30000,
-        signal,
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ model: settings.model, keep_alive: 0, stream: false }),
-      });
-      signal?.throwIfAborted();
-      if (released?.error || released?.done !== true)
-        throw new Error('The idle local language model could not be unloaded.');
-    }
+  let local = null;
+  try {
+    local = await startLlama(rt, { signal, voiceExpected, voiceReady });
+    rt.localMemory = true;
+  } catch (error) {
+    // API chat does not need llama.cpp. Without it only local memory search
+    // (its embedding model) is unavailable, so keep chatting without recall.
+    if (!rt.remote?.enabled || error?.code !== 'CAPRI_LLAMA_BUNDLE_INCOMPLETE') throw error;
+    rt.localMemory = false;
+    console.warn('CAPRI_LOCAL_MEMORY_UNAVAILABLE: llama.cpp is missing; memory search is off.');
   }
-  if (!rt.remote?.enabled && !rt.nativeNpu)
-    await ensureNativeLanguageModel(rt, settings, { signal });
-  const inventory = await ensureEmbeddingModel(rt, {
-    model: settings.embeddingModel,
-    inventory: await request(`${rt.ollamaUrl}/api/tags`, { signal }),
-    signal,
-  });
-  for (const name of [
-    ...(rt.remote?.enabled || rt.nativeNpu ? [] : [settings.model]),
-    settings.embeddingModel,
-  ]) {
-    if (!inventory.models.some((model) => model.name === name))
-      throw Object.assign(new Error(`Model ${name} is missing. Run scripts/pull-models.mjs.`), {
-        ...(name !== settings.embeddingModel && { code: 'CAPRI_LOCAL_LANGUAGE_MODEL_MISSING' }),
-      });
+  signal?.throwIfAborted();
+  // Without local memory only the gateway and the API proxy are needed.
+  let inventory = null;
+  if (rt.localMemory !== false) {
+    if (
+      rt.remote?.enabled &&
+      rt.remote.skipLocalModelOnApi !== false &&
+      settings.model !== settings.embeddingModel
+    ) {
+      // An owned inference worker can survive a desktop restart with keep_alive=-1.
+      // Release only the configured chat model; memory and other local services
+      // keep their own residency policy.
+      const { models = [] } = await request(`${rt.ollamaUrl}/api/ps`, { timeout: 3000, signal });
+      signal?.throwIfAborted();
+      if (models.some((model) => model.name === settings.model)) {
+        const released = await request(`${rt.ollamaUrl}/api/generate`, {
+          method: 'POST',
+          timeout: 30000,
+          signal,
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ model: settings.model, keep_alive: 0, stream: false }),
+        });
+        signal?.throwIfAborted();
+        if (released?.error || released?.done !== true)
+          throw new Error('The idle local language model could not be unloaded.');
+      }
+    }
+    if (!rt.remote?.enabled && !rt.nativeNpu)
+      await ensureNativeLanguageModel(rt, settings, { signal });
+    inventory = await ensureEmbeddingModel(rt, {
+      model: settings.embeddingModel,
+      inventory: await request(`${rt.ollamaUrl}/api/tags`, { signal }),
+      signal,
+    });
+    for (const name of [
+      ...(rt.remote?.enabled || rt.nativeNpu ? [] : [settings.model]),
+      settings.embeddingModel,
+    ]) {
+      if (!inventory.models.some((model) => model.name === name))
+        throw Object.assign(new Error(`Model ${name} is missing. Run scripts/pull-models.mjs.`), {
+          ...(name !== settings.embeddingModel && { code: 'CAPRI_LOCAL_LANGUAGE_MODEL_MISSING' }),
+        });
+    }
   }
   signal?.throwIfAborted();
   await startGateway(rt, { signal });
   signal?.throwIfAborted();
   onStage('core', 'ready');
-  if (preload) {
+  if (preload && rt.localMemory === false) onStage('models', 'ready');
+  else if (preload) {
     onStage('models', 'running');
     try {
       await prewarmModels(rt, { signal, inventory, warmMemory });

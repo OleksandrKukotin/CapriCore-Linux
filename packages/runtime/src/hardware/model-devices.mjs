@@ -51,54 +51,20 @@ export function parseLlamaDevices(text, backend) {
 }
 export async function probeLanguageDevices(ollama, { runImpl = run } = {}) {
   if (!ollama || !existsSync(ollama)) return [];
-  if (/^llama-server(?:\.exe)?$/i.test(path.basename(ollama))) {
-    try {
-      const env = unrestrictedDeviceEnvironment(process.env);
-      for (const key of Object.keys(env)) if (/^(?:LLAMA_|GGML_|VK_)/i.test(key)) delete env[key];
-      const result = await runImpl(ollama, ['--list-devices'], {
-        env,
-        windowsHide: true,
-        timeout: 7000,
-        maxBuffer: 65536,
-        encoding: 'utf8',
-      });
-      return parseLlamaDevices(result.stdout + '\n' + result.stderr, 'vulkan');
-    } catch {
-      return [];
-    }
+  if (path.basename(ollama) !== 'llama-server') return [];
+  try {
+    const env = unrestrictedDeviceEnvironment(process.env);
+    for (const key of Object.keys(env)) if (/^(?:LLAMA_|GGML_|VK_)/i.test(key)) delete env[key];
+    const result = await runImpl(ollama, ['--list-devices'], {
+      env,
+      timeout: 7000,
+      maxBuffer: 65536,
+      encoding: 'utf8',
+    });
+    return parseLlamaDevices(result.stdout + '\n' + result.stderr, 'vulkan');
+  } catch {
+    return [];
   }
-  const folder = path.join(path.dirname(ollama), 'lib/ollama'),
-    executable = path.join(folder, 'llama-server.exe');
-  if (!existsSync(executable)) return [];
-  const found = new Map();
-  // Ask the shipped backend itself. DXGI/Task Manager and CUDA/Vulkan indices differ.
-  for (const [backend, subdir, dll] of [
-    ['cuda', 'cuda_v13', 'ggml-cuda.dll'],
-    ['cuda', 'cuda_v12', 'ggml-cuda.dll'],
-    ['rocm', 'rocm', 'ggml-hip.dll'],
-    ['vulkan', 'vulkan', 'ggml-vulkan.dll'],
-  ]) {
-    if (backend === 'cuda' && [...found.values()].some((x) => x.backend === 'cuda')) continue;
-    const plugin = path.join(folder, subdir, dll);
-    if (!existsSync(plugin)) continue;
-    try {
-      const env = unrestrictedDeviceEnvironment(process.env);
-      env.GGML_BACKEND_PATH = plugin;
-      env.PATH = [path.dirname(plugin), folder, env.PATH ?? env.Path ?? ''].join(path.delimiter);
-      const result = await runImpl(executable, ['--list-devices'], {
-        env,
-        windowsHide: true,
-        timeout: 7000,
-        maxBuffer: 65536,
-        encoding: 'utf8',
-      });
-      for (const device of parseLlamaDevices(result.stdout + '\n' + result.stderr, backend))
-        found.set(device.id, device);
-    } catch {
-      /* An absent/incompatible backend is not an available device. */
-    }
-  }
-  return [...found.values()];
 }
 export function migrateLanguageDevice(id, devices) {
   const [, backend, ordinal] = /^(cuda|rocm):(\d{1,2}):[a-f0-9]{16}$/.exec(id) ?? [];

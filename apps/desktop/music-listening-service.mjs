@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import { inheritedEnvironment } from '../../packages/runtime/src/host/python.mjs';
+import { platformFeatures } from './platform-features.mjs';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { prepareMusicDetector, musicPython } from './music-detector-provision.mjs';
@@ -95,7 +97,7 @@ export class MusicListeningService {
     return {
       phase: this.phase,
       enabled: Boolean(this.session),
-      supported: process.platform === 'win32' && Boolean(musicPython(this.root)),
+      supported: platformFeatures.musicListening && Boolean(musicPython(this.root)),
       hearingMusic: this.decision.hearingMusic,
       energy: this.decision.energy,
       musicScore: this.decision.music,
@@ -145,11 +147,7 @@ export class MusicListeningService {
         },
       });
       if (this.session !== session || session.controller.signal.aborted) return;
-      const env = Object.fromEntries(
-        ['SystemRoot', 'WINDIR', 'PATH', 'TEMP', 'TMP']
-          .filter((key) => process.env[key])
-          .map((key) => [key, process.env[key]]),
-      );
+      const env = inheritedEnvironment();
       Object.assign(env, {
         PYTHONUTF8: '1',
         PYTHONIOENCODING: 'utf-8',

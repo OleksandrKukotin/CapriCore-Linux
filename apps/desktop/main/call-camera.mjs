@@ -10,21 +10,28 @@ import {
   CALL_CAMERA_FILES,
 } from '../call-camera-protocol.mjs';
 import { CAMERA_BUNDLES_FOLDER, readCameraBundleReceipt } from './camera-bundle.mjs';
+import { platformFeatures } from '../platform-features.mjs';
 
 const startupFailure = 'Capri Camera could not start.';
 
 export class CallCamera {
-  constructor({ root, background, notify, spawnProcess = spawn, platform = process.platform }) {
+  constructor({
+    root,
+    background,
+    notify,
+    spawnProcess = spawn,
+    supported = platformFeatures.virtualCamera,
+  }) {
     this.directory = path.join(root, CAMERA_RUNTIME_FOLDER);
     this.background = background;
     this.notify = notify;
     this.spawnProcess = spawnProcess;
-    this.platform = platform;
+    this.supported = supported;
   }
 
   snapshot() {
     return {
-      supported: this.platform === 'win32',
+      supported: this.supported,
       enabled: Boolean(this.session?.ready),
       pending: Boolean(this.starting || this.stopping),
       error: this.error ?? null,
@@ -61,7 +68,7 @@ export class CallCamera {
 
   async setEnabled(enabled) {
     if (!enabled) return this.stop();
-    if (this.platform !== 'win32') return this.snapshot();
+    if (!this.supported) return this.snapshot();
     if (this.stopping) return this.snapshot();
     if (this.starting) {
       await this.starting;

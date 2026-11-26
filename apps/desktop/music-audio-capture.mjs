@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import { platformFeatures } from './platform-features.mjs';
 const companionUrl = 'capri://desktop/index.html';
 const companionOrigins = ['capri://desktop', 'capri://desktop/'];
 
@@ -8,7 +9,7 @@ export class MusicAudioCapture {
     ownerFrame,
     sessionId,
     enableCapture = () => true,
-    available = process.platform === 'win32',
+    available = platformFeatures.musicListening,
     now = Date.now,
   }) {
     Object.assign(this, { ownerFrame, sessionId, enableCapture, available, now });

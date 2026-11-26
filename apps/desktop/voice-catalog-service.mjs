@@ -18,11 +18,14 @@ import { writeJsonAtomic } from './storage.mjs';
 import builtinCatalog from '../../config/tts-catalog.json' with { type: 'json' };
 import languages from '../shared/languages.json' with { type: 'json' };
 import { privateLogRecord } from '../../packages/runtime/src/privacy-log.mjs';
+import { isPlatformUnavailable } from '../../packages/runtime/src/host/platform.mjs';
 import { writePrivateBytesAtomic } from '../../packages/runtime/src/safe-file.mjs';
+import { speechSetup } from '../../packages/installer/src/speech-setup.mjs';
 import { probeHardware } from '../../packages/runtime/src/hardware/probe.mjs';
 import { voiceRocmSupported } from '../../packages/runtime/src/hardware/voice-gpu.mjs';
 import { voiceRuntimeEnvironment } from '../../integrations/voice_runtime/environment.mjs';
 import {
+  breezeSupported,
   installBreezeTts,
   installedBreezeTts,
 } from '../../packages/installer/src/breeze-tts-install.mjs';
@@ -47,7 +50,7 @@ function qwenGpuRuntime(root, backend) {
   try {
     const folder = `.runtime/qwen-tts-${backend}-venv`;
     const receipt = readJson(voiceDataPath(root, `${folder}/${backend}-ready.json`));
-    const python = voiceDataPath(root, `${folder}/Scripts/python.exe`);
+    const python = voiceDataPath(root, `${folder}/bin/python`);
     if (
       receipt.schemaVersion === 1 &&
       receipt.backend === qwenGpuVersions[backend] &&
@@ -162,7 +165,7 @@ export function voiceRuntimes(root, model) {
   if (model.backend !== 'qwen3-tts')
     return [
       {
-        python: path.join(root, '.runtime/voice-training-venv/Scripts/python.exe'),
+        python: path.join(root, '.runtime/voice-training-venv/bin/python'),
         env: voiceRuntimeEnvironment(root),
       },
     ];
@@ -171,7 +174,7 @@ export function voiceRuntimes(root, model) {
     qwenGpuRuntime(root, 'rocm'),
     {
       backend: 'cpu',
-      python: path.join(root, '.runtime/qwen-tts-venv/Scripts/python.exe'),
+      python: path.join(root, '.runtime/qwen-tts-venv/bin/python'),
       env: {},
     },
   ].filter(Boolean);
@@ -215,6 +218,7 @@ export class VoiceCatalogService {
       ),
     ownerStamp = () => processStartedAt(process.pid),
     installBreeze = installBreezeTts,
+    findUv,
   }) {
     Object.assign(this, {
       root,
@@ -227,6 +231,7 @@ export class VoiceCatalogService {
       prepare,
       ownerStamp,
       installBreeze,
+      findUv,
     });
     this.models = readJson(path.join(configRoot, 'config/tts-catalog.json')).models;
     this.applying = false;
@@ -280,7 +285,7 @@ export class VoiceCatalogService {
       russianQwenCudaReady: Boolean(qwenGpuRuntime(this.root, 'cuda')),
       qwenRocmReady: Boolean(qwenGpuRuntime(this.root, 'rocm')),
       qwenRocmSupported: this.qwenRocmSupported === true,
-      breezeSupported: process.platform === 'win32' && process.arch === 'x64',
+      breezeSupported,
       breezeVoice: breeze ? { name: breeze.name } : null,
       models: this.models.map((model) => ({ ...model, installed: this.installed(model) })),
       defaults: voiceDefaults,
@@ -356,8 +361,7 @@ export class VoiceCatalogService {
     );
     if (model?.backend === 'breeze-tts') {
       if (acceptLicense !== true) throw new Error('Accept the Breeze TTS 2 model license.');
-      if (process.platform !== 'win32' || process.arch !== 'x64')
-        throw new Error('Breeze TTS 2 requires Windows x64 with AVX2.');
+      if (!breezeSupported) throw new Error('Breeze TTS 2 has no Linux build yet.');
       if (this.root !== this.configRoot)
         throw new Error('Installation is unavailable in interface verification.');
       return this.downloadBreeze(model, language);
@@ -414,112 +418,31 @@ export class VoiceCatalogService {
     this.task = Promise.resolve()
       .then(async () => {
         if (rocm && !(await this.refresh()).qwenRocmSupported)
-          throw new Error('AMD ROCm acceleration requires a supported Radeon GPU on Windows 11.');
+          throw new Error('AMD ROCm acceleration requires a supported Radeon GPU.');
         controller.signal.throwIfAborted();
         await this.beforeChange();
         controller.signal.throwIfAborted();
-        const env = {};
-        for (const key of [
-          'SystemRoot',
-          'WINDIR',
-          'PATH',
-          'USERPROFILE',
-          'LOCALAPPDATA',
-          'APPDATA',
-          'ProgramFiles',
-          'PROGRAMFILES(X86)',
-          'COMSPEC',
-        ])
-          if (process.env[key]) env[key] = process.env[key];
-        Object.assign(env, {
-          // Windows PowerShell uses PATHEXT to recognize native executables.
-          // Without it `& python.exe --version` returns a Process object rather
-          // than captured output, causing a false interpreter-version failure.
-          PATHEXT: '.COM;.EXE;.BAT;.CMD',
-          UV_NO_CONFIG: '1',
-          UV_CACHE_DIR: path.join(this.root, '.runtime/uv-cache'),
-          TEMP: path.join(this.root, '.runtime/tmp'),
-          TMP: path.join(this.root, '.runtime/tmp'),
-          HF_HUB_DISABLE_TELEMETRY: '1',
-          PYTHONUTF8: '1',
-          PYTHONIOENCODING: 'utf-8',
-          PYTHONNOUSERSITE: '1',
-        });
-        noLinks(env.TEMP);
-        mkdirSync(env.TEMP, { recursive: true });
-        await this.prepare({ root: this.root, env, signal: controller.signal, execute: this.run });
-        controller.signal.throwIfAborted();
-        const stamp = this.ownerStamp();
-        if (!/^[0-9]+$/.test(stamp ?? ''))
-          throw new Error('The speech installer owner could not be verified.');
-        const script = voiceDataPath(this.root, 'tools/setup/owned-speech.ps1');
-        await this.run(
-          'powershell.exe',
-          [
-            '-NoProfile',
-            '-NonInteractive',
-            '-ExecutionPolicy',
-            'Bypass',
-            '-File',
-            script,
-            '-Component',
-            'qwen',
-            '-OwnerPid',
-            String(process.pid),
-            '-OwnerStamp',
-            stamp,
-            '-ArgumentsBase64',
-            Buffer.from(
-              JSON.stringify([
-                ...(modelId === RUSSIAN_QWEN_ID ? ['-Russian'] : []),
-                ...(cuda ? ['-Cuda'] : []),
-                ...(rocm ? ['-Rocm'] : []),
-              ]),
-            ).toString('base64'),
-          ],
-          {
-            cwd: this.root,
-            env,
-            signal: controller.signal,
-            timeoutMs: 2 * 60 * 60 * 1000,
-            output: (line) => {
-              try {
-                const { stage, progress, received, total } = JSON.parse(line);
-                if (
-                  acceleration &&
-                  [
-                    `${acceleration}-connect`,
-                    `${acceleration}-download`,
-                    `${acceleration}-retry`,
-                  ].includes(stage)
-                ) {
-                  if (
-                    Number.isSafeInteger(received) &&
-                    Number.isSafeInteger(total) &&
-                    total > 0 &&
-                    received >= 0 &&
-                    received <= total
-                  )
-                    this.publish({ stage, progress: { received, total } });
-                } else if (
-                  [
-                    'python',
-                    'dependencies',
-                    'models',
-                    'verify',
-                    `${acceleration}-prepare`,
-                  ].includes(stage)
-                ) {
-                  this.publish({
-                    stage,
-                    progress: stage === 'models' && Number.isFinite(progress) ? progress : null,
-                  });
-                }
-              } catch {}
-            },
+        const signal = controller.signal;
+        await this.prepare({ root: this.root, env: process.env, signal, execute: this.run });
+        signal.throwIfAborted();
+        const setup = speechSetup({
+          root: this.root,
+          signal,
+          findUv: this.findUv,
+          execute: (file, args, options) =>
+            this.run(file, args, { ...options, timeoutMs: 2 * 60 * 60 * 1000 }),
+          stage: (stage) => this.publish({ stage, progress: null }),
+          output: (line) => {
+            // qwen_provision reports {"stage":"models","progress":<percent>}.
+            try {
+              const { stage, progress } = JSON.parse(line);
+              if (stage === 'models')
+                this.publish({ stage, progress: Number.isFinite(progress) ? progress : null });
+            } catch {}
           },
-        );
-        controller.signal.throwIfAborted();
+        });
+        await setup.qwen({ russian: modelId === RUSSIAN_QWEN_ID, cuda, rocm });
+        signal.throwIfAborted();
         if (!this.installed(model) || (acceleration && !qwenGpuRuntime(this.root, acceleration)))
           throw new Error('Voice installation could not be verified.');
         this.publish({ phase: 'ready', stage: null, progress: 100, error: null });
@@ -537,8 +460,9 @@ export class VoiceCatalogService {
           }
         }
         let message = 'Voice installation failed. Retry or save a diagnostic report.';
-        if (rocm && !this.qwenRocmSupported)
-          message = 'AMD ROCm acceleration requires a supported Radeon GPU on Windows 11.';
+        if (isPlatformUnavailable(error)) message = error.message;
+        else if (rocm && !this.qwenRocmSupported)
+          message = 'AMD ROCm acceleration requires a supported Radeon GPU.';
         else if (acceleration && this.value.stage?.startsWith(`${acceleration}-`))
           message = rocm
             ? 'Could not download or verify AMD ROCm packages. Retry to resume the download.'

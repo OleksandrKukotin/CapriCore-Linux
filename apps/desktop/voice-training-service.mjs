@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import { inheritedEnvironment } from '../../packages/runtime/src/host/python.mjs';
 import { execFile, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -37,17 +38,7 @@ const jobIdPattern = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
 export function runVoiceTraining({ root, jobId, signal, onProgress }) {
   return new Promise((resolve, reject) => {
     signal.throwIfAborted();
-    const env = {};
-    for (const name of [
-      'SystemRoot',
-      'WINDIR',
-      'PATH',
-      'TEMP',
-      'TMP',
-      'USERPROFILE',
-      'LOCALAPPDATA',
-    ])
-      if (process.env[name]) env[name] = process.env[name];
+    const env = inheritedEnvironment();
     Object.assign(env, voiceRuntimeEnvironment(root), {
       TEMP: path.join(root, '.runtime/tmp'),
       TMP: path.join(root, '.runtime/tmp'),
@@ -62,7 +53,7 @@ export function runVoiceTraining({ root, jobId, signal, onProgress }) {
     noLinks(env.TEMP);
     mkdirSync(env.TEMP, { recursive: true });
     const child = spawn(
-      path.join(root, '.runtime/voice-training-venv/Scripts/python.exe'),
+      path.join(root, '.runtime/voice-training-venv/bin/python'),
       ['-m', 'integrations.voice_training.job', '--job', jobId],
       { cwd: root, env, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] },
     );
@@ -120,8 +111,7 @@ function voiceImportEnvironment() {
     HF_HUB_OFFLINE: '1',
     HF_HUB_DISABLE_TELEMETRY: '1',
   };
-  for (const key of ['SystemRoot', 'WINDIR', 'PATH', 'TEMP', 'TMP', 'USERPROFILE', 'LOCALAPPDATA'])
-    if (process.env[key]) env[key] = process.env[key];
+  Object.assign(env, inheritedEnvironment());
   return env;
 }
 
@@ -129,7 +119,7 @@ function runVoiceDatasetDraft({ root, source, signal, transcribe }) {
   const python = path.join(
     root,
     transcribe ? '.runtime/asr-venv' : '.runtime/voice-training-venv',
-    'Scripts/python.exe',
+    'bin/python',
   );
   return new Promise((resolve, reject) => {
     signal.throwIfAborted();
@@ -174,7 +164,7 @@ export function runVoiceDatasetImport({ root, source, importId, signal, reviewed
   signal.throwIfAborted();
   return new Promise((resolve, reject) => {
     const child = spawn(
-      path.join(root, '.runtime/voice-training-venv/Scripts/python.exe'),
+      path.join(root, '.runtime/voice-training-venv/bin/python'),
       ['-m', 'integrations.voice_training.import_dataset', '--id', importId],
       {
         cwd: root,
@@ -261,7 +251,7 @@ export class VoiceTrainingService {
           available: false,
           reason: 'This training recipe requires reviewed English Capri recordings.',
         };
-      if (!existsSync(path.join(this.root, '.runtime/voice-training-venv/Scripts/python.exe')))
+      if (!existsSync(path.join(this.root, '.runtime/voice-training-venv/bin/python')))
         return { available: false, reason: 'Install the Capri English voice runtime first.' };
       const metadata = voiceDataPath(this.root, config.datasetDir + '/metadata.csv');
       if (!existsSync(metadata) || statSync(metadata).size < 100)
@@ -323,7 +313,7 @@ export class VoiceTrainingService {
   }
   chooseDataset(source) {
     if (this.busy()) throw new Error('Wait for the current voice operation to finish.');
-    if (!existsSync(path.join(this.root, '.runtime/voice-training-venv/Scripts/python.exe')))
+    if (!existsSync(path.join(this.root, '.runtime/voice-training-venv/bin/python')))
       throw new Error(
         'Install the English Capri voice runtime before importing training recordings.',
       );
@@ -347,7 +337,7 @@ export class VoiceTrainingService {
     const draft = (transcribe) => this.draftRun({ root, source, signal, transcribe });
     try {
       let value;
-      if (existsSync(path.join(root, '.runtime/asr-venv/Scripts/python.exe'))) {
+      if (existsSync(path.join(root, '.runtime/asr-venv/bin/python'))) {
         try {
           value = await draft(true);
         } catch {

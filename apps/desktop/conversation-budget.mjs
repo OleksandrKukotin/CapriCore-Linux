@@ -13,7 +13,6 @@ export function conversationBudget({
   residentBytes,
   residentGpuBytes,
   acceleration,
-  emulatedX64 = false,
 }) {
   const positive = (n) => Number.isFinite(n) && n > 0;
   const window = positive(contextTokens) ? Math.min(contextTokens, 262144) : 32768;
@@ -44,7 +43,7 @@ export function conversationBudget({
     timeoutMs,
     Math.max(
       firstTextTimeoutMs,
-      emulatedX64 ? 180000 : cpuOnly ? 120000 : unmeasuredLargeContext ? 60000 : 0,
+      cpuOnly ? 120000 : unmeasuredLargeContext ? 60000 : 0,
     ),
   );
   const cap = Math.max(initialDeadline, Math.min(150000, timeoutMs - 30000));
