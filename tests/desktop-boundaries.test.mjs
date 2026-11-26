@@ -16,6 +16,7 @@ test('window drag doubles native polling only until release, cancellation or shu
 }) => {
   mock.timers.enable({ apis: ['setInterval'] });
   const pointer = new PointerController({
+    passthrough: true,
     window: { getBounds: () => ({ x: 0, y: 0, width: 480, height: 660 }) },
     screen: { getCursorScreenPoint: () => ({ x: 10, y: 10 }) },
   });
@@ -46,6 +47,7 @@ test('holding a transparent window does not repeatedly move it or accumulate fra
     cursor = { x: 10, y: 10 };
   const calls = [];
   const pointer = new PointerController({
+    passthrough: true,
     window: {
       isDestroyed: () => false,
       isVisible: () => true,
@@ -77,6 +79,7 @@ test('resizing a transparent window by its corner holds the opposite edges and r
   let cursor = { x: 125, y: 85 };
   const calls = [];
   const pointer = new PointerController({
+    passthrough: true,
     window: {
       isDestroyed: () => false,
       isVisible: () => true,
@@ -275,6 +278,7 @@ test('opaque decoration never affects native hit testing, and drag gestures expi
     setIgnoreMouseEvents: (value) => calls.push(value),
   };
   const pointer = new PointerController({
+    passthrough: true,
     window,
     screen: { getCursorScreenPoint: () => cursor },
     getRegions: () => ({
@@ -305,7 +309,7 @@ test('opaque decoration never affects native hit testing, and drag gestures expi
 
 test('only an opaque sprite press can begin a gesture and be acknowledged on release', () => {
   let time = 0;
-  const pointer = new PointerController({ now: () => time });
+  const pointer = new PointerController({ now: () => time, passthrough: true });
   const sprite = { x: 0, y: 0, width: 90, height: 90 };
   const mask = {
     alpha: new Uint8Array([255, 255, 255, 255, 0, 255, 255, 255, 255]),
@@ -333,4 +337,17 @@ test('only an opaque sprite press can begin a gesture and be acknowledged on rel
   time += 800;
   assert.equal(pointer.endAvatar(hair, record), true);
   assert.deepEqual(taps, ['head', 'body']);
+});
+
+test('without pointer passthrough the window never becomes click-through', () => {
+  const calls = [];
+  const pointer = new PointerController({
+    passthrough: false,
+    window: { setIgnoreMouseEvents: (...args) => calls.push(args) },
+  });
+  pointer.setInteractive(false);
+  pointer.setInteractive(true);
+  pointer.setInteractive(false);
+  assert.deepEqual(calls, []);
+  assert.equal(pointer.ignored, false);
 });

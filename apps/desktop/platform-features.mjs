@@ -20,4 +20,11 @@ export const platformFeatures = Object.freeze({
   steamGames: false,
   /** Virtual call camera (v4l2loopback). */
   virtualCamera: false,
+  /**
+   * Click-through outside Capri's shape. It needs the global cursor position
+   * while the window ignores the mouse, which Wayland never reveals, so the
+   * window would stay unclickable. Linux keeps the window clickable instead
+   * (next step: limit its input region with BrowserWindow.setShape).
+   */
+  pointerPassthrough: false,
 });
