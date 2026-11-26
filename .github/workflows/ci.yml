@@ -1,5 +1,10 @@
 name: Source checks
-on: [push, pull_request, workflow_dispatch]
+# Branch pushes are covered by their pull request; running both doubled every PR run.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
