@@ -390,35 +390,33 @@ try {
       .find((w) => w.webContents.getURL().endsWith('/index.html'))
       .getBounds(),
   );
-    // Verification-mode companions start hidden, so the real monitor stays idle.
-    await application.evaluate(({ BrowserWindow }) =>
-      BrowserWindow.getAllWindows()
-        .find((window) => window.webContents.getURL().endsWith('/index.html'))
-        .showInactive(),
+  // Verification-mode companions start hidden, so the real monitor stays idle.
+  await application.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()
+      .find((window) => window.webContents.getURL().endsWith('/index.html'))
+      .showInactive(),
+  );
+  try {
+    await page.waitForFunction(
+      () =>
+        Boolean(
+          document.querySelector('#process-graphs-hud [data-metric="CPU"] path')?.getAttribute('d'),
+        ),
+      null,
+      { timeout: 15000 },
     );
-    try {
-      await page.waitForFunction(
-        () =>
-          Boolean(
-            document
-              .querySelector('#process-graphs-hud [data-metric="CPU"] path')
-              ?.getAttribute('d'),
-          ),
-        null,
-        { timeout: 15000 },
-      );
-    } catch (error) {
-      const probe = await page.evaluate(async () => ({
-        visible: document.visibilityState,
-        data: await window.capri.memoryStatus().catch((failure) => failure.message),
-      }));
-      throw new Error('Process graph did not update: ' + JSON.stringify(probe), { cause: error });
-    }
-    assert.equal(await page.locator('#process-graphs-hud .process-graph').count(), 4);
-    assert.match(await page.locator('[data-metric="RAM"]').innerText(), /\d.*GB/);
-    assert.match(await page.locator('[data-metric="GPU"]').innerText(), /°C/);
-    record('System charts display live CPU load, memory in GB, and a GPU temperature field');
-  
+  } catch (error) {
+    const probe = await page.evaluate(async () => ({
+      visible: document.visibilityState,
+      data: await window.capri.memoryStatus().catch((failure) => failure.message),
+    }));
+    throw new Error('Process graph did not update: ' + JSON.stringify(probe), { cause: error });
+  }
+  assert.equal(await page.locator('#process-graphs-hud .process-graph').count(), 4);
+  assert.match(await page.locator('[data-metric="RAM"]').innerText(), /\d.*GB/);
+  assert.match(await page.locator('[data-metric="GPU"]').innerText(), /°C/);
+  record('System charts display live CPU load, memory in GB, and a GPU temperature field');
+
   for (const mode of ['portrait', 'core']) {
     await page.evaluate((mode) => {
       if (document.body.dataset.presence !== mode)

@@ -11,7 +11,11 @@ const editors = [
   ['Windsurf', 'vscode', ['windsurf']],
   ['VSCodium', 'vscode', ['codium', 'vscodium', 'com.vscodium.codium']],
   ['VSCodium Insiders', 'vscode', ['codium-insiders']],
-  ['IntelliJ IDEA', 'jetbrains', ['idea', 'idea.sh', 'intellij-idea-community', 'intellij-idea-ultimate']],
+  [
+    'IntelliJ IDEA',
+    'jetbrains',
+    ['idea', 'idea.sh', 'intellij-idea-community', 'intellij-idea-ultimate'],
+  ],
   ['PyCharm', 'jetbrains', ['pycharm', 'pycharm.sh', 'pycharm-community', 'pycharm-professional']],
   ['WebStorm', 'jetbrains', ['webstorm', 'webstorm.sh']],
   ['Rider', 'jetbrains', ['rider', 'rider.sh']],

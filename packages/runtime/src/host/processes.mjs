@@ -59,8 +59,7 @@ export function requiresPrivacyRestart(marker) {
 
 export function markerBelongsHere(marker) {
   if (!marker || typeof marker !== 'object') return false;
-  const normalize = (value) =>
-    path.resolve(value);
+  const normalize = (value) => path.resolve(value);
   if (typeof marker.projectRoot === 'string')
     return path.isAbsolute(marker.projectRoot) && normalize(marker.projectRoot) === normalize(root);
   // Adopt pre-migration markers only when their executable/script is inside this checkout.

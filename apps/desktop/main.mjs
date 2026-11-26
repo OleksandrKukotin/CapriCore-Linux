@@ -186,9 +186,7 @@ import {
   saveInferenceSettings,
 } from '../../packages/runtime/src/hardware/model-profile.mjs';
 import { validateContextChoice } from '../../packages/runtime/src/config/context-policy.mjs';
-import {
-  responsiveness,
-} from '../../packages/runtime/src/hardware/responsiveness.mjs';
+import { responsiveness } from '../../packages/runtime/src/hardware/responsiveness.mjs';
 import {
   consumeFirstLaunchPreload,
   consumeMicrophoneRestart,

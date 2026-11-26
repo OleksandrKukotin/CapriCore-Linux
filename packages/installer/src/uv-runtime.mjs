@@ -9,7 +9,8 @@ import { findExecutable } from '../../runtime/src/host/paths.mjs';
  * Astral's installer (~/.local/bin/uv). An explicit CAPRI_UV_PATH wins.
  */
 export async function ensureUv({ root, env = process.env, signal } = {}) {
-  if (!path.isAbsolute(root ?? '')) throw Error('Runtime preparation needs an absolute Capri folder.');
+  if (!path.isAbsolute(root ?? ''))
+    throw Error('Runtime preparation needs an absolute Capri folder.');
   signal?.throwIfAborted();
   const explicit = env.CAPRI_UV_PATH;
   const candidates = [

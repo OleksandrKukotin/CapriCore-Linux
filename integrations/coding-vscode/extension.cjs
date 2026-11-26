@@ -139,7 +139,8 @@ async function action(value) {
 function activate(context) {
   if (!vscode.workspace.isTrusted) return;
   // Shared with Capri: $XDG_STATE_HOME/capri/coding-bridge (default ~/.local/state).
-  const state = process.env.XDG_STATE_HOME || path.join(require('node:os').homedir(), '.local/state');
+  const state =
+    process.env.XDG_STATE_HOME || path.join(require('node:os').homedir(), '.local/state');
   const directory = path.join(state, 'capri', 'coding-bridge');
   fs.mkdirSync(directory, { recursive: true });
   if (fs.lstatSync(directory).isSymbolicLink()) return;

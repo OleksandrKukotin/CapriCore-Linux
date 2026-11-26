@@ -41,10 +41,7 @@ export function conversationBudget({
   const unmeasuredLargeContext = window >= 131072 && !measured && !pressure;
   const initialDeadline = Math.min(
     timeoutMs,
-    Math.max(
-      firstTextTimeoutMs,
-      cpuOnly ? 120000 : unmeasuredLargeContext ? 60000 : 0,
-    ),
+    Math.max(firstTextTimeoutMs, cpuOnly ? 120000 : unmeasuredLargeContext ? 60000 : 0),
   );
   const cap = Math.max(initialDeadline, Math.min(150000, timeoutMs - 30000));
   const firstReplyMs =

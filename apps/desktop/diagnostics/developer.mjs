@@ -27,7 +27,7 @@ async function tail(file, maximumBytes = 64 * 1024) {
     !before.isFile() ||
     before.isSymbolicLink() ||
     before.nlink !== 1 ||
-    await realpath(file) !== path.resolve(file)
+    (await realpath(file)) !== path.resolve(file)
   )
     throw Error('Unavailable log');
   const handle = await open(file, 'r');
@@ -90,7 +90,7 @@ export class DeveloperDiagnostics {
     for (const { directory, group } of await this.folders())
       try {
         assertPrivatePath(directory);
-        if (await realpath(directory) !== path.resolve(directory)) continue;
+        if ((await realpath(directory)) !== path.resolve(directory)) continue;
         for (const entry of (await readdir(directory, { withFileTypes: true })).slice(0, 256)) {
           if (!entry.isFile() || !validName(entry.name)) continue;
           const file = path.join(directory, entry.name),
@@ -182,10 +182,7 @@ export class DeveloperDiagnostics {
     const folder = path.join(this.root, 'logs');
     try {
       assertPrivatePath(folder);
-      if (
-        !(await lstat(folder)).isDirectory() ||
-        await realpath(folder) !== folder
-      )
+      if (!(await lstat(folder)).isDirectory() || (await realpath(folder)) !== folder)
         throw Error();
       return folder;
     } catch {
