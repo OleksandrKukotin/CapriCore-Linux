@@ -10,17 +10,17 @@ Capri is a Linux AI desktop companion powered by OpenClaw. Run a bundled local m
 
 ### Linux status
 
-| Area                                                                                                                      | Status                                                                                                                                                                    |
-| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Text chat through an API connection, including [Claude Code](#chat-through-claude-code-no-model-download)                 | Works from source; no local model needed                                                                                                                                  |
-| Local models through llama.cpp                                                                                            | Works from source with a system `llama-server`                                                                                                                            |
-| Memory recall                                                                                                             | Needs `llama-server` and the embedding model; switched off automatically without them                                                                                     |
-| Hardware probe, VRAM/GPU load, CPU temperature, process load                                                              | Works (DRM sysfs, hwmon, `/proc`)                                                                                                                                         |
-| Desktop window                                                                                                            | Opens and is clickable on Wayland. Its transparent area also catches clicks, and dragging the window does not work yet                                                    |
-| Native avatar overlay                                                                                                     | Rust layer-shell surface in [`apps/overlay`](apps/overlay)                                                                                                                |
-| Coding mode (editor discovery, VS Code bridge), Discord Rich Presence, Stockfish                                          | Works (system packages)                                                                                                                                                   |
-| Speech recognition and voice                                                                                              | Setup ported to Linux (`node tools/setup/setup.mjs`), but the Python locks are still the Windows ones and must be recompiled first. Accelerated Qwen voice is unavailable |
-| Computer control, app actions, Spotify/YouTube Music, awareness, call audio, screen capture, virtual camera, tool sandbox | Not ported yet: these report "not available on Linux yet"                                                                                                                 |
+| Area                                                                                                                      | Status                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Text chat through an API connection, including [Claude Code](#chat-through-claude-code-no-model-download)                 | Works from source; no local model needed                                                                                                                                                           |
+| Local models through llama.cpp                                                                                            | Works from source with a system `llama-server`                                                                                                                                                     |
+| Memory recall                                                                                                             | Needs `llama-server` and the embedding model; switched off automatically without them                                                                                                              |
+| Hardware probe, VRAM/GPU load, CPU temperature, process load                                                              | Works (DRM sysfs, hwmon, `/proc`)                                                                                                                                                                  |
+| Desktop window                                                                                                            | Opens and is clickable on Wayland. Its transparent area also catches clicks, and dragging the window does not work yet                                                                             |
+| Native avatar overlay                                                                                                     | Rust layer-shell surface in [`apps/overlay`](apps/overlay)                                                                                                                                         |
+| Coding mode (editor discovery, VS Code bridge), Discord Rich Presence, Stockfish                                          | Works (system packages)                                                                                                                                                                            |
+| Speech recognition and voice                                                                                              | Setup ported to Linux (`node tools/setup/setup.mjs`). Recognition's lock already works; the router, voice and Qwen locks must be recompiled for Linux first. Accelerated Qwen voice is unavailable |
+| Computer control, app actions, Spotify/YouTube Music, awareness, call audio, screen capture, virtual camera, tool sandbox | Not ported yet: these report "not available on Linux yet"                                                                                                                                          |
 
 ## Changes in this fork
 
@@ -112,8 +112,9 @@ node tools/setup/setup.mjs qwen [--russian]
 node tools/setup/setup.mjs router
 ```
 
-The pinned Python locks in `config/` were compiled for Windows. Until they are
-recompiled for Linux, these commands will not complete.
+`recognition` uses a lock that already installs on Linux (CI checks it). The
+router, voice, multilingual and Qwen locks were compiled for Windows; until they
+are recompiled for Linux, those commands will not complete.
 
 ## System requirements
 

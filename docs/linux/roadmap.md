@@ -52,8 +52,11 @@ is large: persona plus about 30 tool descriptions the bridge cannot use.
 - [ ] Accelerated Qwen voice: replace the `win_amd64` wheel pins in
       `integrations/voice_runtime/qwen_gpu_setup.py`.
 - [ ] Re-measure `config/speech-storage.json`; its sizes are Windows numbers.
-- [ ] Setup must die with a crashed Capri: a `setpriv --pdeathsig` watchdog for
-      the setup process group (heritage rule 3).
+- [ ] Setup must die with a crashed Capri (heritage rule 3). `--pdeathsig`
+      alone is not enough: it signals only the one process it is set on, and
+      `uv`/`pip` children would keep running. Run a small watchdog under
+      `setpriv --pdeathsig TERM` that kills the whole setup process group
+      (`kill -TERM -<pgid>`) when it receives that signal.
 
 ### 4. Memory recall
 
@@ -63,7 +66,6 @@ is large: persona plus about 30 tool descriptions the bridge cannot use.
 ### 5. Cleanup
 
 - [ ] Remove the 16 Windows-only tests that are always skipped on Linux.
-- [ ] Update the heritage doc: the recognition lock already works on Linux.
 - [ ] Remove the dead locale keys that mention `setup-*.cmd` (all 50 languages).
 - [ ] Automatic update checks still query upstream `CapriChooms/CapriCore` and
       can announce Windows releases this fork cannot install. Turn them off, or

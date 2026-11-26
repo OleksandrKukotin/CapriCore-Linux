@@ -67,14 +67,19 @@ These rules repeat across almost every helper. They are the real heritage.
 below; `installSpeechComponents` and the Qwen catalog install use them, and
 `node tools/setup/setup.mjs <component>` replaces the `.cmd` launchers. Still open:
 
-- Every lock in `config/` was compiled for Windows x64 and must be recompiled
-  for `x86_64-manylinux_2_28` before a real install can succeed.
+- The recognition lock (`config/asr-requirements.lock.txt`) already installs on
+  Linux: it pins only portable packages without hashes, and CI installs it on
+  Ubuntu and runs the ASR tests. The other locks (router, Qwen and the legacy,
+  Blackwell and AMD voice locks) were compiled for Windows x64 and must be
+  recompiled for `x86_64-manylinux_2_28` before those components can install.
 - Accelerated Qwen (`qwen_gpu_setup.py`) pins `win_amd64` wheels, so CUDA/ROCm
   Qwen reports `CAPRI_PLATFORM_UNAVAILABLE`.
 - `setup-npu.ps1` (OpenVINO venv) is not ported.
 - Owner-death: the Windows `owned-speech.ps1` killed setup when Capri died.
   `runCommand` kills the process group on cancel, but a crashed Capri leaves it
-  running (rule 3). Use a `setpriv --pdeathsig` watchdog for the group.
+  running (rule 3). `setpriv --pdeathsig` signals only the process it is set
+  on, so run a watchdog under it that kills the whole setup process group
+  (`kill -TERM -<pgid>`) when Capri dies.
 - `config/speech-storage.json` sizes are Windows measurements; re-measure.
 
 The recipe (platform-neutral, port it to Node or shell):
