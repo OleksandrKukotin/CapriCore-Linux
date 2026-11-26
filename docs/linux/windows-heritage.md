@@ -12,6 +12,8 @@ git show c50c646:<path>              # e.g. git show c50c646:apps/desktop/native
 git ls-tree -r --name-only c50c646 | grep -E '\.(ps1|cs|cmd|cpp)$'
 ```
 
+The order of upcoming work is in the [Linux roadmap](roadmap.md).
+
 Priorities: **P0** blocks a Linux feature that users already expect,
 **P1** restores a shipped Windows feature, **P2** is nice to have.
 
