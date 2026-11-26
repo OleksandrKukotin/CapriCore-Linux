@@ -1,7 +1,14 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { initializeOwnerMemory } from './owner-memory.mjs';
 import { applyInferenceProfile } from './config/inference-profile.mjs';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  copyFileSync,
+  unlinkSync,
+} from 'node:fs';
 import path from 'node:path';
 import { root, paths } from './host/paths.mjs';
 import { settings, generationParams } from './config/settings.mjs';
@@ -276,8 +283,11 @@ export function initialize(rt = runtime()) {
   initializeOwnerMemory(rt.workspace, {
     repairShippedDefaults: existsSync(path.join(root, '.capri-install.json')),
   });
-  if (!existsSync(rt.configPath)) writeJsonAtomic(rt.configPath, createGatewayConfiguration(rt));
-  else {
+  if (!existsSync(rt.configPath)) {
+    const fresh = createGatewayConfiguration(rt);
+    applyMemoryAvailability(fresh, rt);
+    writeJsonAtomic(rt.configPath, fresh);
+  } else {
     const previous = JSON.parse(readFileSync(rt.configPath, 'utf8')),
       next = relocateManagedPaths(previous, rt);
     next.logging = {
@@ -332,10 +342,32 @@ export function initialize(rt = runtime()) {
       copyFileSync(rt.configPath, path.join(backups, `context-window-${randomUUID()}.json`));
     }
     applyInferenceProfile(next, rt, settings);
+    applyMemoryAvailability(next, rt);
     if (JSON.stringify(previous) !== JSON.stringify(next)) writeJsonAtomic(rt.configPath, next);
   }
   return rt;
 }
+
+/**
+ * Turn memory search off while its local embedding service is unavailable, and
+ * back on only once core startup confirms it works again (rt.localMemory ===
+ * true), and only if Capri was the one that turned it off. Other callers leave
+ * the setting alone.
+ */
+export function applyMemoryAvailability(config, rt, marker = memorySuspensionMarker(rt)) {
+  const search = config.memory?.search;
+  if (!search) return;
+  if (rt.localMemory === false) {
+    if (search.enabled !== false) {
+      search.enabled = false;
+      writeJsonAtomic(marker, { suspended: true });
+    }
+  } else if (rt.localMemory === true && existsSync(marker)) {
+    search.enabled = true;
+    unlinkSync(marker);
+  }
+}
+const memorySuspensionMarker = (rt) => path.join(rt.stateDir, 'memory-search-suspended.json');
 export function headers(rt = runtime()) {
   return {
     authorization: `Bearer ${readFileSync(rt.tokenPath, 'utf8').trim()}`,
