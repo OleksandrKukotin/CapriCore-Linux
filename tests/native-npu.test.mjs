@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { identifyNpus, NpuSetupService } from '../apps/desktop/npu-setup-service.mjs';
+import { discoverNpus, NpuSetupService } from '../apps/desktop/npu-setup-service.mjs';
 import { ModelDeviceService } from '../apps/desktop/model-device-service.mjs';
 import { npuSettings, validateNpuModel } from '../packages/runtime/src/providers/npu-settings.mjs';
 import { NpuInference, NpuWorker } from '../packages/runtime/src/providers/npu-inference.mjs';
@@ -13,6 +13,7 @@ import {
   readModelDevices,
   modelsShareDevice,
 } from '../packages/runtime/src/model-device-settings.mjs';
+import { managedPython } from '../packages/installer/src/python-runtime.mjs';
 const fixture = (t) => {
   const root = mkdtempSync(path.join(os.tmpdir(), 'capri-npu-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
@@ -32,23 +33,23 @@ test('native model selection does not share GPU voice memory or allow NPU voice'
   assert.equal(modelsShareDevice(native.deviceId, 'auto'), false);
   assert.throws(() => saveModelDevices(root, { language: 'auto', voice: native.deviceId }));
 });
-test('Windows NPU discovery distinguishes driver status from ordinary GPUs', () => {
-  assert.deepEqual(
-    identifyNpus([
-      { PNPDeviceID: 'PCI\\VEN_1022&DEV_17F0', ConfigManagerErrorCode: 28 },
-      { PNPClass: 'Display', Name: 'AMD Radeon', ConfigManagerErrorCode: 0 },
-      { Name: 'Intel(R) AI Boost', ConfigManagerErrorCode: 0 },
-      { Name: 'AMD IPU Device', ConfigManagerErrorCode: 0 },
-    ]),
-    [
-      { backend: 'vitis', driverReady: true },
-      { backend: 'openvino', driverReady: true },
-    ],
-  );
-  assert.deepEqual(
-    identifyNpus([{ PNPDeviceID: 'PCI\\VEN_1022&DEV_17F0', ConfigManagerErrorCode: 28 }]),
-    [{ backend: 'vitis', driverReady: false }],
-  );
+test('NPU discovery reads bound accel drivers from sysfs and ignores other devices', (t) => {
+  const base = mkdtempSync(path.join(os.tmpdir(), 'capri-accel-'));
+  t.after(() => rmSync(base, { recursive: true, force: true }));
+  const device = (name, uevent) => {
+    mkdirSync(path.join(base, name, 'device'), { recursive: true });
+    if (uevent !== null) writeFileSync(path.join(base, name, 'device/uevent'), uevent);
+  };
+  device('accel0', 'DRIVER=amdxdna\nPCI_ID=1022:17F0\n');
+  device('accel1', 'DRIVER=intel_vpu\n');
+  device('accel2', 'DRIVER=habanalabs\n');
+  device('accel3', null);
+  device('card0', 'DRIVER=amdxdna\n');
+  assert.deepEqual(discoverNpus(base), [
+    { backend: 'vitis', driverReady: true },
+    { backend: 'openvino', driverReady: true },
+  ]);
+  assert.deepEqual(discoverNpus(path.join(base, 'missing')), []);
 });
 test('AMD NPU appears alongside CPU/GPU and prepares a compatible model before it can be activated', async (t) => {
   const { root, config } = fixture(t);
@@ -173,7 +174,7 @@ test('native inference streams over private IPC and keeps cloud/API mode out of 
 });
 test('real worker returns a safe missing-runtime error without SDK paths or prompts', async (t) => {
   const root = path.resolve('.'),
-    python = path.join(root, '.runtime/python/cpython-3.11.17-windows-x86_64-none/python.exe');
+    python = managedPython(root, '3.11.17');
   if (!existsSync(python)) return t.skip('Private Python is not installed');
   const worker = new NpuWorker({ root, python });
   t.after(() => worker.stop());

@@ -4,6 +4,10 @@ import path from 'node:path';
 /** Interpreter of a private venv under `.runtime/` (uv creates POSIX layouts on Linux). */
 export const venvPython = (root, name) => path.join(root, '.runtime', name, 'bin/python');
 
+/** A component venv's site-packages; every venv uses the pinned Python 3.11 unless noted. */
+export const venvSitePackages = (root, name, series = '3.11') =>
+  path.join(root, '.runtime', name, 'lib', `python${series}`, 'site-packages');
+
 /**
  * Variables a Python worker may inherit. Everything else (credentials, proxies,
  * user Python settings) stays out of its clean environment.

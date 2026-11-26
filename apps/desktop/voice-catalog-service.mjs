@@ -18,11 +18,9 @@ import { writeJsonAtomic } from './storage.mjs';
 import builtinCatalog from '../../config/tts-catalog.json' with { type: 'json' };
 import languages from '../shared/languages.json' with { type: 'json' };
 import { privateLogRecord } from '../../packages/runtime/src/privacy-log.mjs';
-import {
-  isPlatformUnavailable,
-  platformUnavailable,
-} from '../../packages/runtime/src/host/platform.mjs';
+import { isPlatformUnavailable } from '../../packages/runtime/src/host/platform.mjs';
 import { writePrivateBytesAtomic } from '../../packages/runtime/src/safe-file.mjs';
+import { speechSetup } from '../../packages/installer/src/speech-setup.mjs';
 import { probeHardware } from '../../packages/runtime/src/hardware/probe.mjs';
 import { voiceRocmSupported } from '../../packages/runtime/src/hardware/voice-gpu.mjs';
 import { voiceRuntimeEnvironment } from '../../integrations/voice_runtime/environment.mjs';
@@ -220,6 +218,7 @@ export class VoiceCatalogService {
       ),
     ownerStamp = () => processStartedAt(process.pid),
     installBreeze = installBreezeTts,
+    findUv,
   }) {
     Object.assign(this, {
       root,
@@ -232,6 +231,7 @@ export class VoiceCatalogService {
       prepare,
       ownerStamp,
       installBreeze,
+      findUv,
     });
     this.models = readJson(path.join(configRoot, 'config/tts-catalog.json')).models;
     this.applying = false;
@@ -361,8 +361,7 @@ export class VoiceCatalogService {
     );
     if (model?.backend === 'breeze-tts') {
       if (acceptLicense !== true) throw new Error('Accept the Breeze TTS 2 model license.');
-      if (!breezeSupported)
-        throw new Error('Breeze TTS 2 has no Linux build yet.');
+      if (!breezeSupported) throw new Error('Breeze TTS 2 has no Linux build yet.');
       if (this.root !== this.configRoot)
         throw new Error('Installation is unavailable in interface verification.');
       return this.downloadBreeze(model, language);
@@ -423,10 +422,27 @@ export class VoiceCatalogService {
         controller.signal.throwIfAborted();
         await this.beforeChange();
         controller.signal.throwIfAborted();
-        // The Qwen speech runtime was provisioned by a PowerShell/uv script. Its
-        // recipe is in docs/linux/windows-heritage.md ("Python runtime provisioning").
-        throw platformUnavailable('Qwen voice installation');
-        controller.signal.throwIfAborted();
+        const signal = controller.signal;
+        await this.prepare({ root: this.root, env: process.env, signal, execute: this.run });
+        signal.throwIfAborted();
+        const setup = speechSetup({
+          root: this.root,
+          signal,
+          findUv: this.findUv,
+          execute: (file, args, options) =>
+            this.run(file, args, { ...options, timeoutMs: 2 * 60 * 60 * 1000 }),
+          stage: (stage) => this.publish({ stage, progress: null }),
+          output: (line) => {
+            // qwen_provision reports {"stage":"models","progress":<percent>}.
+            try {
+              const { stage, progress } = JSON.parse(line);
+              if (stage === 'models')
+                this.publish({ stage, progress: Number.isFinite(progress) ? progress : null });
+            } catch {}
+          },
+        });
+        await setup.qwen({ russian: modelId === RUSSIAN_QWEN_ID, cuda, rocm });
+        signal.throwIfAborted();
         if (!this.installed(model) || (acceleration && !qwenGpuRuntime(this.root, acceleration)))
           throw new Error('Voice installation could not be verified.');
         this.publish({ phase: 'ready', stage: null, progress: 100, error: null });

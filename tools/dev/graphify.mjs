@@ -20,7 +20,7 @@ import {
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const cache = path.join(root, '.runtime', 'graphify');
 const venv = path.join(cache, 'venv');
-const cli = path.join(venv, 'Scripts', 'graphify.exe');
+const cli = path.join(venv, 'bin', 'graphify');
 const indexFile = path.join(cache, 'index.json');
 const version = '0.9.106';
 const sourceScopes = ['apps', 'packages', 'integrations', 'scripts', 'tools', 'tests'];
@@ -175,9 +175,9 @@ try {
   assertPrivatePath(cache);
   if (action === 'install' && !args.length) {
     mkdirSync(cache, { recursive: true });
-    const python = path.join(venv, 'Scripts', 'python.exe');
+    const python = path.join(venv, 'bin', 'python');
     assertPrivatePath(python);
-    if (!existsSync(python)) run('py', ['-3', '-m', 'venv', venv]);
+    if (!existsSync(python)) run('python3', ['-m', 'venv', venv]);
     run(
       python,
       [

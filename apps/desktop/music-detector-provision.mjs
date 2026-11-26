@@ -64,7 +64,7 @@ async function verifiedModel(folder, config) {
 
 export async function prepareMusicDetector(
   root,
-  { signal, progress = () => {}, fetchImpl = fetch } = {},
+  { signal, progress = () => {}, fetchImpl = fetch, extract = extractZip } = {},
 ) {
   const config = musicDetectorConfig(root),
     python = musicPython(root);
@@ -101,8 +101,9 @@ export async function prepareMusicDetector(
   signal?.throwIfAborted();
   const temporary = mkdtempSync(path.join(parent, 'verified-'));
   // Exactly the four model files, flattened out of their release folder.
-  const expected = /^yamnet-onnx-float\/(?:(?:yamnet\.onnx|yamnet\.data|labels\.txt|metadata\.json))?$/;
-  await extractZip(archive, temporary, {
+  const expected =
+    /^yamnet-onnx-float\/(?:(?:yamnet\.onnx|yamnet\.data|labels\.txt|metadata\.json))?$/;
+  await extract(archive, temporary, {
     maximumBytes: 80 * 1024 ** 2,
     accept: (name) => expected.test(name),
     signal,

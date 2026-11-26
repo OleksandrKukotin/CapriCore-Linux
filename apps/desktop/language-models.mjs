@@ -8,6 +8,7 @@ import detector from '../../config/asr-vad-upstream.json' with { type: 'json' };
 import candidates from '../../config/multilingual-candidates.json' with { type: 'json' };
 import multilingual from '../../config/multilingual-runtime.json' with { type: 'json' };
 import { LANGUAGE_PACKS } from './renderer/language-settings.mjs';
+import { venvSitePackages } from '../../packages/runtime/src/host/python.mjs';
 import {
   selectedVoiceModel,
   voicePython,
@@ -123,7 +124,7 @@ export function recognitionModelsInstalled(root, language, config) {
     if (kind === 'parakeet-v2') return true;
     const { whisper } = multilingual;
     return (
-      existsSync(path.join(root, '.runtime/asr-venv/Lib/site-packages/faster_whisper')) &&
+      existsSync(path.join(venvSitePackages(root, 'asr-venv'), 'faster_whisper')) &&
       complete(whisper.directory, whisper.files)
     );
   } catch {

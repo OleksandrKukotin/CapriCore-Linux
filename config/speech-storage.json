@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "note": "Package sizes were measured on Windows x64. Re-measure after the Linux locks are compiled; Linux CUDA wheels add nvidia-* packages.",
+  "reserveMiB": 1024,
+  "englishVoiceBytes": 2987690140,
+  "python": { "downloadMiB": 27, "expandedMiB": 80 },
+  "recognition": { "downloadMiB": 144, "expandedMiB": 352 },
+  "router": { "downloadMiB": 48, "expandedMiB": 128 },
+  "cudaVoice": { "downloadMiB": 3379, "expandedMiB": 5632 },
+  "rocmVoice": { "downloadMiB": 2560, "expandedMiB": 6144 },
+  "qwenVoice": { "downloadMiB": 700, "expandedMiB": 4200 }
+}

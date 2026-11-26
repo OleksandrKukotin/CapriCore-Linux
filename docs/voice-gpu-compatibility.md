@@ -68,9 +68,9 @@ runtime profile or setup selector synchronizes the existing voice environment vi
 setup-voice-training.ps1 -DependenciesOnly. It preserves the trained voice, base
 weights, settings and history; this dependency repair does not retrain or provision
 model weights. The new PyTorch wheel is about 3 GiB, so a first repair needs a
-substantial download. Running the new installer or setup-voice-training.cmd also
+substantial download. Running `node tools/setup/setup.mjs voice` also
 selects the hardware profile automatically. Close Capri before manual environment
-maintenance. Advanced checks can explicitly use -VoiceRuntime legacy or blackwell.
+maintenance. Advanced checks can explicitly use `--profile legacy` or `--profile blackwell`.
 
 CI checks both real dependency resolutions without a GPU or speech-model weights,
 alongside device-free selection/CUDA failure tests and updater dependency-repair
