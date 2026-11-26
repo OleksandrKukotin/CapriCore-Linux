@@ -161,7 +161,7 @@ test('Chrome text entry can resolve one real cached lease but cannot invent a co
       : { ok: true, n: ++typed },
   );
   const exe = path.join(f.folder, 'Editor.exe');
-  await fs.writeFile(exe, 'fixture');
+  await fs.writeFile(exe, 'fixture', { mode: 0o755 });
   const [app] = f.catalog.add(exe);
   f.catalog.update({ id: app.id, inspect: true, text: true });
   await f.catalog.execute('inspect', { action: 'inspect', appId: app.id }, f.approvals);
@@ -206,7 +206,7 @@ test('direct browser navigation requires exact grants, a web URL and explicit ap
     return { ok: true };
   });
   const exe = path.join(f.folder, 'chrome.exe');
-  await fs.writeFile(exe, 'fixture');
+  await fs.writeFile(exe, 'fixture', { mode: 0o755 });
   const [app] = f.catalog.add(exe);
   f.catalog.update({ id: app.id, launch: true, inspect: true, text: true });
   for (const url of [
@@ -243,7 +243,7 @@ test('browser and field inference refuses ambiguous capabilities instead of gues
   }));
   for (const name of ['chrome', 'msedge']) {
     const exe = path.join(f.folder, name + '.exe');
-    await fs.writeFile(exe, 'fixture');
+    await fs.writeFile(exe, 'fixture', { mode: 0o755 });
     const apps = f.catalog.add(exe),
       app = apps.at(-1);
     f.catalog.update({ id: app.id, launch: true, inspect: true, text: true });

@@ -14,7 +14,6 @@ import {
   validateInitiative,
   initiativeLimit,
 } from '../apps/desktop/initiative-settings.mjs';
-import { npmNetworkFailure } from '../packages/installer/src/npm-install.mjs';
 import { observationText } from '../apps/desktop/screen-observation.mjs';
 import { InitiativePolicy } from '../apps/desktop/initiative-policy.mjs';
 import { CompanionActions } from '../apps/desktop/companion-actions.mjs';
@@ -149,16 +148,6 @@ test('the complete initiative hourly budget survives restart at the new maximum'
   assert.deepEqual(restored.recent, first.recent);
 });
 
-test('reported Windows npm reset exit values retry only with an explicit network code', () => {
-  for (const exitCode of [-4077, 4294963219]) {
-    assert.equal(
-      npmNetworkFailure({ exitCode, outputTail: 'npm error code ECONNRESET' }),
-      'ECONNRESET',
-    );
-    assert.equal(npmNetworkFailure({ exitCode, outputTail: 'npm error code EPERM' }), null);
-    assert.equal(npmNetworkFailure({ exitCode, outputTail: 'Process terminated' }), null);
-  }
-});
 test('initiative presets migrate and explicit hourly limits stay bounded', () => {
   const old = { ...INITIATIVE_DEFAULTS };
   delete old.hourlyLimit;
@@ -284,124 +273,3 @@ test('settings loading cannot resurrect a hidden window or open during shutdown'
   await interrupted;
   assert.equal(host.window, null);
 });
-
-test(
-  'selective Windows uninstall preserves unchecked groups and leaves linked external data intact',
-  { skip: process.platform !== 'win32', timeout: 90000 },
-  () => {
-    const parent = path.resolve('.runtime/november-uninstall-tests');
-    mkdirSync(parent, { recursive: true });
-    const wrapper = path.join(parent, 'invoke.ps1');
-    writeFileSync(
-      wrapper,
-      `param([string]$Script,[string]$Root,[int]$App,[int]$Models,[int]$Settings,[int]$Plan)
-& $Script -InstallRoot $Root -Quiet -RemoveApplication:([bool]$App) -DeleteModels:([bool]$Models) -DeleteSettings:([bool]$Settings) -PlanOnly:([bool]$Plan)
-exit $LASTEXITCODE
-`,
-    );
-    const fixture = () => {
-      const root = mkdtempSync(path.join(parent, 'owned-'));
-      assert.ok(root.startsWith(parent + path.sep));
-      const put = (name, text = 'fixture') => {
-        const file = path.join(root, name);
-        mkdirSync(path.dirname(file), { recursive: true });
-        writeFileSync(file, text);
-      };
-      put(
-        '.capri-install.json',
-        JSON.stringify({
-          productId: 'capri.desktop',
-          root,
-          installId: '00000000-0000-4000-8000-000000000001',
-        }),
-      );
-      put('app.mjs');
-      put('Capri.exe');
-      put('config/core.local.json', '{}');
-      put(
-        'config/installer.json',
-        JSON.stringify({ artifacts: { node: { directory: 'absent-test-node' } } }),
-      );
-      put(
-        '.runtime/installer/source-files.json',
-        JSON.stringify({
-          files: [
-            { path: 'app.mjs', sha256: createHash('sha256').update('fixture').digest('hex') },
-          ],
-        }),
-      );
-      for (const name of [
-        'data/models/model.bin',
-        'data/speech/voice.bin',
-        'data/speech/companion-voice-token',
-        'data/voices/capri/en/exports/pack/model.bin',
-        'data/voices/capri/en/exports/capri-en-v1/model.bin',
-        'data/voices/capri/en/raw/original.wav',
-        'data/desktop/settings.json',
-        'data/workspace/MEMORY.md',
-        'data/screenshots/photo.png',
-      ])
-        put(name);
-      return root;
-    };
-    const run = (root, app, models, settings, plan = 0) =>
-      spawnSync(
-        'powershell.exe',
-        [
-          '-NoProfile',
-          '-NonInteractive',
-          '-ExecutionPolicy',
-          'Bypass',
-          '-File',
-          wrapper,
-          '-Script',
-          path.resolve('packages/installer/windows/uninstall.ps1'),
-          '-Root',
-          root,
-          '-App',
-          String(app),
-          '-Models',
-          String(models),
-          '-Settings',
-          String(settings),
-          '-Plan',
-          String(plan),
-        ],
-        { windowsHide: true, encoding: 'utf8', timeout: 20000 },
-      );
-    for (let bits = 0; bits < 8; bits++) {
-      const root = fixture(),
-        app = bits & 1,
-        models = (bits >> 1) & 1,
-        settings = (bits >> 2) & 1;
-      const preview = run(root, app, models, settings, 1);
-      assert.equal(preview.status, 0, preview.stderr);
-      assert.ok(existsSync(path.join(root, 'app.mjs')));
-      const result = run(root, app, models, settings);
-      assert.equal(result.status, 0, result.stderr);
-      for (const [file, kept] of [
-        ['app.mjs', !app],
-        ['.capri-install.json', !app],
-        ['data/models/model.bin', !models],
-        ['data/speech/voice.bin', !models],
-        ['data/speech/companion-voice-token', !settings],
-        ['data/desktop/settings.json', !settings],
-        ['data/workspace/MEMORY.md', !settings],
-        ['config/core.local.json', !settings],
-        ['data/screenshots/photo.png', bits !== 7],
-        ['data/voices/capri/en/raw/original.wav', !settings],
-        ['data/voices/capri/en/exports/pack/model.bin', !settings],
-        ['data/voices/capri/en/exports/capri-en-v1/model.bin', !models],
-      ])
-        assert.equal(existsSync(path.join(root, file)), kept, `${bits}: ${file}`);
-    }
-    const root = fixture(),
-      outside = mkdtempSync(path.join(parent, 'sentinel-'));
-    writeFileSync(path.join(outside, 'keep.txt'), 'keep');
-    symlinkSync(outside, path.join(root, 'data/models/external'), 'junction');
-    const removed = run(root, 1, 1, 1);
-    assert.equal(removed.status, 0, removed.stderr);
-    assert.equal(existsSync(path.join(root, 'app.mjs')), false);
-    assert.ok(existsSync(path.join(outside, 'keep.txt')));
-  },
-);

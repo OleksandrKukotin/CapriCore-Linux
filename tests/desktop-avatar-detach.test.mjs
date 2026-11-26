@@ -13,7 +13,6 @@ import {
   visibleAvatarDock,
 } from '../apps/desktop/avatar-docking.mjs';
 import { avatarDropOutside, spriteGrabPoint } from '../apps/desktop/geometry.mjs';
-import { DesktopTeleportMenu } from '../apps/desktop/main/desktop-teleport-menu.mjs';
 import {
   arrivalStart,
   boltOnlyFrames,
@@ -1841,72 +1840,6 @@ test('detached drag moves by the cursor delta and preserves the grabbed point ac
   assert.ok(Math.abs(onTarget.x + targetArea.x - cursor.x) < 1e-8);
   assert.ok(Math.abs(onTarget.y + targetArea.y - cursor.y) < 1e-8);
   controller.reset();
-});
-
-test('desktop shell registration waits for native coordinates and removes only its own verb', async () => {
-  const commands = [];
-  const teleports = [];
-  let registryOwner = 'f'.repeat(64);
-  const root = "D:\\Capri's test";
-  const helper = root + '\\.runtime\\CapriDesktopTeleport.exe';
-  const child = new EventEmitter();
-  child.stdout = new PassThrough();
-  child.stdin = new PassThrough();
-  let token;
-  const menu = new DesktopTeleportMenu(root, (point) => teleports.push(point), {
-    run(args) {
-      commands.push(args);
-      return { status: 0, stdout: '    CapriOwner    REG_SZ    ' + registryOwner };
-    },
-    prepare: () => helper,
-    start(executable, sessionToken) {
-      assert.equal(executable, helper);
-      token = sessionToken;
-      return child;
-    },
-  });
-  menu.hide();
-  assert.deepEqual(
-    commands.map(([verb]) => verb),
-    ['query'],
-  );
-  await menu.show('Телепортировать Capri');
-  assert.equal(commands.length, 1);
-  child.stdout.write('999 999\nready\n');
-  const command = commands.find((args) => args[1]?.endsWith('\\command')).at(-2);
-  assert.match(token, /^[0-9a-f]{32}$/);
-  assert.equal(command, `"${helper}" --teleport ${token}`);
-  assert.ok(commands.some((args) => args.includes('Телепортировать Capri')));
-  child.stdout.write('invalid\n-40 126\n');
-  assert.deepEqual(teleports, [{ x: -40, y: 126 }]);
-  const releases = [];
-  const handle = Buffer.alloc(8);
-  handle.writeBigUInt64LE(4242n);
-  const cancel = menu.watchRelease(handle, (point) => releases.push(point));
-  child.stdout.write('release 2 20 30\nrelease 1 12 34\n');
-  cancel();
-  child.stdout.write('release 1 55 55\n');
-  assert.deepEqual(releases, [{ x: 12, y: 34 }]);
-  const anchors = [];
-  const unwatch = menu.watchWindow(
-    { windowId: '526', processId: '11', startedAtTicks: '30401' },
-    (point) => anchors.push(point),
-  );
-  child.stdout.write(
-    'anchor 1 visible 12 20 900 650\nanchor 2 visible -42 12 640 600\nanchor 2 hidden\n',
-  );
-  unwatch();
-  child.stdout.write('anchor 2 closed\n');
-  assert.deepEqual(anchors, [
-    { state: 'visible', x: -42, y: 12, width: 640, height: 600 },
-    { state: 'hidden' },
-  ]);
-  registryOwner = menu.owner;
-  menu.hide();
-  assert.equal(commands.at(-1)[0], 'delete');
-  assert.match(commands.at(-1)[1], /DesktopBackground\\shell\\Capri\.Teleport$/);
-  child.stdout.write('10 20\n');
-  assert.deepEqual(teleports, [{ x: -40, y: 126 }]);
 });
 
 test('invalid or undecodable artwork leaves the portrait attached', async () => {

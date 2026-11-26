@@ -11,37 +11,27 @@ import { temporaryFolders } from './temporary-folders.mjs';
 
 const temp = temporaryFolders('capri-window-graphics-');
 
-function startup(file, platform) {
+function startup(file) {
   const calls = [];
   const app = {
     commandLine: { appendSwitch: (value) => calls.push(value) },
     disableHardwareAcceleration: () => calls.push('software'),
   };
-  return { options: configureWindowGraphics(app, file, platform), calls };
+  return { options: configureWindowGraphics(app, file), calls };
 }
 
-test('Windows uses the alternate presentation path even with missing or corrupt preferences', () => {
+test('missing or corrupt graphics preferences keep hardware rendering', () => {
   const file = path.join(temp(), 'window-graphics.json');
-  const expected = {
-    options: { directCompositionDisabled: true, softwareRendering: false },
-    calls: ['disable-direct-composition'],
-  };
-  assert.deepEqual(startup(file, 'win32'), expected);
+  const expected = { options: { softwareRendering: false }, calls: [] };
+  assert.deepEqual(startup(file), expected);
   writeFileSync(file, '{');
-  assert.deepEqual(startup(file, 'win32'), expected);
+  assert.deepEqual(startup(file), expected);
 });
 
-test('software rendering is reversible and scoped to Windows UI startup', () => {
+test('software rendering after a GPU failure is saved and reversible', () => {
   const file = path.join(temp(), 'desktop', 'window-graphics.json');
   saveSoftwareRendering(file, true);
-  assert.deepEqual(startup(file, 'win32'), {
-    options: { directCompositionDisabled: true, softwareRendering: true },
-    calls: ['disable-direct-composition', 'software'],
-  });
-  assert.deepEqual(startup(file, 'linux'), {
-    options: { directCompositionDisabled: false, softwareRendering: false },
-    calls: [],
-  });
+  assert.deepEqual(startup(file), { options: { softwareRendering: true }, calls: ['software'] });
   saveSoftwareRendering(file, false);
-  assert.deepEqual(startup(file, 'win32').calls, ['disable-direct-composition']);
+  assert.deepEqual(startup(file), { options: { softwareRendering: false }, calls: [] });
 });

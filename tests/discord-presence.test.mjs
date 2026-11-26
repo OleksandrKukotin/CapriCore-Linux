@@ -6,6 +6,7 @@ import defaults from '../config/discord-presence.json' with { type: 'json' };
 import {
   DiscordPresence,
   discordFrame,
+  discordIpcPaths,
   discordSettings,
 } from '../apps/desktop/discord-presence.mjs';
 
@@ -21,7 +22,7 @@ function fixture(initial = {}) {
   };
   const presence = new DiscordPresence({
     preferences,
-    platform: 'win32',
+    platform: 'linux',
     connect: ({ path }) => {
       paths.push(path);
       const socket = new EventEmitter();
@@ -72,7 +73,7 @@ test('local RPC buffers fragmented frames, answers ping, publishes generic activ
   const f = fixture();
   f.presence.start();
   const socket = f.sockets[0];
-  assert.equal(f.paths[0], '\\\\?\\pipe\\discord-ipc-0');
+  assert.equal(f.paths[0], discordIpcPaths()[0]);
   socket.emit('connect');
   assert.deepEqual(body(socket.writes[0]), { v: 1, client_id: '123456789012345678' });
   const ready = discordFrame(1, { cmd: 'DISPATCH', evt: 'READY' });
@@ -99,11 +100,13 @@ test('local RPC buffers fragmented frames, answers ping, publishes generic activ
   assert.equal(f.presence.retry, null);
 });
 
-test('unavailable Discord tries bounded local pipe names and shutdown cancels reconnect', () => {
+test('unavailable Discord tries each local socket once and shutdown cancels reconnect', () => {
   const f = fixture();
+  const candidates = discordIpcPaths();
   f.presence.start();
-  for (let index = 0; index < 10; index++) f.sockets[index].emit('error', new Error('absent'));
-  assert.equal(f.paths.length, 10);
+  for (let index = 0; index < candidates.length; index++)
+    f.sockets[index].emit('error', new Error('absent'));
+  assert.deepEqual(f.paths, candidates);
   assert.equal(f.presence.phase, 'waiting');
   assert.ok(f.presence.retry);
   f.presence.close();
@@ -122,4 +125,21 @@ test('oversized or malformed RPC input cannot enter activity, logs or configurat
   assert.equal(f.sockets[1].destroyed, true);
   assert.equal(f.presence.snapshot().applicationId, '123456789012345678');
   f.presence.close();
+});
+
+test('Discord IPC sockets cover native, Flatpak and Snap builds and nothing else', () => {
+  const paths = discordIpcPaths({ XDG_RUNTIME_DIR: '/run/user/1000', TMPDIR: '/tmp' });
+  assert.equal(paths.length, 40);
+  for (const directory of [
+    '/run/user/1000',
+    '/run/user/1000/app/com.discordapp.Discord',
+    '/run/user/1000/snap.discord',
+    '/tmp',
+  ])
+    assert.ok(paths.includes(`${directory}/discord-ipc-9`), directory);
+  assert.ok(paths.every((file) => /\/discord-ipc-\d$/.test(file)));
+  assert.deepEqual(
+    discordIpcPaths({}),
+    Array.from({ length: 10 }, (_, i) => `/tmp/discord-ipc-${i}`),
+  );
 });

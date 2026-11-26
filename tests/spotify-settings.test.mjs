@@ -5,7 +5,6 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { root } from '../packages/runtime/src/host/paths.mjs';
 import { writeJsonAtomic } from '../packages/runtime/src/atomic-json.mjs';
-import { spotifySourceHash, NATIVE_SOURCES } from '../integrations/spotify/native-build.mjs';
 import { configureSpotify, spotifyAccess } from '../integrations/spotify/configuration.mjs';
 import { SpotifySettings } from '../apps/desktop/spotify-settings.mjs';
 
@@ -25,18 +24,8 @@ function fixture() {
     configPath: path.join(folder, 'private/config.json'),
   };
   writeJsonAtomic(rt.configPath, config);
-  const native = path.join(folder, 'integrations/spotify/native');
-  mkdirSync(native, { recursive: true });
-  for (const name of [...NATIVE_SOURCES, 'ExportAutomation.cs'])
-    writeFileSync(path.join(native, name), '// fixture ' + name);
-  const prepare = () => {
-    const hash = spotifySourceHash(folder),
-      artifact = hash.slice(0, 16) + '/Capri.Spotify.exe';
-    const build = path.join(folder, '.runtime/spotify-bridge');
-    mkdirSync(path.dirname(path.join(build, artifact)), { recursive: true });
-    writeFileSync(path.join(build, artifact), 'never executed');
-    writeJsonAtomic(path.join(build, 'build.json'), { sourceSha256: hash, artifact });
-  };
+  // Linux has no Spotify helper to build yet (MPRIS needs none).
+  const prepare = () => {};
   return { root: folder, rt, agentId: 'capri', node: process.execPath, config, prepare };
 }
 test('Spotify permission changes preserve other tools, model, plugins and reasoning', () => {
@@ -80,86 +69,19 @@ test('a failed native build cannot grant Spotify access or stop the running core
   assert.deepEqual(JSON.parse(readFileSync(f.rt.configPath)), f.config);
   assert.equal(settings.busy(), false);
 });
-test('Spotify is committed after shutdown and rolled back if relaunch fails', async () => {
-  const f = fixture(),
-    steps = [];
-  const settings = new SpotifySettings({
-    ...f,
-    execute: async () => {
-      steps.push('compile');
-      f.prepare();
-    },
-  });
+
+test('without a Linux Spotify bridge, enabling and checking fail without changing permissions', async () => {
+  const f = fixture();
+  const settings = new SpotifySettings({ ...f, execute: async () => {} });
+  assert.equal(settings.snapshot().prepared, false);
   await assert.rejects(
     settings.setEnabled(true, {
-      beforeCommit: async () => {
-        steps.push('stop');
-        assert.deepEqual(JSON.parse(readFileSync(f.rt.configPath)), f.config);
-      },
-      restart: async () => {
-        steps.push('restart');
-        assert.equal(settings.snapshot().enabled, true);
-        throw new Error('relaunch fixture');
-      },
+      beforeCommit: () => assert.fail('Nothing may stop the core without a bridge'),
+      restart: () => assert.fail('Nothing may restart without a bridge'),
     }),
-    /relaunch fixture/,
+    /could not be verified/,
   );
-  assert.deepEqual(steps, ['compile', 'stop', 'restart']);
   assert.deepEqual(JSON.parse(readFileSync(f.rt.configPath)), f.config);
-  assert.equal(settings.snapshot().prepared, true);
-  await settings.setEnabled(true, { beforeCommit: async () => {}, restart: async () => {} });
-  assert.equal(settings.snapshot().enabled, true);
-  await settings.setEnabled(false, { beforeCommit: async () => {}, restart: async () => {} });
-  assert.equal(settings.snapshot().enabled, false);
-});
-test('Spotify connection checks use the local bridge without requiring a gateway or chat session', async () => {
-  const f = fixture(),
-    seen = [];
-  f.prepare();
-  let running = true;
-  const settings = new SpotifySettings({
-    ...f,
-    readStatus: async (signal) => {
-      assert.equal(signal.aborted, false);
-      seen.push('status');
-      return {
-        ok: true,
-        data: { running, title: 'private fixture' },
-      };
-    },
-  });
-  await assert.rejects(settings.check(), /Enable Spotify/);
-  assert.equal(seen.length, 0);
-  writeJsonAtomic(f.rt.configPath, configureSpotify(f.config, { ...f, enabled: true }));
-  const value = await settings.check();
-  assert.equal(value.connection, 'connected');
-  assert.equal(JSON.stringify(value).includes('private fixture'), false);
-  running = false;
-  assert.equal((await settings.check()).connection, 'not-running');
-  running = undefined;
-  await assert.rejects(settings.check(), /Spotify connection could not be verified/);
-  assert.equal(settings.snapshot().connection, null);
-  assert.deepEqual(seen, ['status', 'status', 'status']);
-});
-
-test('closing the connection check releases Settings while the read-only probe is pending', async () => {
-  const f = fixture();
-  f.prepare();
-  writeJsonAtomic(f.rt.configPath, configureSpotify(f.config, { ...f, enabled: true }));
-  let signal;
-  const settings = new SpotifySettings({
-    ...f,
-    readStatus: (value) => {
-      signal = value;
-      return new Promise(() => {});
-    },
-  });
-  const checking = settings.check();
-  await Promise.resolve();
-  assert.equal(settings.busy(), true);
-  settings.close();
-  await assert.rejects(checking, /Spotify setup cancelled/);
-  assert.equal(signal.aborted, true);
+  await assert.rejects(settings.check(), /Enable Spotify control first/);
   assert.equal(settings.busy(), false);
-  assert.equal(settings.snapshot().connection, null);
 });

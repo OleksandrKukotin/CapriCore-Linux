@@ -254,7 +254,7 @@ test('opens the approved project as a Notepad++ workspace with a spaced path', a
   const executable = path.join(parent, 'Notepad++ editor.exe');
   const project = path.join(workspace, 'project with spaces');
   mkdirSync(project);
-  writeFileSync(executable, 'fixture');
+  writeFileSync(executable, 'fixture', { mode: 0o755 });
   service.save({ workspace: project, editor: { kind: 'notepad++', executable }, tasks: [] });
   assert.deepEqual(await service.openProject(), { opened: true, editor: 'notepad++' });
   assert.equal(called.executable, executable);
@@ -277,7 +277,7 @@ test('live editor context is optional and never exposes a file outside the appro
     },
   });
   const executable = path.join(parent, 'code.exe');
-  writeFileSync(executable, 'fixture');
+  writeFileSync(executable, 'fixture', { mode: 0o755 });
   mkdirSync(path.join(workspace, 'src'));
   writeFileSync(path.join(workspace, 'src/code.js'), 'code');
   service.save({

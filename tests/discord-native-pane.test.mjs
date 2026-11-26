@@ -2,38 +2,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
-import path from 'node:path';
 import { ComputerControl } from '../apps/desktop/computer-control.mjs';
 
 const leftPane = 'a'.repeat(64);
 const rightPane = 'b'.repeat(64);
-test('native-bound text uses the complete targeted inventory and its scan never reads content properties', () => {
-  const source = readFileSync(
-    path.resolve('integrations/desktop-actions/native/DesktopActions.cs'),
-    'utf8',
-  );
-  const typing = source.slice(
-    source.indexOf('if(action=="computer_type")'),
-    source.indexOf('if(action=="computer_keys")'),
-  );
-  assert.match(
-    typing,
-    /expectedDiscordPaneId[\s\S]*ScanDiscordComposers[\s\S]*if\(!scan\.Complete\)[\s\S]*scan\.Fields\.SingleOrDefault/u,
-  );
-  assert.match(
-    typing,
-    /else field=BoundedControls\(tree,800,2000\)/u,
-    'ordinary applications keep their existing lookup',
-  );
-  const scan = source.slice(
-    source.indexOf('static DiscordComposerInventory ScanDiscordComposers'),
-    source.indexOf('static bool DraftMatchesExpected'),
-  );
-  assert.doesNotMatch(scan, /\.Name\b|\.Value\b|GetText\s*\(/u);
-  assert.match(scan, /messageListItem_/u);
-});
 async function observation(controls, applicationKind = 'discord', inspect, scan) {
   const mutations = [];
   const control = new ComputerControl({
@@ -237,103 +209,3 @@ test('malformed pane IDs, headers, editable message text and another application
   assert.equal(foreign.targets[0].discordMessage, undefined);
   assert.equal(foreign.targets[0].discordMessageComposer, undefined);
 });
-
-test(
-  'production native pane fingerprints are content-free and bind HWND, process lifetime and container runtime ID',
-  { skip: process.platform !== 'win32' },
-  () => {
-    const parent = path.resolve('.runtime/discord-pane-tests');
-    mkdirSync(parent, { recursive: true });
-    const folder = mkdtempSync(path.join(parent, 'case-'));
-    const framework = path.join(process.env.SystemRoot, 'Microsoft.NET/Framework64/v4.0.30319');
-    const references = [
-      'System.Web.Extensions.dll',
-      'Microsoft.CSharp.dll',
-      ...['UIAutomationClient', 'UIAutomationTypes', 'WindowsBase'].map((name) =>
-        path.join(framework, 'WPF', name + '.dll'),
-      ),
-    ];
-    const compile = (sources, output, library = false) => {
-      const result = spawnSync(
-        path.join(framework, 'csc.exe'),
-        [
-          '/nologo',
-          '/target:' + (library ? 'library' : 'exe'),
-          '/out:' + output,
-          ...references.map((file) => '/r:' + file),
-          ...sources,
-        ],
-        { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, encoding: 'utf8', timeout: 20000 },
-      );
-      assert.equal(result.status, 0, result.stdout + result.stderr);
-    };
-    const library = path.join(folder, 'DesktopActions.dll');
-    compile([path.resolve('integrations/desktop-actions/native/DesktopActions.cs')], library, true);
-    const source = path.join(folder, 'PaneHashProbe.cs');
-    writeFileSync(
-      source,
-      String.raw`using System;
-using System.Reflection;
-using System.Collections.Generic;
-using System.Web.Script.Serialization;
-class PaneHashProbe {
-  static int Main(string[] args) {
-    try {
-      var method=Assembly.LoadFrom(args[0]).GetType("DesktopActions",true).GetMethod("DiscordPaneFingerprint",BindingFlags.Static|BindingFlags.NonPublic);
-      var output=new string[6];
-      string[] binding={"100\0"+"200\0"+"300","101\0"+"200\0"+"300","100\0"+"201\0"+"300","100\0"+"200\0"+"301","100\0"+"200\0"+"300", ""};
-      for(int i=0;i<output.Length;i++)output[i]=(string)method.Invoke(null,new object[]{binding[i],i==4?"right-container":"left-container"});
-      var type=method.DeclaringType;
-      var draft=type.GetMethod("DraftMatchesExpected",BindingFlags.Static|BindingFlags.NonPublic);
-      string empty="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-      bool[] draftChecks={
-        (bool)draft.Invoke(null,new object[]{empty,""}),
-        (bool)draft.Invoke(null,new object[]{empty,"preserved QA draft"}),
-        (bool)draft.Invoke(null,new object[]{"invalid",""}),
-        (bool)draft.Invoke(null,new object[]{empty,new string('x',8001)}),
-        (bool)draft.Invoke(null,new object[]{empty,null})
-      };
-      var verify=type.GetMethod("VerifyObservedDraft",BindingFlags.Static|BindingFlags.NonPublic);
-      var codes=new List<string>();
-      foreach(var request in new[]{new Dictionary<string,object>(),
-        new Dictionary<string,object>{{"expectedValueSha256","invalid"}},
-        new Dictionary<string,object>{{"expectedValueSha256",empty}},
-        new Dictionary<string,object>{{"expectedDiscordPaneId",output[0]}}}) {
-        try{verify.Invoke(null,new object[]{request,new IntPtr(100),null});codes.Add("unchanged");}
-        catch(TargetInvocationException e){codes.Add((string)e.InnerException.GetType().GetField("Code").GetValue(e.InnerException));}
-      }
-      var scan=type.GetMethod("ScanDiscordComposers",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,new object[]{null,"binding",new Dictionary<string,string>()});
-      Console.WriteLine(new JavaScriptSerializer().Serialize(new {fingerprints=output,draftChecks=draftChecks,preflightCodes=codes,emptyScanComplete=(bool)scan.GetType().GetField("Complete").GetValue(scan)}));return 0;
-    } catch(Exception e){Console.Error.WriteLine(e.GetType().Name);return 1;}
-  }
-}`,
-    );
-    const executable = path.join(folder, 'PaneHashProbe.exe');
-    compile([source], executable);
-    const result = spawnSync(executable, [library], {
-      stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true,
-      encoding: 'utf8',
-      timeout: 10000,
-    });
-    assert.equal(result.status, 0, result.stderr);
-    const report = JSON.parse(result.stdout);
-    const values = report.fingerprints;
-    assert.equal(
-      values[0],
-      createHash('sha256')
-        .update('discord-pane-v1\0' + '100\0' + '200\0' + '300\0left-container')
-        .digest('hex'),
-    );
-    assert.equal(new Set(values.slice(0, 5)).size, 5);
-    assert.equal(values[5], null);
-    assert.deepEqual(report.draftChecks, [true, false, false, false, false]);
-    assert.deepEqual(report.preflightCodes, [
-      'unchanged',
-      'COMPUTER_OBSERVATION_CHANGED',
-      'COMPUTER_FIELD_STALE',
-      'COMPUTER_OBSERVATION_CHANGED',
-    ]);
-    assert.equal(report.emptyScanComplete, false);
-  },
-);

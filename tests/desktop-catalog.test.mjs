@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, unlinkSync, readFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  unlinkSync,
+  readFileSync,
+} from 'node:fs';
 import path from 'node:path';
 import { DesktopCatalog } from '../apps/desktop/desktop-catalog.mjs';
 import { ActionApprovals } from '../apps/desktop/action-broker.mjs';
@@ -76,6 +83,7 @@ test('launch_executable with a human name resolves only through the permitted ca
   try {
     const exe = path.join(f.root, 'chrome.exe');
     writeFileSync(exe, 'fixture');
+    chmodSync(exe, 0o755);
     const [app] = f.catalog.add(exe);
     await assert.rejects(
       f.catalog.execute(
@@ -113,6 +121,7 @@ test('app catalog defaults to no permissions, remembers explicit grants and jour
   const f = fixture(async (_root, command) => ({ ok: true, command, call: ++calls }));
   const exe = path.join(f.root, 'Editor.exe');
   writeFileSync(exe, 'fixture');
+  chmodSync(exe, 0o755);
   const [app] = f.catalog.add(exe);
   await assert.rejects(
     f.catalog.execute('a', { action: 'launch', appId: app.id }, f.approvals),
@@ -152,6 +161,7 @@ test('a browser name resolves without an ID and launch binds following inspectio
   try {
     const exe = path.join(f.root, 'chrome.exe');
     writeFileSync(exe, 'fixture');
+    chmodSync(exe, 0o755);
     const [app] = f.catalog.add(exe);
     f.catalog.update({ id: app.id, launch: true, inspect: true, text: true });
     assert.equal(
@@ -207,6 +217,7 @@ test('full-access discovery returns usable transient IDs without writing individ
   try {
     const exe = path.join(f.root, 'chrome.exe');
     writeFileSync(exe, 'fixture');
+    chmodSync(exe, 0o755);
     const found = await f.catalog.execute(
       'discover',
       { action: 'find_app', query: 'Google Chrome' },
@@ -245,6 +256,7 @@ test('browser draft is one granted, confirmed, verifiable operation and never in
   try {
     const exe = path.join(f.root, 'chrome.exe');
     writeFileSync(exe, 'fixture');
+    chmodSync(exe, 0o755);
     const [app] = f.catalog.add(exe);
     await assert.rejects(
       f.catalog.execute(
@@ -294,6 +306,7 @@ test('Opera GX browser actions resolve the friendly launcher without changing sa
   try {
     exe = path.join(f.root, 'launcher.exe');
     writeFileSync(exe, 'fixture');
+    chmodSync(exe, 0o755);
     const [saved] = f.catalog.add(exe);
     const before = JSON.stringify(f.catalog.apps());
     const [found] = await f.catalog.findApplications('Opera GX');
@@ -330,6 +343,7 @@ test('launch-only applications advertise exact launch arguments and inspection e
   });
   const exe = path.join(f.root, 'Firefox.exe');
   writeFileSync(exe, 'fixture');
+  chmodSync(exe, 0o755);
   const [app] = f.catalog.add(exe);
   f.catalog.update({ id: app.id, launch: true });
   const result = await f.catalog.execute('list', { action: 'apps' }, f.approvals);
@@ -360,6 +374,7 @@ test('text entry requires inspected field, separate grant and exact UI confirmat
   );
   const exe = path.join(f.root, 'Editor.exe');
   writeFileSync(exe, 'fixture');
+  chmodSync(exe, 0o755);
   const [app] = f.catalog.add(exe);
   f.catalog.update({ id: app.id, inspect: true, text: true });
   const inspection = await f.catalog.execute(

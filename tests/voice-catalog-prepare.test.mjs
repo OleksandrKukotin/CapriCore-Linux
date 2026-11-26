@@ -2,14 +2,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 import { root } from '../packages/runtime/src/host/paths.mjs';
 import { writeJsonAtomic } from '../packages/runtime/src/atomic-json.mjs';
 import { prepareVoiceCatalog } from '../packages/installer/src/voice-catalog-prepare.mjs';
 import { validateVoicePack } from '../packages/installer/src/voice-pack.mjs';
 
-const manifest = JSON.parse(readFileSync(path.join(root, 'config/installer.json'), 'utf8'));
 const upstream = JSON.parse(readFileSync(path.join(root, 'config/voice-upstream.json'), 'utf8'));
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const json = (file) => JSON.parse(readFileSync(file, 'utf8'));
@@ -20,7 +26,6 @@ function fixture({ seed = true, custom = false } = {}) {
   const profileDir = custom
     ? 'data/voices/capri/en/imports/00000000-0000-4000-8000-000000000001/exports/capri-trained-00000000-0000-4000-8000-000000000002'
     : 'data/voices/capri/en/exports/capri-en-v1';
-  writeJsonAtomic(path.join(folder, 'config/installer.json'), manifest);
   writeJsonAtomic(path.join(folder, 'config/voice-upstream.json'), upstream);
   writeJsonAtomic(path.join(folder, 'config/companion-voice.json'), { profileDir });
   // The catalog is already holding this lock. Preparation must not acquire it again.
@@ -47,46 +52,25 @@ function fixture({ seed = true, custom = false } = {}) {
   }
   return { folder, profileDir };
 }
+/** A stand-in system uv: preparation only locates it, it never runs here. */
 function mockRuntime(folder) {
-  let downloads = 0,
-    extractions = 0;
-  return {
-    env: {},
-    ownerStamp: () => '1234',
-    async download(spec, cache) {
-      assert.deepEqual(spec, manifest.artifacts.uv);
-      assert.equal(cache, path.join(folder, '.runtime/installer/downloads'));
-      downloads++;
-      return path.join(cache, 'verified-uv.zip');
-    },
-    async execute(_file, args, options) {
-      assert.equal(args[args.indexOf('-Component') + 1], 'archive');
-      assert.equal(args[args.indexOf('-OwnerStamp') + 1], '1234');
-      assert.equal(options.cwd, folder);
-      const decoded = JSON.parse(
-        Buffer.from(args[args.indexOf('-ArgumentsBase64') + 1], 'base64').toString('utf8'),
-      );
-      const destination = decoded[decoded.indexOf('-Destination') + 1];
-      assert.equal(destination, path.join(folder, '.runtime/uv'));
-      mkdirSync(destination, { recursive: true });
-      writeFileSync(path.join(destination, 'uv.exe'), 'verified runtime fixture');
-      extractions++;
-    },
-    counts: () => ({ downloads, extractions }),
-  };
+  const uv = path.join(folder, 'fake-uv');
+  writeFileSync(uv, '#!/bin/sh\nexit 1\n');
+  chmodSync(uv, 0o755);
+  return { env: { CAPRI_UV_PATH: uv } };
 }
+const noUv = { env: { PATH: '' } };
 
-test('Qwen preparation repairs a clean API-only install using the verified bundled reference and pinned uv', async () => {
+test('Qwen preparation activates the verified bundled reference once the system uv is found', async () => {
   const { folder, profileDir } = fixture();
   const mocks = mockRuntime(folder);
   assert.deepEqual(await prepareVoiceCatalog({ root: folder, ...mocks }), { profileDir });
   validateVoicePack(path.join(folder, profileDir), upstream.model);
-  assert.deepEqual(mocks.counts(), { downloads: 1, extractions: 1 });
-  await prepareVoiceCatalog({ root: folder, ...mocks });
-  assert.deepEqual(mocks.counts(), { downloads: 1, extractions: 1 });
-  writeFileSync(path.join(folder, '.runtime/uv/uv.exe'), 'damaged runtime fixture');
-  await prepareVoiceCatalog({ root: folder, ...mocks });
-  assert.deepEqual(mocks.counts(), { downloads: 2, extractions: 2 });
+  assert.deepEqual(await prepareVoiceCatalog({ root: folder, ...mocks }), { profileDir });
+
+  const missing = fixture();
+  await assert.rejects(prepareVoiceCatalog({ root: missing.folder, ...noUv }), /uv is required/);
+  assert.equal(existsSync(path.join(missing.folder, missing.profileDir)), false);
 });
 
 test('Qwen preparation preserves a valid custom voice and refuses missing reference data before downloading', async () => {
@@ -95,33 +79,22 @@ test('Qwen preparation preserves a valid custom voice and refuses missing refere
   await prepareVoiceCatalog({ root: folder, ...mocks });
   assert.equal(json(path.join(folder, 'config/companion-voice.json')).profileDir, profileDir);
   assert.equal(existsSync(path.join(folder, 'data/voices/capri/en/exports/capri-en-v1')), false);
+  // The reference is checked before uv is even looked for.
   const missing = fixture({ seed: false });
-  const missingMocks = mockRuntime(missing.folder);
   await assert.rejects(
-    prepareVoiceCatalog({ root: missing.folder, ...missingMocks }),
+    prepareVoiceCatalog({ root: missing.folder, ...noUv }),
     /reference voice is missing/,
   );
-  assert.deepEqual(missingMocks.counts(), { downloads: 0, extractions: 0 });
 });
 
-test('cancelled Qwen preparation does not extract a runtime or activate an incomplete profile', async () => {
+test('cancelled Qwen preparation does not activate an incomplete profile', async () => {
   const { folder, profileDir } = fixture();
-  const mocks = mockRuntime(folder),
-    controller = new AbortController();
+  const controller = new AbortController();
+  controller.abort(new Error('Synthetic abort'));
   await assert.rejects(
-    prepareVoiceCatalog({
-      root: folder,
-      ...mocks,
-      signal: controller.signal,
-      download: async (...args) => {
-        const file = await mocks.download(...args);
-        controller.abort();
-        return file;
-      },
-    }),
+    prepareVoiceCatalog({ root: folder, ...mockRuntime(folder), signal: controller.signal }),
     /abort/i,
   );
-  assert.deepEqual(mocks.counts(), { downloads: 1, extractions: 0 });
   assert.equal(existsSync(path.join(folder, profileDir)), false);
 });
 

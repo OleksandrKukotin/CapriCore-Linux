@@ -173,7 +173,7 @@ test('capture and worker readiness are separate; private PCM travels only over b
   assert.equal(options.windowsHide, true);
   assert(
     Object.keys(options.env).every((key) =>
-      /^(?:SystemRoot|WINDIR|PATH|TEMP|TMP|PYTHONUTF8|PYTHONIOENCODING|PYTHONDONTWRITEBYTECODE|OMP_NUM_THREADS|OPENBLAS_NUM_THREADS|MKL_NUM_THREADS)$/.test(
+      /^(?:PATH|HOME|TMPDIR|LANG|LC_ALL|LD_LIBRARY_PATH|XDG_RUNTIME_DIR|XDG_CACHE_HOME|PYTHONUTF8|PYTHONIOENCODING|PYTHONDONTWRITEBYTECODE|OMP_NUM_THREADS|OPENBLAS_NUM_THREADS|MKL_NUM_THREADS)$/.test(
         key,
       ),
     ),

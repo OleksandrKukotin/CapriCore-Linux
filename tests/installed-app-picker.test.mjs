@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { DesktopCatalog } from '../apps/desktop/desktop-catalog.mjs';
 const parent = path.resolve('.runtime/0.6.2/app-picker-tests');
@@ -9,6 +9,7 @@ test('owner search caches discoveries without granting access and revalidates be
   const state = mkdtempSync(path.join(parent, 'case-'));
   const exe = path.join(state, 'Spotify.exe');
   writeFileSync(exe, 'synthetic - never executed');
+  chmodSync(exe, 0o755);
   let calls = 0,
     removed = false;
   const catalog = new DesktopCatalog({

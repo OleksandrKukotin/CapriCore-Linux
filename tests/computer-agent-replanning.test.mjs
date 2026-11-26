@@ -498,7 +498,7 @@ test('a requested taskbar switch rebinds to the verified foreground before the n
       f.control.session.target = {
         processId: foreground === '11' ? '101' : '202',
         startedAtTicks: foreground === '11' ? '1000' : '2000',
-        executable: foreground === '11' ? 'C:\\Windows\\Paint.exe' : 'C:\\Windows\\Notepad.exe',
+        executable: foreground === '11' ? '/usr/bin/paint' : '/usr/bin/notepad',
       };
       if (foreground === '22') {
         const matched = args.vision && args.visualWindow?.windowId === '22';
