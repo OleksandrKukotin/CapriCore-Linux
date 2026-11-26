@@ -219,8 +219,10 @@ test('launch clears only the old stop request before a delayed child starts, the
   });
   // Send the fresh stop only after the child has looked for the stale one;
   // otherwise a slow Node start would see the new request and report it as stale.
-  for (const deadline = Date.now() + 10000; !existsSync(entered) && Date.now() < deadline; )
+  const deadline = Date.now() + 30000;
+  while (!existsSync(entered) && Date.now() < deadline)
     await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.ok(existsSync(entered), 'The delayed child did not start within 30 s');
   await stopProcess(name);
   assert.deepEqual(JSON.parse(readFileSync(entered, 'utf8')), { stale: false });
   assert.deepEqual(JSON.parse(readFileSync(drained, 'utf8')), { stoppedBeforeModel: true });

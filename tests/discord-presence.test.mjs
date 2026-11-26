@@ -128,16 +128,16 @@ test('oversized or malformed RPC input cannot enter activity, logs or configurat
 });
 
 test('Discord IPC sockets cover native, Flatpak and Snap builds and nothing else', () => {
-  const paths = discordIpcPaths({ XDG_RUNTIME_DIR: '/run/user/1000', TMPDIR: '/tmp' });
-  assert.equal(paths.length, 40);
-  for (const directory of [
-    '/run/user/1000',
-    '/run/user/1000/app/com.discordapp.Discord',
-    '/run/user/1000/snap.discord',
-    '/tmp',
-  ])
-    assert.ok(paths.includes(`${directory}/discord-ipc-9`), directory);
-  assert.ok(paths.every((file) => /\/discord-ipc-\d$/.test(file)));
+  const ids = Array.from({ length: 10 }, (_, id) => id);
+  assert.deepEqual(
+    discordIpcPaths({ XDG_RUNTIME_DIR: '/run/user/1000', TMPDIR: '/tmp' }),
+    [
+      '/run/user/1000',
+      '/run/user/1000/app/com.discordapp.Discord',
+      '/run/user/1000/snap.discord',
+      '/tmp',
+    ].flatMap((directory) => ids.map((id) => `${directory}/discord-ipc-${id}`)),
+  );
   assert.deepEqual(
     discordIpcPaths({}),
     Array.from({ length: 10 }, (_, i) => `/tmp/discord-ipc-${i}`),

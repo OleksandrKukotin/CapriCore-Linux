@@ -100,6 +100,11 @@ test('workflow validation rejects disguised executables, unsupported actions and
     '/usr/bin/',
     '/usr/bin/app\n--evil',
     'relative/app',
+    // Windows network and drive paths are not absolute (or not canonical) on Linux.
+    '\\\\server\\share\\app.exe',
+    '//server/share/app',
+    'C:\\Apps\\app.exe',
+    'C:\\Apps\\',
   ])
     assert.throws(
       () =>
