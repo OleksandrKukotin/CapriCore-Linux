@@ -83,8 +83,8 @@ test('workflow playback resolves every target again, handles variables/shortcuts
   await assert.rejects(workflows.run(saved.id), /full computer access/);
   workflows.close();
 });
-test('workflow validation rejects executable arguments, unsupported actions and Escape shortcuts', () => {
-  const executable = path.resolve('Owned.exe');
+test('workflow validation rejects disguised executables, unsupported actions and Escape shortcuts', () => {
+  const executable = path.resolve('owned-app');
   assert.throws(() =>
     validateWorkflow({
       name: 'bad',
@@ -94,10 +94,26 @@ test('workflow validation rejects executable arguments, unsupported actions and 
   assert.throws(() =>
     validateWorkflow({ name: 'bad', steps: [{ action: 'shell', executable, delayMs: 0 }] }),
   );
-  assert.throws(() =>
+  for (const disguised of [
+    '/usr/bin/../../home/owner/evil',
+    '/usr//bin/app',
+    '/usr/bin/',
+    '/usr/bin/app\n--evil',
+    'relative/app',
+  ])
+    assert.throws(
+      () =>
+        validateWorkflow({
+          name: 'bad',
+          steps: [{ action: 'click', selector, executable: disguised, delayMs: 0 }],
+        }),
+      /Invalid workflow step/,
+      disguised,
+    );
+  assert.doesNotThrow(() =>
     validateWorkflow({
-      name: 'bad',
-      steps: [{ action: 'click', selector, executable: executable + ' --evil', delayMs: 0 }],
+      name: 'spaces are legal',
+      steps: [{ action: 'click', selector, executable: '/opt/My App/my app', delayMs: 0 }],
     }),
   );
 });

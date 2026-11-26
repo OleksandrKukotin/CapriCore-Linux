@@ -34,6 +34,11 @@ export function validateWorkflow(value) {
       !actions.has(step.action) ||
       typeof step.executable !== 'string' ||
       !path.isAbsolute(step.executable) ||
+      // Only a canonical local path: no '..' segments, doubled or trailing
+      // slashes, or control characters that could disguise the program.
+      path.normalize(step.executable) !== step.executable ||
+      step.executable.endsWith('/') ||
+      /[\x00-\x1f\x7f]/.test(step.executable) ||
       !Number.isInteger(step.delayMs) ||
       step.delayMs < 0 ||
       step.delayMs > 3000
