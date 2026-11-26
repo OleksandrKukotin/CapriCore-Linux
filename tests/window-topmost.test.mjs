@@ -5,14 +5,12 @@ import test from 'node:test';
 import { createSecureWindow } from '../apps/desktop/main/secure-window.mjs';
 import { setWindowAlwaysOnTop } from '../apps/desktop/main/window-topmost.mjs';
 
-test('only enabled ordinary Windows pinning uses the explicit normal level', () => {
-  for (const platform of ['win32', 'darwin', 'linux']) {
-    const calls = [];
-    const view = { setAlwaysOnTop: (...args) => calls.push(args) };
-    setWindowAlwaysOnTop(view, true, platform);
-    setWindowAlwaysOnTop(view, false, platform);
-    assert.deepEqual(calls, [platform === 'win32' ? [true, 'normal'] : [true], [false]]);
-  }
+test('ordinary pinning toggles always-on-top without a special window level', () => {
+  const calls = [];
+  const view = { setAlwaysOnTop: (...args) => calls.push(args) };
+  setWindowAlwaysOnTop(view, true);
+  setWindowAlwaysOnTop(view, false);
+  assert.deepEqual(calls, [[true], [false]]);
 });
 
 test('home construction applies pinning and graphics preferences without showing or moving it', () => {

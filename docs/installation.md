@@ -5,14 +5,14 @@ in-app updater; update a checkout with `git pull` followed by `npm ci`.
 
 ## Requirements
 
-| Component | Needed for | How to get it |
-|---|---|---|
-| Node.js 24.x with npm | Everything | Distribution package, `fnm`/`nvm`, or the official tarball |
-| `llama-server` with Vulkan | Local language models | A llama.cpp Vulkan build (package or release); set `CAPRI_LLAMA_PATH` if it is not on `PATH` |
-| Vulkan driver | GPU offload | Mesa RADV (AMD), ANV (Intel) or the NVIDIA driver |
-| `uv` | Speech recognition and voice environments | `pacman -S uv`, your distribution's package, or Astral's installer; or set `CAPRI_UV_PATH` |
-| `stockfish` | Chess commentary | Distribution package |
-| `nvidia-smi` | NVIDIA VRAM readings | NVIDIA driver utilities |
+| Component                  | Needed for                                | How to get it                                                                                |
+| -------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Node.js 24.x with npm      | Everything                                | Distribution package, `fnm`/`nvm`, or the official tarball                                   |
+| `llama-server` with Vulkan | Local language models                     | A llama.cpp Vulkan build (package or release); set `CAPRI_LLAMA_PATH` if it is not on `PATH` |
+| Vulkan driver              | GPU offload                               | Mesa RADV (AMD), ANV (Intel) or the NVIDIA driver                                            |
+| `uv`                       | Speech recognition and voice environments | `pacman -S uv`, your distribution's package, or Astral's installer; or set `CAPRI_UV_PATH`   |
+| `stockfish`                | Chess commentary                          | Distribution package                                                                         |
+| `nvidia-smi`               | NVIDIA VRAM readings                      | NVIDIA driver utilities                                                                      |
 
 AMD and Intel GPU memory, GPU load and temperatures are read from sysfs; no extra
 tool is needed.

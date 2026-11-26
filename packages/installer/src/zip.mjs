@@ -209,7 +209,7 @@ export async function extractZip(
       });
       const inflate = entry.method === 8 ? [createInflateRaw()] : [];
       await pipeline(source, ...inflate, check, createWriteStream(target), { signal });
-      if (written !== entry.uncompressedSize || (crc >>> 0) !== entry.crc)
+      if (written !== entry.uncompressedSize || crc >>> 0 !== entry.crc)
         throw zipError('Archive entry failed its checksum.');
       if (entry.mode & 0o111) await chmod(target, 0o755);
     }

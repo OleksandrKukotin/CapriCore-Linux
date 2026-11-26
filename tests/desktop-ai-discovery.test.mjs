@@ -11,18 +11,20 @@ test('CLI discovery inspects only fixed command filenames in PATH and never runs
     env: { PATH: directory },
     stat(file) {
       inspected.push(file);
-      return { isFile: () => path.basename(file) === 'claude.exe', isSymbolicLink: () => false };
+      const name = path.basename(file);
+      // codex exists but is not executable, so it is not reported.
+      return {
+        isFile: () => ['claude', 'codex'].includes(name),
+        isSymbolicLink: () => false,
+        mode: name === 'claude' ? 0o100755 : 0o100644,
+      };
     },
   });
   assert.deepEqual(result, [
     { id: 'claude-code', name: 'Claude Code', installed: true, kind: 'cli' },
   ]);
   assert(inspected.every((file) => path.dirname(file) === directory));
-  assert(
-    inspected.every((file) =>
-      /^(?:claude|codex|gemini)(?:\.exe|\.cmd)?$/.test(path.basename(file)),
-    ),
-  );
+  assert(inspected.every((file) => /^(?:claude|codex|gemini)$/.test(path.basename(file))));
   assert(!JSON.stringify(result).includes(directory));
 });
 

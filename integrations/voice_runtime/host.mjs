@@ -63,8 +63,7 @@ export async function startCompanionVoice({ language = 'en', signal, modelId } =
   const expected = JSON.parse(readFileSync(path.join(profile, 'voice-profile.json'), 'utf8'));
   const deviceKey = voiceDevicePreference(readModelDevices(root).voice, selected.backend);
   const { python, env: runtimeEnv } = voiceRuntime(root, selected, deviceKey);
-  if (!existsSync(python))
-    throw new Error('Install the voice environment first.');
+  if (!existsSync(python)) throw new Error('Install the voice environment first.');
   const marker = managedProcess('companion-voice');
   if (marker && (marker.deviceKey ?? 'auto') !== deviceKey) await stopManaged('companion-voice');
   if (requiresPrivacyRestart(managedProcess('companion-voice')))

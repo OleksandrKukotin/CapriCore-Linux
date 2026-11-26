@@ -371,10 +371,7 @@ export async function createDiagnosticReport({
     const collect = async (base, label, maximum, eligible = () => true) => {
       try {
         const actual = await realpath(base);
-        if (
-          actual !== path.resolve(base)
-        )
-          throw new Error('Linked diagnostic directory');
+        if (actual !== path.resolve(base)) throw new Error('Linked diagnostic directory');
         const list = await readdir(base, { withFileTypes: true }),
           candidates = [];
         for (const item of list)

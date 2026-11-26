@@ -292,9 +292,7 @@ export async function probeHardware({
   };
   const nvidiaGpus = await queryNvidia();
   // The NVIDIA driver row is authoritative; sysfs has no VRAM facts for it.
-  const nativeGpus = readGpus().filter(
-    (gpu) => !(gpu.vendor === 'nvidia' && nvidiaGpus.length),
-  );
+  const nativeGpus = readGpus().filter((gpu) => !(gpu.vendor === 'nvidia' && nvidiaGpus.length));
   report.gpus = mergeGpuInventory(nativeGpus, nvidiaGpus);
   if (report.platform !== 'linux' || report.arch !== 'x64')
     report.warnings.push('The desktop is currently qualified for Linux x64 only.');

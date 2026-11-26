@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {
   MemorySampler,
   memoryUsage,
@@ -16,10 +19,9 @@ import {
 } from '../apps/desktop/renderer/memory-hud.mjs';
 import { ProcessLoadSampler } from '../apps/desktop/process-load.mjs';
 import {
-  celsiusFromDecikelvin,
   cpuPackageTemperature,
   CpuSampler,
-  libreCpuTemperature,
+  readCpuTemperature,
   resourceDiskUsage,
 } from '../apps/desktop/system-resources.mjs';
 import {
@@ -312,42 +314,48 @@ test('wider graphs show older seconds on the same time and percentage scales', (
   assert.equal(sparkline(values, 100, 200_000, 280), 'M30.1 15.0h.1L52.0 15.0L69.0 1.0');
 });
 
-test('CPU temperature selects the package reading from the CPU hardware and rejects other thermals', () => {
+test('CPU temperature prefers the package die sensor from hwmon and ignores other chips', async (t) => {
   assert.equal(
     cpuPackageTemperature([
-      { id: '/nvidiagpu/0/temperature/0', name: 'Core (Tctl/Tdie)', value: 99 },
-      { id: '/amdcpu/0/temperature/1', name: 'Core (Tctl)', value: 54 },
-      { id: '/amdcpu/0/temperature/2', name: 'CPU CCD1 (Tdie)', value: 55 },
-      { id: '/amdcpu/0/temperature/5', name: 'Core (Tctl/Tdie)', value: '49,67' },
+      { chip: 'amdgpu', label: 'edge', celsius: 99 },
+      { chip: 'k10temp', label: 'Tctl', celsius: 54.25 },
+      { chip: 'k10temp', label: 'Tccd1', celsius: 51 },
+      { chip: 'k10temp', label: 'Tdie', celsius: 49.67 },
     ]),
     49.7,
   );
   assert.equal(
     cpuPackageTemperature([
-      { id: '/intelcpu/0/temperature/0', name: 'Core #1 Distance to TjMax', value: 43 },
-      { id: '/lpc/it8688e/temperature/0', name: 'CPU Package', value: 44 },
-      { id: '/intelcpu/0/temperature/8', name: 'CPU Package', value: '—' },
+      { chip: 'coretemp', label: 'Core 0', celsius: 43 },
+      { chip: 'coretemp', label: 'Package id 0', celsius: 44 },
+    ]),
+    44,
+  );
+  assert.equal(
+    cpuPackageTemperature([
+      { chip: 'nvme', label: 'Composite', celsius: 40 },
+      { chip: 'k10temp', label: 'Tctl', celsius: Number.NaN },
+      { chip: 'coretemp', label: 'Package id 0', celsius: 400 },
     ]),
     null,
   );
-  assert.equal(
-    libreCpuTemperature({
-      Children: [
-        {
-          Children: [
-            {
-              SensorId: '/intelcpu/0/temperature/8',
-              Text: 'CPU Package',
-              Type: 'Temperature',
-              RawValue: '46.25',
-              Value: '115.3 °F',
-            },
-          ],
-        },
-      ],
-    }),
-    46.3,
-  );
+  const base = mkdtempSync(path.join(os.tmpdir(), 'capri-hwmon-'));
+  t.after(() => rmSync(base, { recursive: true, force: true }));
+  const monitor = (name, files) => {
+    const folder = path.join(base, name);
+    mkdirSync(folder);
+    for (const [file, text] of Object.entries(files)) writeFileSync(path.join(folder, file), text);
+  };
+  monitor('hwmon0', { name: 'amdgpu\n', temp1_input: '88000\n', temp1_label: 'edge\n' });
+  monitor('hwmon1', {
+    name: 'k10temp\n',
+    temp1_input: '61250\n',
+    temp1_label: 'Tctl\n',
+    temp3_input: 'garbage\n',
+    temp3_label: 'Tccd1\n',
+  });
+  assert.equal(await readCpuTemperature(base), 61.3);
+  assert.equal(await readCpuTemperature(path.join(base, 'missing')), null);
 });
 
 test('system readings distinguish missing temperature and idle GPU usage', async () => {
@@ -355,9 +363,6 @@ test('system readings distinguish missing temperature and idle GPU usage', async
   assert.equal(gpu.temperatureCelsius, null);
   assert.equal(gpu.utilization, 0);
   assert.equal(gpu.usedBytes, 11000 * 1024 ** 2);
-  assert.equal(celsiusFromDecikelvin(''), null);
-  assert.equal(celsiusFromDecikelvin('3692'), 96.1);
-  assert.equal(celsiusFromDecikelvin('0'), null);
 
   let now = 0;
   let temperature = 96.1;

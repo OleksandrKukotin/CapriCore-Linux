@@ -45,9 +45,7 @@ const fail = (text) => {
 const cleanEnv = () =>
   Object.fromEntries(
     Object.entries(process.env).filter(([key]) =>
-      /^(?:PATH|HOME|TMPDIR|LANG|LC_ALL|USER|SHELL|XDG_RUNTIME_DIR)$/.test(
-        key,
-      ),
+      /^(?:PATH|HOME|TMPDIR|LANG|LC_ALL|USER|SHELL|XDG_RUNTIME_DIR)$/.test(key),
     ),
   );
 const positive = (number, max) => Number.isInteger(number) && number > 0 && number <= max;
@@ -159,8 +157,7 @@ export class CodingService {
     }
     if (
       value.editor &&
-      (!IDE_KINDS.includes(value.editor.kind) ||
-        !path.isAbsolute(value.editor.executable))
+      (!IDE_KINDS.includes(value.editor.kind) || !path.isAbsolute(value.editor.executable))
     )
       fail('Choose a supported editor executable.');
     if (value.editor) {

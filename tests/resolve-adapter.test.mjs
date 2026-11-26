@@ -102,12 +102,12 @@ test('cancellation terminates only the owned interpreter and cannot start a late
   const parent = path.resolve('.runtime/resolve-adapter-unit');
   mkdirSync(parent, { recursive: true });
   const root = mkdtempSync(path.join(parent, 'case-'));
-  writeFileSync(path.join(root, 'fuscript.exe'), 'fixture');
+  writeFileSync(path.join(root, 'fuscript'), 'fixture');
   const native = {
     windowId: 'window',
     processId: 'process',
     startedAtTicks: 'start',
-    resolveExecutable: path.join(root, 'Resolve.exe'),
+    resolveExecutable: path.join(root, 'resolve'),
   };
   const child = new EventEmitter();
   child.stdout = new EventEmitter();

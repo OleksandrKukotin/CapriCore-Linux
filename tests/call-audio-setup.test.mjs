@@ -2,11 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CallAudioSetup, virtualCallCable } from '../apps/desktop/call-audio-setup.mjs';
-import {
-  VirtualCableInstaller,
-  VB_CABLE,
-  cableInstallScript,
-} from '../apps/desktop/virtual-cable-installer.mjs';
+import { VirtualCableInstaller } from '../apps/desktop/virtual-cable-installer.mjs';
 
 const pair = [
   { kind: 'audiooutput', deviceId: 'playback', label: 'CABLE Input (VB-Audio Virtual Cable)' },
@@ -199,45 +195,11 @@ test('unknown setup errors remain actionable in UI but never enter diagnostics',
     lastFailure: null,
   });
 });
-test('driver installation is pinned, uses Windows elevation and isolates privileged staging', async () => {
-  const script = cableInstallScript();
-  assert.match(script, /-Verb RunAs/);
-  assert.match(script, /SetAccessRuleProtection\(\$true, \$false\)/);
-  assert.match(script, /Get-AuthenticodeSignature/);
-  assert.match(script, /Defaults\]::Restore\(\$saved\)/);
-  assert.equal(script.split(VB_CABLE.sha256).length - 1, 2);
-  assert.ok(script.includes(VB_CABLE.url));
-  assert.ok(Buffer.from(script, 'utf16le').toString('base64').length < 30000);
-  assert.doesNotMatch(script, /Restart-Computer|Import-Certificate|SkipCertificateCheck/);
+
+test('cable installation reports that call audio is not available on Linux yet', async () => {
   const events = [];
-  const installer = new VirtualCableInstaller({
-    platform: 'win32',
-    emit: (value) => events.push(value),
-    run: async (_, progress) => {
-      progress('installing');
-      return { code: 0 };
-    },
-  });
-  assert.equal((await installer.install()).phase, 'reboot');
-  assert.deepEqual(
-    events.map((value) => value.phase),
-    ['downloading', 'installing', 'reboot', 'reboot'],
-  );
-  assert.equal(installer.snapshot().busy, false);
-});
-test('declined UAC and failed verification produce actionable errors, not success', async () => {
-  for (const code of [20, 21, 22, 23, 24]) {
-    const installer = new VirtualCableInstaller({ platform: 'win32', run: async () => ({ code }) });
-    const result = await installer.install();
-    assert.equal(result.phase, 'error');
-    assert.equal(result.busy, false);
-    assert.ok(result.error);
-  }
-  const installer = new VirtualCableInstaller({
-    platform: 'linux',
-    run: () => {
-      throw Error('must not run');
-    },
-  });
-  await assert.rejects(installer.install(), /Windows/);
+  const installer = new VirtualCableInstaller({ emit: (state) => events.push(state) });
+  await assert.rejects(installer.install(), { code: 'CAPRI_PLATFORM_UNAVAILABLE' });
+  assert.deepEqual(installer.snapshot(), { phase: 'idle', busy: false });
+  assert.deepEqual(events, []);
 });

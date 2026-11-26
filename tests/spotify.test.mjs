@@ -15,7 +15,6 @@ import {
   SpotifyService,
   ACTIONS,
 } from '../integrations/spotify/service.mjs';
-import { spotifySourceHash } from '../integrations/spotify/native-build.mjs';
 
 test('CLI uses the authenticated owner webchat route and does not bypass a denied tool', async (t) => {
   const parent = path.join(root, '.runtime/test-data');
@@ -127,62 +126,6 @@ test('queued Spotify actions honor cancellation before dispatch and errors do no
   await assert.rejects(service.execute('three', { action: 'next' }), /native failed/);
   assert.equal(seen.length, 2);
 });
-test('worker uses an owned executable, private stdio and an environment without Gateway credentials', async () => {
-  const parent = path.join(root, '.runtime/test-data');
-  mkdirSync(parent, { recursive: true });
-  const fixture = mkdtempSync(path.join(parent, 'spotify-'));
-  const native = path.join(fixture, 'integrations/spotify/native');
-  mkdirSync(native, { recursive: true });
-  const source = 'fixture source';
-  writeFileSync(path.join(native, 'SpotifyBridge.cs'), source);
-  writeFileSync(path.join(native, 'SpotifyAudio.cs'), 'fixture audio source');
-  writeFileSync(path.join(native, 'SpotifyAccessibility.cs'), 'fixture accessibility source');
-  writeFileSync(path.join(native, 'SpotifySearch.cs'), 'fixture search source');
-  writeFileSync(path.join(native, 'ExportAutomation.cs'), 'fixture export source');
-  const hash = spotifySourceHash(fixture);
-  const compiled = path.join(fixture, '.runtime/spotify-bridge'),
-    artifact = hash.slice(0, 16) + '/Capri.Spotify.exe';
-  mkdirSync(path.dirname(path.join(compiled, artifact)), { recursive: true });
-  writeFileSync(path.join(compiled, artifact), 'fixture');
-  writeFileSync(
-    path.join(compiled, 'build.json'),
-    JSON.stringify({ sourceSha256: hash, artifact }),
-  );
-  let launch;
-  const child = new EventEmitter();
-  child.stdin = new PassThrough();
-  child.stdout = new PassThrough();
-  child.stderr = new PassThrough();
-  child.kill = () => {};
-  const worker = new SpotifyWorker({
-    root: fixture,
-    spawnImpl: (...args) => {
-      launch = args;
-      return child;
-    },
-  });
-  const pending = worker.send({ action: 'status' });
-  assert.ok(launch[0].endsWith('Capri.Spotify.exe'));
-  assert.deepEqual(launch[1], []);
-  assert.equal(launch[2].windowsHide, true);
-  assert.ok(!Object.keys(launch[2].env).some((name) => /OPENCLAW|TOKEN/i.test(name)));
-  child.stdout.write(
-    '{"type":"ready","protocol":1}\n{"type":"result","request":1,"ok":true,"data":{"playing":false}}\n',
-  );
-  assert.equal((await pending).data.playing, false);
-  worker.close();
-  const blocked = Object.assign(new Error('spawn UNKNOWN'), { code: 'UNKNOWN', syscall: 'spawn' });
-  const checkBlocked = { code: 'CAPRI_SPOTIFY_HELPER_LAUNCH_FAILED' };
-  const denied = worker.send({ action: 'status' });
-  child.emit('error', blocked);
-  await assert.rejects(denied, checkBlocked);
-  worker.spawnImpl = () => {
-    throw blocked;
-  };
-  assert.throws(() => worker.send({ action: 'status' }), checkBlocked);
-  writeFileSync(path.join(native, 'SpotifyBridge.cs'), 'changed source');
-  assert.throws(() => worker.start(), /rebuilding/);
-});
 test('plugin exposes only the scoped Spotify tool and owns its cleanup lifecycle', () => {
   const tools = [],
     services = [];
@@ -278,4 +221,12 @@ test('model sees the actual Spotify playback state without confusing Windows tra
     'windows-media-session',
     'Native details must remain intact for diagnostics',
   );
+});
+
+test('the Spotify worker reports that control is not available on Linux yet', () => {
+  const worker = new SpotifyWorker({
+    root: '/capri',
+    spawnImpl: () => assert.fail('No helper may be started'),
+  });
+  assert.throws(() => worker.start(), { code: 'CAPRI_PLATFORM_UNAVAILABLE' });
 });

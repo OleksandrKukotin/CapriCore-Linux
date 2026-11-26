@@ -1,110 +1,88 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempDisposableSync, realpathSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempDisposableSync,
+  realpathSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { discoverCodingEditors } from '../apps/desktop/coding-editors.mjs';
+import { discoverCodingEditors, editorDirectories } from '../apps/desktop/coding-editors.mjs';
 
-const emptyMetadata = async () => ({ executables: [], installLocations: [] });
-
-function editorFile(root, relative) {
-  const executable = path.join(root, relative);
-  mkdirSync(path.dirname(executable), { recursive: true });
-  writeFileSync(executable, 'Metadata-only editor fixture');
-  return executable;
+function launcher(root, relative, mode = 0o755) {
+  const file = path.join(root, relative);
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, '#!/bin/sh\n# Metadata-only editor fixture; never executed\n', { mode });
+  return file;
 }
 
-function assertEditor(editors, executable, kind) {
-  const expected = realpathSync.native(executable).toLowerCase();
-  const found = editors.filter(
-    (editor) => realpathSync.native(editor.executable).toLowerCase() === expected,
-  );
-  assert.equal(found.length, 1, `Expected one result for ${executable}`);
-  assert.equal(found[0].kind, kind);
-  assert.ok(found[0].name.trim());
-}
-
-test('Find editors covers per-user installs, both Program Files roots, Toolbox builds and PATH', async () => {
-  using fixture = mkdtempDisposableSync(path.join(tmpdir(), 'capri-editor-paths-'));
-  const local = path.join(fixture.path, 'Local AppData');
-  const program = path.join(fixture.path, 'Program Files');
-  const x86 = path.join(fixture.path, 'Program Files (x86)');
-  const portable = path.join(fixture.path, 'Portable Editors');
-
-  const cases = [
-    [editorFile(local, 'Programs/Microsoft VS Code/Code.exe'), 'vscode'],
-    [editorFile(local, 'Programs/IntelliJ IDEA/bin/idea64.exe'), 'jetbrains'],
-    [
-      editorFile(local, 'JetBrains/Toolbox/apps/PyCharm-P/ch-0/242.21829.153/bin/pycharm64.exe'),
-      'jetbrains',
-    ],
-    [editorFile(program, 'JetBrains/DataGrip 2025.1/bin/datagrip64.exe'), 'jetbrains'],
-    [editorFile(program, 'Sublime Text/sublime_text.exe'), 'sublime'],
-    [editorFile(x86, 'Notepad++/notepad++.exe'), 'notepad++'],
-    [editorFile(portable, 'nvim-qt.exe'), 'neovim'],
-  ];
-  editorFile(portable, 'update.exe');
-
-  const editors = await discoverCodingEditors(
-    {
-      LOCALAPPDATA: local,
-      ProgramW6432: program,
-      ProgramFiles: x86,
-      'ProgramFiles(x86)': x86,
-      PATH: portable,
-    },
-    { readMetadata: emptyMetadata },
-  );
-  for (const [executable, kind] of cases) assertEditor(editors, executable, kind);
-  assert.equal(editors.length, cases.length);
+test('Find editors covers PATH, ~/.local/bin, Toolbox scripts and Flatpak exports', async () => {
+  using temporary = mkdtempDisposableSync(path.join(tmpdir(), 'capri-editors-'));
+  const root = temporary.path;
+  const home = path.join(root, 'home');
+  const code = launcher(root, 'usr/bin/code');
+  const idea = launcher(home, '.local/share/JetBrains/Toolbox/scripts/idea');
+  const subl = launcher(home, '.local/bin/subl');
+  const codium = launcher(home, '.local/share/flatpak/exports/bin/com.vscodium.codium');
+  launcher(root, 'usr/bin/not-an-editor');
+  const editors = await discoverCodingEditors({ PATH: path.join(root, 'usr/bin'), HOME: home });
+  const found = Object.fromEntries(editors.map((editor) => [editor.executable, editor]));
+  assert.deepEqual(found[realpathSync(code)], {
+    name: 'VS Code',
+    kind: 'vscode',
+    executable: realpathSync(code),
+  });
+  assert.equal(found[realpathSync(idea)]?.kind, 'jetbrains');
+  assert.equal(found[realpathSync(subl)]?.kind, 'sublime');
+  assert.equal(found[realpathSync(codium)]?.name, 'VSCodium');
+  assert.equal(editors.length, 4);
 });
 
-test('Find editors accepts custom Windows install metadata and filters or deduplicates paths', async () => {
-  using fixture = mkdtempDisposableSync(path.join(tmpdir(), 'capri-editor-metadata-'));
-  const webStorm = editorFile(fixture.path, 'Custom IDEs/WebStorm/bin/webstorm64.exe');
-  const vsRoot = path.join(fixture.path, 'Custom IDEs/VS 2022');
-  const visualStudio = editorFile(vsRoot, 'Common7/IDE/devenv.exe');
-  const code = editorFile(fixture.path, 'Portable Code/Code.exe');
-  const ignored = editorFile(fixture.path, 'Other Software/update.exe');
-  const notAFile = path.join(fixture.path, 'Invalid directory/idea64.exe');
-  mkdirSync(notAFile, { recursive: true });
-
-  const editors = await discoverCodingEditors(
-    { PATH: path.dirname(code) },
-    {
-      readMetadata: async () => ({
-        executables: [
-          webStorm,
-          path.join(path.dirname(webStorm), 'WEBSTORM64.EXE'),
-          code,
-          ignored,
-          notAFile,
-          path.join(fixture.path, 'Removed/idea64.exe'),
-          'idea64.exe',
-        ],
-        installLocations: [vsRoot],
-      }),
-    },
-  );
-
-  assertEditor(editors, webStorm, 'jetbrains');
-  assertEditor(editors, visualStudio, 'visual-studio');
-  assertEditor(editors, code, 'vscode');
-  assert.equal(editors.length, 3);
+test('Find editors records a package link by its target, once, and skips non-executables', async () => {
+  using temporary = mkdtempDisposableSync(path.join(tmpdir(), 'capri-editors-'));
+  const root = temporary.path;
+  const target = launcher(root, 'opt/visual-studio-code/bin/code');
+  mkdirSync(path.join(root, 'bin'));
+  mkdirSync(path.join(root, 'usr/local/bin'), { recursive: true });
+  symlinkSync(target, path.join(root, 'bin/code'));
+  symlinkSync(target, path.join(root, 'usr/local/bin/code'));
+  launcher(root, 'usr/bin/cursor', 0o644);
+  symlinkSync(path.join(root, 'missing/codium'), path.join(root, 'bin/codium'));
+  const editors = await discoverCodingEditors({
+    PATH: [
+      path.join(root, 'bin'),
+      path.join(root, 'usr/local/bin'),
+      path.join(root, 'usr/bin'),
+    ].join(':'),
+  });
+  assert.deepEqual(editors, [
+    { name: 'VS Code', kind: 'vscode', executable: realpathSync(target) },
+  ]);
 });
 
-test('Find editors keeps filesystem results when Windows metadata is unavailable', async () => {
-  using fixture = mkdtempDisposableSync(path.join(tmpdir(), 'capri-editor-no-metadata-'));
-  const executable = editorFile(fixture.path, 'Microsoft VS Code/Code.exe');
-  const editors = await discoverCodingEditors(
-    { ProgramFiles: fixture.path },
-    {
-      readMetadata: async () => {
-        throw new Error('Windows editor metadata temporarily unavailable');
-      },
-    },
-  );
-  assertEditor(editors, executable, 'vscode');
-  assert.equal(editors.length, 1);
+test('Editor directories ignore relative and malformed PATH entries and stay bounded', () => {
+  const directories = editorDirectories({
+    PATH: ['relative/bin', '/usr/bin', '/usr/bin', '/bad\nentry', ...Array(200).fill('/x')].join(
+      ':',
+    ),
+    HOME: '/home/owner',
+  });
+  assert.ok(directories.includes('/usr/bin'));
+  assert.equal(directories.filter((value) => value === '/usr/bin').length, 1);
+  assert.ok(!directories.some((value) => !path.isAbsolute(value) || /\n/.test(value)));
+  for (const expected of [
+    '/home/owner/.local/bin',
+    '/home/owner/.local/share/JetBrains/Toolbox/scripts',
+    '/home/owner/.local/share/flatpak/exports/bin',
+    '/var/lib/flatpak/exports/bin',
+    '/snap/bin',
+  ])
+    assert.ok(directories.includes(expected), expected);
+  assert.deepEqual(editorDirectories({ HOME: 'relative' }), [
+    '/var/lib/flatpak/exports/bin',
+    '/snap/bin',
+  ]);
 });

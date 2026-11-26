@@ -101,10 +101,8 @@ test('an unavailable GitHub release feed falls back to GitLab for checking, hist
     'https://gitlab.com/capricore1/CapriCore/-/releases/v1.1.0',
   );
   await service.chooseHistory(history.releases[0].id);
-  const prepared = await service.prepare();
-  assert.equal(prepared.phase, 'ready');
-  assert.equal(prepared.installerRequired, true);
-  assert.equal(calls.at(-1), mirrorInstaller);
+  // Linux has no in-app installer: nothing is downloaded or staged.
+  await assert.rejects(service.prepare(), { code: 'CAPRI_PLATFORM_UNAVAILABLE' });
 });
 
 test('the GitLab backup preserves trust boundaries when a GitHub asset disappears', async () => {
@@ -492,7 +490,7 @@ test('startup and manual checks gate private releases on experimental access and
           ? [REPOSITORY, EXPERIMENTAL_REPOSITORY, REPOSITORY, EXPERIMENTAL_REPOSITORY]
           : [REPOSITORY, REPOSITORY],
       );
-      assert.equal((await service.prepare()).phase, 'ready');
+      await assert.rejects(service.prepare(), { code: 'CAPRI_PLATFORM_UNAVAILABLE' });
       service.close();
     });
   }
@@ -578,9 +576,9 @@ test('explicit checks and downloads ignore unreadable saved credentials without 
     },
   });
   assert.equal((await service.check()).phase, 'available');
-  assert.equal((await service.prepare()).phase, 'ready');
+  await assert.rejects(service.prepare(), { code: 'CAPRI_PLATFORM_UNAVAILABLE' });
   assert.equal(checks, 1);
-  assert.equal(downloads, 1);
+  assert.equal(downloads, 0);
   assert.equal(readFileSync(secret, 'utf8'), encrypted);
   service.close();
 });

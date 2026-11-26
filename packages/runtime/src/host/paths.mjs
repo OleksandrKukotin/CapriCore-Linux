@@ -18,10 +18,7 @@ const isFile = (file) => {
   }
 };
 
-export function findExecutable(
-  name,
-  { env = process.env, extra = [] } = {},
-) {
+export function findExecutable(name, { env = process.env, extra = [] } = {}) {
   const folders = (env.PATH ?? '').split(':').filter(Boolean);
   return (
     [...extra, ...folders.map((folder) => path.join(folder, name))].find(

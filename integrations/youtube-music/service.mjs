@@ -132,12 +132,7 @@ function nativeCommand(executable, command, signal) {
 
 /** Control the signed-in browser player using its validated Windows accessibility surface. */
 export class YouTubeMusicService {
-  constructor({
-    root,
-    openExternal,
-    prepare = prepareNativeHelper,
-    run = nativeCommand,
-  }) {
+  constructor({ root, openExternal, prepare = prepareNativeHelper, run = nativeCommand }) {
     Object.assign(this, { root, openExternal, prepare, run });
     this.lifetime = new AbortController();
     this.tail = Promise.resolve();

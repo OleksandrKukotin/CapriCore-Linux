@@ -22,7 +22,6 @@ import {
 } from '../apps/desktop/startup-intro-assets.mjs';
 import { createDesktopResources } from '../apps/desktop/main/resources.mjs';
 import { resourceResponse } from '../apps/desktop/main/protocol.mjs';
-import { sourceFiles } from '../packages/installer/src/payload.mjs';
 import { temporaryFolders } from './temporary-folders.mjs';
 
 const temporaryFolder = temporaryFolders('capri-startup-intro-assets-unit-');
@@ -183,13 +182,4 @@ test('hardlinked intro frames cannot introduce data outside the reviewed pack', 
     throw error;
   }
   assert.equal(loadStartupIntro(linked.folder), null);
-});
-
-test('source and installer payload contain only the minimal reviewed intro pack', () => {
-  const exported = sourceFiles(root).filter((name) => name.startsWith('assets/capri/intro-v1/'));
-  assert.deepEqual(exported, [...startupIntroSourceFiles(root)].sort());
-  assert.equal(exported.length, 8);
-  assert.ok(
-    exported.every((name) => !/(?:originals|prompts|preview|validation|\.zip|\.mp4)/i.test(name)),
-  );
 });

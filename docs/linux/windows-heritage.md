@@ -41,7 +41,7 @@ These rules repeat across almost every helper. They are the real heritage.
    through it.
 6. **Preflight, then act; repairs never destroy data.** Uninstall validated
    every removal before deleting anything and removed registration last, so an
-   interrupted run can be retried. A broken Python venv was *renamed* to
+   interrupted run can be retried. A broken Python venv was _renamed_ to
    `.runtime/venv-recovery/<name>-<uuid>`, never deleted.
 7. **Personal data is a separate partition.** Speech model weights and the
    user's own recordings/trained voices share a parent folder; uninstall split
@@ -93,7 +93,7 @@ The recipe (platform-neutral, port it to Node or shell):
   `qwen-tts-rocm-venv`, `npu-openvino`. Reuse a venv only if its Python series
   matches.
 - Install with `uv pip sync <lock> --require-hashes --default-index
-  https://pypi.org/simple --index-strategy first-index --no-config`, through
+https://pypi.org/simple --index-strategy first-index --no-config`, through
   `tools/setup/uv-retry.py` for network retries. `--torch-backend cpu|cu128`
   picks the PyTorch build.
 - Report progress as JSON lines on stdout: `{"stage":"python"}`,
@@ -112,7 +112,7 @@ check does not apply. `tools/setup/select-voice-runtime.py` and the Python
 `memory-budget.ps1`, `packages/runtime/src/hardware/windows-gpu.{cs,mjs}`.
 
 - Inventory per adapter: vendor ID, dedicated VRAM, dedicated system memory,
-  and whether it is UMA (integrated). Dedicated *usage* came from the
+  and whether it is UMA (integrated). Dedicated _usage_ came from the
   `\GPU Adapter Memory(*)\Dedicated Usage` performance counter.
 - Use pointer-sized fields for memory (a 32-bit field truncates 8/16 GiB cards).
 - Treat shared/UMA memory as RAM, never as VRAM.
@@ -123,23 +123,23 @@ check does not apply. `tools/setup/select-voice-runtime.py` and the Python
 
 **Linux (amdgpu / i915 / xe / nouveau via sysfs, NVIDIA via nvidia-smi):**
 
-| Fact | Source |
-|---|---|
-| vendor / device | `/sys/class/drm/card*/device/{vendor,device}` |
-| VRAM total / used | `/sys/class/drm/card*/device/mem_info_vram_{total,used}` (amdgpu) |
-| UMA / GTT size | `mem_info_gtt_{total,used}`; a small `vram_total` (≤ 2 GiB) with a large GTT means an APU, like the Vega iGPU this port was developed on |
-| GPU busy % | `/sys/class/drm/card*/device/gpu_busy_percent` (amdgpu) |
-| per-process GPU use | `/proc/<pid>/fdinfo/*` `drm-engine-*`, `drm-memory-*` keys |
-| NVIDIA | `nvidia-smi --query-gpu=name,memory.total,memory.used,utilization.gpu --format=csv,noheader,nounits` |
-| Vulkan view (what llama.cpp sees) | `vulkaninfo --summary` |
-| temperatures | `/sys/class/hwmon/hwmon*/{name,temp*_input}` (`k10temp`, `amdgpu`, `coretemp`) |
+| Fact                              | Source                                                                                                                                   |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| vendor / device                   | `/sys/class/drm/card*/device/{vendor,device}`                                                                                            |
+| VRAM total / used                 | `/sys/class/drm/card*/device/mem_info_vram_{total,used}` (amdgpu)                                                                        |
+| UMA / GTT size                    | `mem_info_gtt_{total,used}`; a small `vram_total` (≤ 2 GiB) with a large GTT means an APU, like the Vega iGPU this port was developed on |
+| GPU busy %                        | `/sys/class/drm/card*/device/gpu_busy_percent` (amdgpu)                                                                                  |
+| per-process GPU use               | `/proc/<pid>/fdinfo/*` `drm-engine-*`, `drm-memory-*` keys                                                                               |
+| NVIDIA                            | `nvidia-smi --query-gpu=name,memory.total,memory.used,utilization.gpu --format=csv,noheader,nounits`                                     |
+| Vulkan view (what llama.cpp sees) | `vulkaninfo --summary`                                                                                                                   |
+| temperatures                      | `/sys/class/hwmon/hwmon*/{name,temp*_input}` (`k10temp`, `amdgpu`, `coretemp`)                                                           |
 
 ## CPU/GPU load reservation — P1
 
 **Was:** `apps/desktop/native/CapriLocalLoad.cs`, `CapriProcessLoad.cs`
 (the "CPU/GPU load control" in the Local menu, default 85%).
 
-- A *named* Job Object with a hard CPU rate cap
+- A _named_ Job Object with a hard CPU rate cap
   (`JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | HARD_CAP`). No clock or power changes,
   no suspension, no restarts, no killing model processes.
 - The desktop kept the non-inheritable handle; a reset helper restored the
@@ -234,14 +234,14 @@ time from `GetLastInputInfo`.
 
 **Linux:**
 
-| Event | Source |
-|---|---|
-| suspend / resume | logind D-Bus `org.freedesktop.login1.Manager.PrepareForSleep(bool)` |
-| shutdown | `PrepareForShutdown(bool)`; take a delay inhibitor to flush state |
-| lock / unlock | `org.freedesktop.login1.Session` `Lock`/`Unlock` signals, `LockedHint` |
-| idle | Wayland `ext-idle-notify-v1` (labwc, KDE, Hyprland, Sway) |
-| foreground app | `zwlr_foreign_toplevel_manager_v1` (`app_id`, `title`, `activated`); no geometry on Wayland |
-| browser tab | MPRIS metadata from the browser, or the window title as a hint only |
+| Event            | Source                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| suspend / resume | logind D-Bus `org.freedesktop.login1.Manager.PrepareForSleep(bool)`                         |
+| shutdown         | `PrepareForShutdown(bool)`; take a delay inhibitor to flush state                           |
+| lock / unlock    | `org.freedesktop.login1.Session` `Lock`/`Unlock` signals, `LockedHint`                      |
+| idle             | Wayland `ext-idle-notify-v1` (labwc, KDE, Hyprland, Sway)                                   |
+| foreground app   | `zwlr_foreign_toplevel_manager_v1` (`app_id`, `title`, `activated`); no geometry on Wayland |
+| browser tab      | MPRIS metadata from the browser, or the window title as a hint only                         |
 
 ## Media and music — P1
 

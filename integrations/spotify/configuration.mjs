@@ -31,7 +31,7 @@ export function spotifyAccess(config, root, agentId) {
 export function spotifyBridgeReady(root) {
   // No Linux Spotify bridge yet (MPRIS will need no helper build).
   return false;
-  }
+}
 export function configureSpotify(existing, { root, agentId, enabled }) {
   if (typeof enabled !== 'boolean') throw new Error('Invalid Spotify permission.');
   const config = structuredClone(existing),

@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
@@ -68,75 +68,6 @@ test('GPU feedback recovers after other GPU work ends, even from the smallest CP
   assert(policy.cap > 50, 'a quiet GPU must not leave inference stuck at a rounded tiny quota');
   assert(policy.cap <= 6000);
 });
-test('only a bounded marker from this installation can select an Ollama supervisor', (t) => {
-  const root = folder(t),
-    control = new LocalModelLoad({ root });
-  const file = path.join(root, 'data/run/ollama.json');
-  mkdirSync(path.dirname(file), { recursive: true });
-  const marker = {
-    pid: 123,
-    startedAt: '1234567',
-    executable: path.join(root, 'ollama.exe'),
-    projectRoot: root,
-  };
-  writeFileSync(file, JSON.stringify(marker));
-  assert.equal(control.marker().pid, 123);
-  for (const bad of [
-    { ...marker, projectRoot: path.dirname(root) },
-    { ...marker, pid: -1 },
-    { ...marker, startedAt: 'invalid' },
-    { ...marker, executable: path.join(root, 'other.exe') },
-  ]) {
-    writeFileSync(file, JSON.stringify(bad));
-    assert.equal(control.marker(), null);
-  }
-});
-test('heartbeats do not advance GPU feedback; stop and helper failure release the owned quota', async (t) => {
-  const root = folder(t),
-    commands = [],
-    resets = [];
-  const worker = new EventEmitter();
-  worker.exitCode = null;
-  worker.stdout = new EventEmitter();
-  worker.stdout.setEncoding = () => {};
-  worker.stdin = new EventEmitter();
-  worker.stdin.destroyed = false;
-  worker.stdin.write = (line) => commands.push(JSON.parse(line));
-  worker.stdin.end = () => setImmediate(() => worker.emit('close', 0));
-  worker.kill = () => worker.emit('close', 1);
-  const control = new LocalModelLoad({
-    root,
-    platform: 'win32',
-    spawnImpl: () => worker,
-    runImpl: async (_file, args) => resets.push(args),
-  });
-  control.settings = on;
-  control.start('fixture-helper', {
-    pid: 123,
-    startedAt: '123',
-    executable: path.join(root, 'ollama.exe'),
-  });
-  worker.stdout.emit('data', '{"ready":true,"jobHandle":"44"}\n');
-  for (let i = 0; i < 5; i++) worker.stdout.emit('data', JSON.stringify(sample(90, 3)) + '\n');
-  const cap = control.policy.cap;
-  for (let i = 0; i < 5; i++) control.send();
-  assert.equal(control.policy.cap, cap);
-  assert.equal(commands.at(-1).cap, cap);
-  control.set({ enabled: true, percent: 35 });
-  assert(
-    control.policy.cap <= cap,
-    'lowering the slider must not briefly increase the CPU/GPU budget',
-  );
-  assert.equal(control.policy.calibrated, true, 'live slider changes preserve GPU calibration');
-  await control.stop();
-  assert.equal(control.worker, null);
-  assert(resets.some((args) => args[4] === '--reset' && args.length === 5));
-  assert.equal(control.jobs.size, 1);
-  await control.close();
-  assert(resets.some((args) => args[4] === '--reset' && args[5] === '44'));
-  assert.equal(control.jobs.size, 0);
-});
-
 function lifecycle(t) {
   const root = folder(t),
     workers = [],
@@ -190,68 +121,18 @@ function lifecycle(t) {
 }
 const settle = () => new Promise((resolve) => setImmediate(resolve));
 
-test('idle/API work never starts a helper; rapid off/on and resuming local work recover without duplicate jobs', async (t) => {
-  const { control, workers, resets, advance } = lifecycle(t);
-  control.synchronize(false);
-  assert.equal(workers.length, 0);
-  control.synchronize(true);
-  await control.syncing;
-  await settle();
-  assert.equal(workers.length, 1);
-  control.set({ enabled: false, percent: 35 });
-  control.set({ enabled: true, percent: 35 });
-  await control.stopping;
-  advance();
-  control.synchronize(true);
-  await control.syncing;
-  await settle();
-  assert.equal(workers.length, 2);
-  assert.equal(control.jobs.size, 1);
-  assert.equal(control.snapshot().percent, 35);
-  control.synchronize(false);
-  await control.stopping;
-  assert.equal(control.worker, null);
-  for (let i = 0; i < 5; i++) control.synchronize(false);
-  assert.equal(workers.length, 2);
-  advance();
-  control.synchronize(true);
-  await control.syncing;
-  await settle();
-  assert.equal(workers.length, 3);
-  await control.close();
-  assert.equal(
-    resets.filter((args) => args[5] === '44').length,
-    1,
-    'the retained job handle closes once',
-  );
-  assert(resets.some((args) => args[5] === '48'));
-});
-
-test('losing local activity or closing during compilation cannot start an orphan helper', async (t) => {
-  for (const close of [false, true]) {
-    const { control, workers } = lifecycle(t);
-    let compiled;
-    control.prepare = () =>
-      new Promise((resolve) => {
-        compiled = resolve;
-      });
-    control.synchronize(true);
-    if (close) await control.close();
-    else control.synchronize(false);
-    compiled('fixture-helper');
-    await control.syncing;
-    assert.equal(workers.length, 0);
-  }
-});
-
-test('invalid native telemetry stops control with a visible warning instead of forwarding unsafe quotas', async (t) => {
-  const { control, workers } = lifecycle(t);
-  control.synchronize(true);
-  await control.syncing;
-  await settle();
-  workers[0].stdout.emit('data', '{"members":1,"cpuPercent":1000,"gpuPercent":85}\n');
-  await settle();
-  assert.equal(control.worker, null);
-  assert.equal(control.snapshot().state, 'unavailable');
-  assert.match(control.snapshot().warning, /unavailable/);
+test('without a Linux backend the load control saves its setting but never claims enforcement', (t) => {
+  const root = folder(t);
+  const load = new LocalModelLoad({ root });
+  assert.deepEqual(load.snapshot(), {
+    ...LOCAL_LOAD_DEFAULTS,
+    supported: false,
+    state: 'unsupported',
+    gpuAvailable: false,
+    warning: null,
+  });
+  load.synchronize(true);
+  assert.equal(load.set(on).percent, 60);
+  assert.equal(new LocalModelLoad({ root }).snapshot().percent, 60);
+  assert.equal(new LocalModelLoad({ root }).snapshot().supported, false);
 });

@@ -31,17 +31,15 @@ export function installedAiClis({ env = process.env, stat = statSync } = {}) {
     ['codex', 'Codex', 'codex'],
     ['gemini-cli', 'Gemini CLI', 'gemini'],
   ]) {
-    const installed = directories.some((directory) =>
-      {
-        // CLI installers usually link a versioned binary into ~/.local/bin.
-        try {
-          const entry = stat(path.join(directory, command));
-          return entry.isFile() && (entry.mode & 0o111) !== 0;
-        } catch {
-          return false;
-        }
-      },
-    );
+    const installed = directories.some((directory) => {
+      // CLI installers usually link a versioned binary into ~/.local/bin.
+      try {
+        const entry = stat(path.join(directory, command));
+        return entry.isFile() && (entry.mode & 0o111) !== 0;
+      } catch {
+        return false;
+      }
+    });
     if (installed) results.push({ id, name, installed: true, kind: 'cli' });
   }
   return results;

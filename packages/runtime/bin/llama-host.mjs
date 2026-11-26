@@ -58,7 +58,9 @@ const workers = new LlamaWorkers({
           ...env,
           ...extra,
           // Release bundles keep libllama/libggml* beside the executable.
-          LD_LIBRARY_PATH: [directory, env.LD_LIBRARY_PATH ?? ''].filter(Boolean).join(path.delimiter),
+          LD_LIBRARY_PATH: [directory, env.LD_LIBRARY_PATH ?? '']
+            .filter(Boolean)
+            .join(path.delimiter),
         },
         onExit: (code) => {
           ended = true;

@@ -18,11 +18,7 @@ const watchHistory = 30;
 export const projectRelative = (value) => value.replaceAll('\\', '/');
 
 export function privateProjectPart(part) {
-  return (
-    part === '..' ||
-    privateName.test(part) ||
-    /[:\x00-\x1f]/.test(part)
-  );
+  return part === '..' || privateName.test(part) || /[:\x00-\x1f]/.test(part);
 }
 
 const skipped = (name, directory) =>

@@ -160,9 +160,7 @@ export class FilePermissions {
     return root;
   }
   grant(folder) {
-    const own =
-      this.applicationRoot &&
-      realpathSync(folder) === this.applicationRoot;
+    const own = this.applicationRoot && realpathSync(folder) === this.applicationRoot;
     const id = own ? INSTALLATION_SCOPE_ID : randomUUID();
     const root = this.allowedRoot(folder, id),
       scopes = this.load();

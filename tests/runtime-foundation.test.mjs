@@ -341,14 +341,12 @@ test('hardware profiles do not sum VRAM, mistake shared memory for VRAM or assum
   assert.deepEqual(parseNvidia('NVIDIA RTX, N/A, 590.00'), []);
 });
 test('standard executable discovery handles spaces without shell expansion', () => {
-  const directory = folder(),
-    file = path.join(directory, 'node.exe');
-  writeFileSync(file, 'fixture');
-  assert.equal(findExecutable('node', { platform: 'win32', env: { PATH: directory } }), file);
-  assert.equal(
-    findExecutable('not-present', { platform: 'win32', env: { PATH: directory } }),
-    null,
-  );
+  const directory = path.join(folder(), 'tools with spaces'),
+    file = path.join(directory, 'node');
+  mkdirSync(directory);
+  writeFileSync(file, 'fixture', { mode: 0o755 });
+  assert.equal(findExecutable('node', { env: { PATH: `/nonexistent:${directory}` } }), file);
+  assert.equal(findExecutable('not-present', { env: { PATH: directory } }), null);
   for (const value of ['../desktop', 'desktop/../../other', '', String.raw`..\other`])
     assert.throws(() => markerPath(value));
 });
