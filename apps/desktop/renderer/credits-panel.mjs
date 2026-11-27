@@ -5,6 +5,7 @@ const TEAM = Object.freeze([
   Object.freeze({ name: 'Overyx', role: 'Developer' }),
   Object.freeze({ name: 'v1rch', role: 'Discord developer' }),
   Object.freeze({ name: 'Leberrr', role: 'Discord moderator' }),
+  Object.freeze({ name: 'kirn0al', role: 'Linux Netrunner' }),
 ]);
 const GITHUB_LOGIN = /^(?!.*--)[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?$/i;
 const MAX_REGISTRY_LENGTH = 2 * 1024 * 1024;
@@ -264,7 +265,7 @@ export class CreditsPanel {
       const card = document.createElement('li');
       card.className = 'credits-team-card';
       nameStyle(card, member.name);
-      card.dataset.tone = String([2, 0, 3][index]);
+      card.dataset.tone = String([2, 0, 3, 5][index]);
       const identity = document.createElement('div');
       identity.className = 'credits-team-identity credits-drift';
       const role = document.createElement('span');

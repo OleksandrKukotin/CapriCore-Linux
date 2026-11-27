@@ -62,7 +62,10 @@ region (`setIgnoreMouseEvents` does, but cannot be undone without a cursor).
       (CI proved it). Try `node tools/setup/setup.mjs recognition` on a real
       machine.
 - [ ] Recompile the hashed and GPU locks for `x86_64-manylinux_2_28`: router,
-      Qwen, and the legacy, Blackwell and AMD voice locks. This needs a good
+      Qwen, and the legacy and Blackwell voice locks, all with
+      `--generate-hashes` (the voice locks have none today; see the
+      [security audit](security-audit-2026-11-27.md)). Port or drop the AMD
+      profile: its lock lists only Windows ROCm wheels. This needs a good
       connection.
 - [ ] Accelerated Qwen voice: replace the `win_amd64` wheel pins in
       `integrations/voice_runtime/qwen_gpu_setup.py`.

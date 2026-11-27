@@ -12,6 +12,10 @@
     {
       "name": "Leberrr",
       "role": "Discord moderator"
+    },
+    {
+      "name": "kirn0al",
+      "role": "Linux Netrunner"
     }
   ],
   "majorSupporters": ["ChilledT", "Trenton Gregory", "Daniel Rodriguez", "Legat", "Joan_P"],
@@ -1369,7 +1373,8 @@
     "yakov-fz": "Wondrous Pulsar",
     "zsaox": "Soaring Kite",
     "zuk1suzuk1": "Vivid Compass",
-    "zyren03": "Digital Circuit"
+    "zyren03": "Digital Circuit",
+    "kirn0al": "Cerulean Archivist"
   },
   "snapshotDate": "2026-11-08",
   "source": "CapriChooms/Capri"
