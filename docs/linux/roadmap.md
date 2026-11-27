@@ -86,14 +86,19 @@ region (`setIgnoreMouseEvents` does, but cannot be undone without a cursor).
       Recycle Bin." with Linux wording. The locale check requires every
       translation to keep the word "Windows", so this needs a new key in all 50
       languages. The other trash strings already read "trash" in English.
-- [ ] Automatic update checks still query upstream `CapriChooms/CapriCore` and
-      can announce Windows releases this fork cannot install. Turn them off, or
-      point them at this fork.
+- [x] Update checks use this fork's GitHub releases. A git checkout is offered
+      any newer tagged release and updates with `git pull`; pre-releases are the
+      experimental channel. The GitLab mirror and private preview repository are
+      gone.
+- [ ] The updater's download, staging and GitHub-token code is unused on Linux.
+      Remove it or reuse it when packaging exists (CAP-16).
+- [ ] The FAQ still describes the Windows installer and upstream. Rewrite it
+      for Linux.
 - [ ] `CALL_CAMERA_FILES` still names the Windows camera host (`.exe`, `.dll`).
 - [ ] Tray balloons are off on Linux (`platformFeatures.trayBalloons`), so the
-      update notice in `showUpdateTrayNotice` never shows. Once update checks
-      point at this fork, send it as a desktop notification (Electron's
-      `Notification`, which uses `org.freedesktop.Notifications`).
+      update notice in `showUpdateTrayNotice` never shows. Send it as a desktop
+      notification instead (Electron's `Notification`, which uses
+      `org.freedesktop.Notifications`).
 
 ## Later: features not ported yet
 

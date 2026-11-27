@@ -462,11 +462,12 @@ change the setup without starting over.
 
 ## CAP-16 — Updates, recovery and removal · P0
 
-Today: `git pull`, `npm ci`, restart. The in-app installer reports unavailable,
-but automatic update checks still query upstream `CapriChooms/CapriCore` and
-can announce Windows releases this fork cannot install.
+Today: `git pull`, `npm ci`, restart. Update checks read this fork's GitHub
+releases and tell a git checkout to update with `git pull`; the in-app installer
+reports unavailable.
 
-- [ ] Turn off upstream update checks, or point them at this fork's tagged releases. Notify through a desktop notification, not a tray balloon.
+- [x] Point update checks at this fork's tagged releases.
+- [ ] Notify through a desktop notification, not a tray balloon.
 - [ ] Version the app, settings schema, model profiles, character packs and voice packs separately, with a compatibility matrix.
 - [ ] Before an update: verify it, prepare migrations, back up settings. After a failed update: roll back to the previous tag.
 - [ ] Update owned runtimes (`.runtime/`) without breaking shared model caches, trained voices or user recordings.

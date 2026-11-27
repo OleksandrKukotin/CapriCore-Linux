@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
-export const REPOSITORY = 'CapriChooms/CapriCore';
-export const EXPERIMENTAL_REPOSITORY = 'CapriChooms/Capri';
+export const REPOSITORY = 'OleksandrKukotin/CapriCore-Linux';
+// Upstream published a v1.1.0 preview under a plain tag; installed builds of it
+// still record this version.
 export const LEGACY_PREVIEW_TAG = 'v1.1.0';
 export const LEGACY_PREVIEW_VERSION = 'v1.1.0-experimental.1';
 
-export function releaseVersion(release, repository = release.repository) {
-  return repository === EXPERIMENTAL_REPOSITORY &&
-    release.prerelease === true &&
-    release.tag_name === LEGACY_PREVIEW_TAG
-    ? LEGACY_PREVIEW_VERSION
-    : release.tag_name;
+export function releaseVersion(release) {
+  return release.tag_name;
 }
 export function parseVersion(tag) {
   const match =
@@ -45,6 +42,8 @@ export function compareVersions(a, b) {
 }
 export function releaseAsset(release, kind = 'source') {
   const { version } = parseVersion(release.tag_name);
+  // A source checkout updates with git pull, so any valid tagged release counts.
+  if (kind === 'checkout') return { id: null, name: null, bytes: 0 };
   const name = kind === 'source' ? `Capri-${version}-source.zip` : `CapriSetup-${version}.exe`;
   const asset = release.assets?.find((item) => item.name === name && item.state === 'uploaded');
   if (
@@ -59,12 +58,9 @@ export function releaseAsset(release, kind = 'source') {
     return null;
   return { id: asset.id, name, bytes: asset.size, sha256: asset.digest.slice(7) };
 }
-export function selectRelease(
-  releases,
-  { current, experimental = false, kind = 'source', repository = REPOSITORY },
-) {
+export function selectRelease(releases, { current, experimental = false, kind = 'source' }) {
   parseVersion(current);
-  const versionOf = (release) => releaseVersion(release, repository);
+  const versionOf = releaseVersion;
   return (
     releases
       .filter((release) => {

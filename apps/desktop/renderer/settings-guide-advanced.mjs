@@ -465,7 +465,7 @@ export const advancedGuides = {
     step(
       '#updates-versions',
       'Load the list of releases',
-      'Load versions lists releases available to your update channel and GitHub access.',
+      'Load versions lists the releases available to your update channel.',
       'Загрузи список выпусков',
       'В списке появятся выпуски, доступные для выбранного канала и твоих прав на GitHub.',
     ),
@@ -480,32 +480,9 @@ export const advancedGuides = {
     step(
       '#updates-experimental',
       'Include experimental builds',
-      'Stable builds are selected by default. Experimental builds can contain unfinished features and require access to the private repository. Save Settings to keep the channel.',
+      'Stable builds are selected by default. Experimental builds can contain unfinished features; they are GitHub pre-releases of this project. Save Settings to keep the channel.',
       'Включи экспериментальные сборки',
       'По умолчанию доступны стабильные сборки. В экспериментальных могут быть незавершённые функции, а для их получения нужен доступ к закрытому репозиторию. Сохрани настройки, чтобы сохранить канал.',
-    ),
-    step(
-      '#updates-lava',
-      'Open the subscription options',
-      'The Lava.top and Boosty buttons open the offer pages for experimental access.',
-      'Открой варианты подписки',
-      'Кнопки Lava.top и Boosty ведут к условиям получения экспериментального доступа.',
-      '#updates-boosty',
-    ),
-    step(
-      '#updates-token',
-      'Connect GitHub for private updates',
-      'Public releases need no token. Accept the private repository invitation, create a fine-grained token for CapriChooms/Capri with read-only Contents access, then save and check it. Pending means approval is still required.',
-      'Подключи GitHub для закрытых обновлений',
-      'Для публичных выпусков токен не нужен. Прими приглашение, создай токен для CapriChooms/Capri с правом чтения Contents, затем сохрани и проверь его. Статус Pending означает, что нужно дождаться одобрения.',
-      '#updates-access-details > summary, #updates-connect, #updates-token-page, #updates-classic-token-page',
-    ),
-    step(
-      '#updates-forget',
-      'Remove saved GitHub access',
-      'This removes the token saved by Capri. You can revoke the token itself in GitHub.',
-      'Удали сохранённый доступ GitHub',
-      'Кнопка удалит токен, сохранённый Капри. Сам токен можно отозвать в GitHub.',
     ),
   ],
   bug: [
