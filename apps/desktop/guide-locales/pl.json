@@ -224,7 +224,7 @@
   "Choose a local voice model": "Wybierz lokalny model głosu",
   "Choose a voice from the list for the selected language. Its source, disk size and installation status appear below.": "Wybierz głos z listy dla wybranego języka. Jego źródło, rozmiar na dysku i status instalacji pojawią się poniżej.",
   "Check voice hardware requirements": "Sprawdź wymagania sprzętowe dla głosu",
-  "Check CPU and GPU requirements for the selected voice. When available, install NVIDIA or AMD acceleration or select the suggested CPU-compatible voice.": "Sprawdź wymagania CPU i GPU dla wybranego głosu. Jeśli dostępne, zainstaluj przyspieszenie NVIDIA lub AMD albo wybierz sugerowany głos kompatybilny z CPU.",
+  "Check CPU and GPU requirements for the selected voice. When available, install AMD acceleration or select the suggested CPU-compatible voice.": "Sprawdź wymagania CPU i GPU dla wybranego głosu. Jeśli dostępne, zainstaluj przyspieszenie AMD albo wybierz sugerowany głos kompatybilny z CPU.",
   "Download a voice": "Pobierz głos",
   "Download the chosen model first. Cancel download interrupts preparation of that model.": "Najpierw pobierz wybrany model. Anulowanie pobierania przerywa przygotowanie tego modelu.",
   "Use a downloaded voice": "Użyj pobranego głosu",

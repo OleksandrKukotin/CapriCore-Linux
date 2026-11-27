@@ -224,7 +224,7 @@
   "Choose a local voice model": "Виберіть локальну модель голосу",
   "Choose a voice from the list for the selected language. Its source, disk size and installation status appear below.": "Виберіть голос зі списку для обраної мови. Його джерело, розмір на диску та стан встановлення відображаються нижче.",
   "Check voice hardware requirements": "Перевірте апаратні вимоги до голосу",
-  "Check CPU and GPU requirements for the selected voice. When available, install NVIDIA or AMD acceleration or select the suggested CPU-compatible voice.": "Перевірте вимоги CPU та GPU для обраного голосу. Якщо доступно, встановіть прискорення NVIDIA або AMD або виберіть рекомендований голос, сумісний з CPU.",
+  "Check CPU and GPU requirements for the selected voice. When available, install AMD acceleration or select the suggested CPU-compatible voice.": "Перевірте вимоги CPU та GPU для обраного голосу. Якщо доступно, встановіть прискорення AMD або виберіть рекомендований голос, сумісний з CPU.",
   "Download a voice": "Завантажити голос",
   "Download the chosen model first. Cancel download interrupts preparation of that model.": "Спершу завантажте обрану модель. Скасування завантаження перериває підготовку цієї моделі.",
   "Use a downloaded voice": "Використовувати завантажений голос",
