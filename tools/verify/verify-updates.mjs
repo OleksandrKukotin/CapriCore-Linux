@@ -64,7 +64,9 @@ try {
         if (authorization && authorization !== 'Bearer ' + token)
           throw Error('Unexpected fixture credential');
         if (
-          address.startsWith('https://api.github.com/repos/CapriChooms/CapriCore/releases/assets/')
+          address.startsWith(
+            'https://api.github.com/repos/OleksandrKukotin/CapriCore-Linux/releases/assets/',
+          )
         ) {
           let at = 0;
           return new Response(
@@ -82,7 +84,11 @@ try {
             { headers: { 'content-length': String(bytes.length) } },
           );
         }
-        if (address.startsWith('https://api.github.com/repos/CapriChooms/CapriCore/releases?'))
+        if (
+          address.startsWith(
+            'https://api.github.com/repos/OleksandrKukotin/CapriCore-Linux/releases?',
+          )
+        )
           return new Response(
             JSON.stringify([
               {
@@ -133,7 +139,7 @@ try {
   await settings.locator('#updates-release-page').click();
   assert.equal(
     await application.evaluate(() => globalThis.fixtureReleasePage),
-    'https://github.com/CapriChooms/CapriCore/releases/tag/v1.0.4',
+    'https://github.com/OleksandrKukotin/CapriCore-Linux/releases/tag/v1.0.4',
   );
   await settings.locator('#updates-check').click();
   await settings.waitForFunction(
@@ -161,7 +167,9 @@ try {
   await settings.locator('#updates-experimental').check();
   assert.equal((await settings.evaluate(() => window.capri.updateStatus())).experimental, false);
   await settings.locator('#updates-versions').click();
-  await settings.locator('#updates-version').selectOption('CapriChooms/CapriCore@v99.0.0');
+  await settings
+    .locator('#updates-version')
+    .selectOption('OleksandrKukotin/CapriCore-Linux@v99.0.0');
   assert.equal(await settings.locator('#updates-changelog').textContent(), 'Preview release notes');
   await settings.locator('#updates-select').click();
   await settings.locator('#updates-download').waitFor({ state: 'visible' });
