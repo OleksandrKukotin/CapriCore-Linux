@@ -3080,7 +3080,10 @@
       "Event": "Event",
       "Since request": "Since request",
       "Invalid log selection.": "Invalid log selection.",
-      "The logs folder is not available yet.": "The logs folder is not available yet."
+      "The logs folder is not available yet.": "The logs folder is not available yet.",
+      "Move this file to Recycle Bin?": "Move this file to the trash?",
+      "Moved the file to Recycle Bin.": "Moved the file to the trash.",
+      "Moved the file to the Recycle Bin.": "Moved the file to the trash."
     },
     "it": {
       "Save memory": "Memorizza un fatto",

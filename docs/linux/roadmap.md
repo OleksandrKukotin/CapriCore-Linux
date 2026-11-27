@@ -82,6 +82,10 @@ region (`setIgnoreMouseEvents` does, but cannot be undone without a cursor).
 
 - [ ] Remove the 16 Windows-only tests that are always skipped on Linux.
 - [ ] Remove the dead locale keys that mention `setup-*.cmd` (all 50 languages).
+- [ ] Replace the locale key "Windows did not confirm removal. Check the file and
+      Recycle Bin." with Linux wording. The locale check requires every
+      translation to keep the word "Windows", so this needs a new key in all 50
+      languages. The other trash strings already read "trash" in English.
 - [ ] Automatic update checks still query upstream `CapriChooms/CapriCore` and
       can announce Windows releases this fork cannot install. Turn them off, or
       point them at this fork.

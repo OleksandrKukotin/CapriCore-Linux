@@ -89,6 +89,8 @@ export function initializePersonality(
       '8a6b02747e845dc989bb7f4757d55e24ded11814823bf763bd4f51760f4dfa8d',
       '5078b2d39296c052ba32a0ac127ab87da724d26b6888fb1d160a719ecda2412a',
       '96a6efd4e7368adf48032a5f8364f90180924d07b2bc1cbcceefce642f9f291f',
+      // The upstream 1.2.2 default, which said Capri lives on a Windows desktop.
+      'c32561ff68f243aadeb959a88a2d6dec1c2b18d7dea2c2751332e84a2c85d4c3',
     ],
   } = {},
 ) {
