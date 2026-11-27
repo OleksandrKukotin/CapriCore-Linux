@@ -8,7 +8,7 @@ the original NVIDIA backend, not a restriction of the new CPU path.
 Capri's currently supported trained-voice runtime needs a compatible NVIDIA GPU,
 driver and PyTorch build. This is the current implementation's supported backend,
 not an inherent NVIDIA-only restriction of the voice model. AMD/CPU backends and
-NPU acceleration are future qualification work; see [CAP-06A in the roadmap](../ROADMAP.md#cap-06a--amd-gpu-cpu-and-npu-voice-backends--p2-for-amdcpu-exploratory-for-npus).
+NPU acceleration are future qualification work; see [CAP-06A in the roadmap](../ROADMAP.md#cap-06a--gpu-cpu-and-npu-voice-backends--p2).
 A true `torch.cuda.is_available()` only proves that CUDA can discover the device; it does
 not prove that the installed wheel contains working kernels for that architecture.
 

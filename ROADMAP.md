@@ -1,605 +1,537 @@
-# Capri — Product and Release Roadmap
+# Capri — Product Roadmap (Linux)
 
-Updated 2026-11-08 against the public **1.0.0** release in
-[CapriChooms/CapriCore](https://github.com/CapriChooms/CapriCore).
-The delivery order below takes precedence over older planning notes. Dated
-implementation notes describe the evidence available at that checkpoint; an
-unchecked item can include a shipped subset whose full acceptance criteria
-remain open. The [v0.3.7 polish review](docs/plans/next-version-polish.md) is historical.
+Updated 2026-11-27 for **CapriCore-Linux**, based on upstream Capri 1.2.2.
 
-Capri is a responsive Windows companion with expressive speech and animation,
-shared conversation and memory across supported interfaces, and user-controlled
-access to desktop actions.
+This page says what Capri should become and how far each part is on Linux. The
+order of the next few tasks is in the [Linux roadmap](docs/linux/roadmap.md).
+The Linux mechanism planned for each Windows-era feature is in
+[Windows heritage](docs/linux/windows-heritage.md).
 
-## Current baseline
+The epics keep their upstream `CAP-xx` numbers so older notes still resolve.
+Upstream's Windows plan (installer, updater, signing, DirectML, Windows ML,
+UI Automation) was dropped; its ideas are restated here for Linux where they
+still apply. The original is in git history: `git show e0a23ed:ROADMAP.md`.
 
-- **Desktop and speech.** Electron companion with framed and desktop modes, teleport effects, independent mouth animation, music/BPM reactions, compact controls, tray operation, reminders and resource monitoring. The interface has 50 offline languages. Recognition and voice start off; Chatterbox and the Qwen3-TTS CPU beta have separate language/device limits. [Languages](docs/languages.md) · [Music listening](docs/music-listening.md)
-- **Inference and memory.** Bundled local models, Hugging Face GGUF imports and saved OpenAI-compatible API profiles; configurable context, OpenClaw compaction, local hybrid recall, a saved-memory viewer, a document knowledge folder and a separate password-protected memory box. Budgeted free-form tagged recall and shorter maintenance stalls remain future work. Ordinary history and memory are not fully encrypted. [Context management](docs/context-management.md) · [External API](docs/external-api.md) · [Security](SECURITY.md)
-- **Perception and actions.** Opt-in screen observation, scoped files/apps, Discord and Spotify actions, computer control, recorded workflows and isolated user tools. Computer control remains beta: real-application reliability and long combined tasks need continuing qualification. [Screen observation](docs/screen-observation.md) · [Computer control](docs/computer-control.md) · [User tools](docs/user-tools.md)
-- **Distribution.** Public Windows x64 installer, SHA-256 build/source manifests, anonymous update checks, optional experimental releases and selective uninstall. The former private updater needs a one-time full-installer migration. Main is protected and contributions use pull requests. Signing and broader clean-machine/hardware coverage remain open. [1.0.0 release notes](docs/releases/1.0.0.md) · Updates · [Installation wizard](docs/installation.md)
+Capri is a Linux desktop companion with expressive speech and animation, shared
+conversation and memory across supported interfaces, and user-controlled access
+to desktop actions.
 
-## Priorities and delivery order
+**How to read the checkboxes.** `[x]` means the code exists and runs on Linux
+(not necessarily checked on every setup). `[ ]` means open. **Needs a Linux
+backend** marks platform-neutral code whose OS side was a Windows helper; it
+reports "not available on Linux yet" until the backend in the heritage doc
+exists.
 
-- **P0 — Foundation or release gate:** required for a reliable supported release.
-- **P1 — Core product improvement:** the next set of user-facing capabilities.
-- **P2 — Expansion:** introduce after the dependencies and quality checks are ready.
+## Where Capri stands on Linux
 
-| Order         | Deliverable                                                                                                                                                                                                                                                                                                                                                                                                            | Exit condition                                                                                                                                     |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Next · P0     | Measure long-chat stalls and move routine compaction out of the reply path. [CAP-07](#cap-07--measured-performance-improvements--ongoing-p0) · [CAP-12A](#cap-12a--responsive-context-compaction--p0)                                                                                                                                                                                                                  | Local and API chat survive context pressure. Timings separate compaction from provider wait. History and unfinished requests survive cancellation. |
-| Then · P1     | Pilot budgeted recall, add free-form tags, and expose memory controls. [CAP-12B](#cap-12b--tagged-long-term-memory--p1)                                                                                                                                                                                                                                                                                                | Capri retrieves the correct fact from a crowded category within a fixed prompt budget, with local indexing and per-provider sharing controls.      |
-| Parallel · P0 | Qualify installation, updates, recovery, accessibility and hardware profiles for a supported release. [CAP-06](#cap-06--hardware-profiles-lower-vram-and-game-mode--p0-for-baseline-profiles-p2-for-broad-hardware-coverage) · [CAP-10](#cap-10--reliability-accessibility-and-polish--p0) · [CAP-15](#cap-15--guided-installer-and-first-run-wizard--p0) · [CAP-16](#cap-16--updates-recovery-and-uninstallation--p0) | Install, first conversation, upgrade, repair and uninstall pass on supported clean Windows configurations.                                         |
-| Later · P1/P2 | Qualify more desktop workflows and speech backends, then expand perception, animation and remote channels. [CAP-03](#cap-03--scoped-file-and-application-actions--p1-after-permission-foundations) · [CAP-05](#cap-05--optional-screen-and-webcam-perception--p1-screen--p2-webcam) · [CAP-13](#cap-13--telegram-parity--p2)                                                                                           | Each advertised device, workflow and channel passes its own capability, privacy and quality checks.                                                |
+- **Desktop.** The Electron companion opens on Wayland (developed on sway) with
+  animation, teleports, mouth layers, dialogue, compact controls, tray and
+  resource monitoring. Its transparent area still catches clicks and the window
+  cannot be dragged yet. A native layer-shell overlay is in [`apps/overlay`](apps/overlay).
+  The interface has 50 offline languages.
+- **Inference and memory.** Local models through a system `llama-server`,
+  Hugging Face GGUF imports, saved OpenAI-compatible API profiles, and the
+  [Claude Code bridge](README.md#chat-through-claude-code-no-model-download).
+  Memory recall needs `llama-server` plus the embedding model; without them it
+  is switched off. Ordinary history and memory are not encrypted.
+- **Speech.** Setup is ported to Node with a uv-managed Python per component.
+  The recognition lock installs on Linux (CI proves it). The voice, router and
+  Qwen locks are still Windows builds, so voice does not install yet.
+- **Perception and actions.** Scoped file tools work. Screen capture, app
+  awareness, app actions, computer control, recorded workflows, Spotify, call
+  audio, the virtual camera and sandboxed user tools need a Linux backend.
+- **Distribution.** Runs from source only: `npm ci`, `npm run setup`,
+  `npm run desktop`. No packages, installer or in-app updater. CI runs on Ubuntu.
 
-Major capability changes retain their own acceptance checks. The public desktop
-release does not imply webcam support, Telegram parity, universal GPU support or
-equal voice quality in every language.
+## Priorities
 
-The Hugging Face foundation in [CAP-17](#cap-17--hugging-face-model-and-voice-library--p1-foundation-p2-expansion)
-has shipped. Next work expands measured model/language/device coverage and
-runtime adapters; arbitrary Hub architectures and one-click training for every
-voice model are not supported. The [implementation plan](docs/plans/hugging-face-integration.md)
-records the original architecture and remaining expansion work.
+- **P0 — Foundation:** needed for a reliable everyday Linux setup.
+- **P1 — Core improvement:** the next user-facing capabilities.
+- **P2 — Expansion:** after dependencies and quality checks are ready.
+
+| Order         | Deliverable                                                                                                                                                                                                                                                                                                                                 | Exit condition                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Now · P0      | Finish the port basics: fast Claude Code chat, a usable Wayland window, installable speech locks, memory recall. [Linux roadmap](docs/linux/roadmap.md)                                                                                                                                                                                     | Chat, voice and recall work on the development machine from a clean checkout.                                                      |
+| Next · P0     | Measure long-chat stalls and move routine compaction out of the reply path. [CAP-07](#cap-07--measured-performance-improvements--ongoing-p0) · [CAP-12A](#cap-12a--responsive-context-compaction--p0)                                                                                                                                       | Local and API chat survive context pressure. Timings separate compaction from provider wait. History survives cancellation.        |
+| Then · P1     | Restore the Windows-era features with Linux backends, most-used first: media, screen capture, awareness, load control. [CAP-03](#cap-03--scoped-file-and-application-actions--p1) · [CAP-04](#cap-04--contextual-awareness-and-proactive-conversation--p1) · [CAP-05](#cap-05--optional-screen-and-webcam-perception--p1-screen--p2-webcam) | Each restored feature passes its own capability and privacy checks on wlroots, and its gap on GNOME/KDE is documented.             |
+| Then · P1     | Budgeted recall with free-form tags and memory controls. [CAP-12B](#cap-12b--tagged-long-term-memory--p1)                                                                                                                                                                                                                                   | Capri retrieves the right fact from a crowded category within a fixed prompt budget, with local indexing and per-provider sharing. |
+| Parallel · P0 | Make installing, updating and removing Capri on Linux ordinary. [CAP-14](#cap-14--public-repository-and-distribution--p0) · [CAP-15](#cap-15--install-and-first-run--p0) · [CAP-16](#cap-16--updates-recovery-and-removal--p0)                                                                                                              | Install, first conversation, update and removal pass on a clean supported distribution without editing JSON.                       |
+| Later · P2    | Computer control, webcam, more speech backends, remote channels. [CAP-06A](#cap-06a--gpu-cpu-and-npu-voice-backends--p2) · [CAP-13](#cap-13--telegram-parity--p2)                                                                                                                                                                           | Each advertised device, workflow and channel passes its own checks.                                                                |
+
+No item implies support for every compositor, GPU or language. Each advertised
+combination needs its own evidence.
 
 ## CAP-01 — Optional voice effects · P1
 
-Add configurable post-processing to the existing voice playback pipeline.
+Configurable post-processing on voice playback. The DSP is platform-neutral
+JavaScript; it becomes usable on Linux once a voice installs (see the speech
+locks in the [Linux roadmap](docs/linux/roadmap.md#3-speech)).
 
-- [x] Offer a clean voice preset and optional subtle cybernetic, radio and holographic presets.
-- [x] Provide independent controls for effect intensity, dry/wet mix, room/reverb amount, short delay, filtering and glitch frequency.
-- [x] Make glitches short and sparse, with strong interference reserved for selected transitions or reactions. Preserve understandable words.
-- [x] Process streamed audio continuously across chunk boundaries. Prevent clicks, cut-off reverb tails, clipping, sudden loudness jumps and overlapping old replies.
-- [x] Apply effects to playback, keeping source voice samples, training data and exported voice models unchanged.
-- [x] Provide preview, bypass and reset controls. Turning effects off must immediately restore clean playback.
-- [x] Keep effect processing separate from character animation effects and from any future microphone effects.
+- [x] A clean preset plus subtle cybernetic, radio and holographic presets.
+- [x] Independent intensity, dry/wet, reverb, delay, filtering and glitch frequency.
+- [x] Short, sparse glitches that keep words understandable.
+- [x] Continuous processing across streamed chunks: no clicks, cut tails, clipping or overlapping replies.
+- [x] Effects apply to playback only; samples, training data and exported voices stay unchanged.
+- [x] Preview, bypass and reset; turning effects off restores clean playback immediately.
+- [x] Kept separate from animation effects and any future microphone effects.
+- [ ] Listening check on Linux audio (PipeWire): headphones and speakers, added latency and CPU cost.
 
-Implementation status (2026-10-26): shipped code and automated Electron/DSP checks; [details and measurements](docs/voice-effects.md). Subjective headphone/speaker audition remains a release quality check, not an automatic pass.
+[Details and measurements](docs/voice-effects.md)
 
-**Done when:** clean playback matches the current voice; presets pass listening checks on headphones and speakers; cancellation is immediate; added playback latency and CPU cost are measured. Effects are off by default until a user chooses a preset.
+**Done when:** clean playback matches the plain voice, presets pass listening
+checks, cancellation is immediate, and latency and CPU cost are measured.
+Effects stay off until the user picks a preset.
 
 ## CAP-02 — Independent language settings and validated speech packs · P2
 
-Model discovery, per-language voice selection and the Qwen3-TTS CPU beta are
-available through [CAP-17](#cap-17--hugging-face-model-and-voice-library--p1-foundation-p2-expansion).
-Broader adapter coverage and language qualification remain open. The quality
-criteria below also apply to imported packs.
+- [x] Separate interface, conversation, recognition and voice languages, with a "use conversation language" option.
+- [x] Installed language/voice packs with compatibility metadata.
+- [x] Changing recognition models keeps the microphone choice and shared context.
+- [x] Per-language voice choices are remembered; switching needs no reinstall or memory reset.
+- [ ] Recognition on a real Linux machine: European languages on Parakeet, the wider set on CPU Whisper. CI installs the lock and runs the ASR tests; a live microphone test is still open.
+- [ ] English stays the quality reference. Pick the next language deliberately and validate it before expanding.
+- [ ] Per-language checks: intelligibility, naturalness, pronunciation, character similarity, emotion and latency, with blind comparisons and held-out audio.
+- [ ] Test accents, pauses, noise, names, song titles, dates, numbers and mixed-language phrases.
+- [ ] Optional automatic language detection; users can lock a language. Never silently fall back to a worse voice or language.
+- [ ] Localize character instructions, output cleaning, tools and the request classifier where needed. Unsupported classifier languages keep the ordinary path.
 
-- [x] Separate **interface language**, **conversation/text language**, **speech recognition language** and **voice/speech language**. Offer an easy “use conversation language” setting where appropriate.
-- [ ] Establish English as the quality reference. Select the next language deliberately and validate it before expanding further.
-- [x] Support installed language/voice packs with explicit compatibility metadata. Show which voices support which languages and hardware profiles.
-- [ ] Evaluate intelligibility, naturalness, pronunciation, character similarity, emotion and latency for each language. Use blind listening comparisons and held-out transcripts/audio.
-- [ ] Test accents, pauses, noisy rooms, proper names, song titles, dates, numbers and mixed-language phrases in recognition and speech output.
-- [x] Preserve microphone selection, accurate final recognition and shared context when changing recognition models.
-- [ ] Make automatic language detection optional; let users lock a language and explain fallback behavior. Never silently substitute a lower-quality voice or language.
-- [ ] Localize character instructions, output-cleaning rules, tools and the request classifier where necessary. Unsupported classifier languages must retain the ordinary Qwen path.
-- [x] Remember independent per-language voice selections and permit switching compatible installed voices without reinstalling the app or resetting memory.
+[Languages](docs/languages.md) · [Interface localization](docs/localization.md)
 
-**Done when:** each advertised language/voice combination passes its documented quality criteria. “Same quality” is a release objective to demonstrate per language, not an assumption that multilingual support guarantees parity.
+**Done when:** each advertised language/voice combination passes its documented
+quality checks. Multilingual support is not a claim of equal quality.
 
-Implementation status (2026-10-27): separate interface, conversation, recognition and matching voice settings are implemented. The interface has 50 offline locale catalogs, including RTL layouts; language switches preserve dialogue and input drafts. European recognition uses local Parakeet and the wider language set uses CPU Whisper. Matching multilingual speech models and automatic input-language detection are available through the pinned setup. English conversation and the trained English voice remain the quality baseline; language coverage is not a claim of equal naturalness or recognition accuracy. Interface catalogs have automated checks and local machine review, with native-speaker proofreading still welcome before public release. [Details and measurements](docs/languages.md); [interface localization](docs/localization.md).
+## CAP-03 — Scoped file and application actions · P1
 
-## CAP-03 — Scoped file and application actions · P1, after permission foundations
+File tools are pure Node and work on Linux. App actions, Discord desktop
+control and computer control drove Windows UI and need a Linux backend:
+AT-SPI2 for controls and the RemoteDesktop portal with libei for input
+([heritage](docs/linux/windows-heritage.md#computer-control-and-task-recording--p2-wayland-makes-it-hard)).
 
-The 1.0.0 baseline includes a configurable app catalog, scoped file actions and
-Recycle Bin recovery. The separate computer-control beta supports bounded
-observe–act sequences with keyboard and mouse input, a visible indicator and
-Escape cancellation. Its full-computer grant is explicit. [File actions](docs/file-actions.md) · [Computer control](docs/computer-control.md)
+- [x] Typed tools to list, find, read, create, copy, move and rename regular files in granted scopes.
+- [x] Scopes grow only through explicit user choices. Real paths are resolved; links, name collisions and changed destinations are handled. Protected locations cover system trees and per-user credentials.
+- [x] Deletion goes to the trash (`shell.trashItem`, which uses the freedesktop trash on Linux) with a private recovery copy and an operation journal.
+- [x] Results are verified before success is reported; operation IDs stop retries from duplicating changes.
+- [ ] Say "trash" instead of "Recycle Bin" in replies, prompts and locale strings, and drop "Windows did not confirm removal".
+- [ ] Directory and cross-filesystem operations with rollback and partial failures. Moves across filesystems are refused today.
+- [ ] Network and FUSE mounts (NFS, SMB, gvfs): define what is allowed and test it.
+- [ ] Prefer file and application APIs. Use AT-SPI2 for supported controls, with screenshots and coordinates only as a limited fallback. **Needs a Linux backend.**
+- [ ] Start app control small: launch or focus an app, find a control, type text, one bounded action. Mark supported and experimental integrations. App launching can use `.desktop` entries (`gtk-launch`, `gio launch`).
+- [ ] A short action preview when useful. Confirm destructive, bulk or sensitive actions; reusable grants only for routine low-impact ones.
+- [ ] Stop control and Escape across long action chains, including focus loss, late tool results and partial work. On Wayland, Electron's global Escape (`globalShortcut`) gets no keys; bind a compositor key to the companion CLI's `stop` action ([CAP-11](#cap-11--unified-settings-and-capability-controls--p0)) or use the GlobalShortcuts portal.
+- [ ] File contents, window text, websites and screenshots are untrusted data. They never grant permissions.
 
-Give Capri useful tools for explicitly approved locations and applications throughout the PC.
+[File actions](docs/file-actions.md) · [Application access](docs/application-actions.md) · [Computer control](docs/computer-control.md)
 
-- [x] Add typed tools for listing, finding, reading, creating, copying, moving and renaming regular files in supported scopes.
-- [ ] Define and qualify directory and cross-drive operations, including rollback and partial failures.
-- [x] Expand scope through explicit user choices. Resolve real paths and handle junctions, links, network paths, locked files, name collisions and changed destinations correctly.
-- [ ] Prefer filesystem/application APIs for operations they expose. Use Windows UI Automation for supported UI controls, with screenshot/coordinate automation as a limited fallback. [Microsoft UI Automation](https://learn.microsoft.com/en-us/windows/win32/winauto/entry-uiauto-win32).
-- [ ] Start application control with a small supported set: launch/focus an app, find a control, enter text and perform a bounded action. Distinguish supported and experimental integrations.
-- [ ] Show a concise action preview when useful. Require explicit confirmation for destructive, bulk, sensitive or otherwise consequential actions; permit reusable grants for routine low-impact operations.
-- [x] Use the Recycle Bin for supported file deletion, maintain a bounded operation journal and offer recovery for supported operations.
-- [x] Verify actual results before confirming success. Use operation IDs to prevent retries, reconnects and repeated tool calls from duplicating mutations.
-- [ ] Qualify the visible stop control and Escape across long action chains, including focus loss, a late tool result and partially completed work.
-- [ ] Treat file contents, window text, websites and screenshots as untrusted data. They cannot grant new permissions or authorize unrelated actions.
-
-**Done when:** supported workflows pass tests with real applications and failure cases. Capri reports partial completion honestly, requests no extra authority for routine read-only tasks, and never claims an action succeeded without evidence.
-
-Qualification still covers different browser layouts and application frameworks,
-multi-monitor focus/coordinates, interruption during combined actions and real
-Resolve editing workflows. [Application access](docs/application-actions.md)
+**Done when:** supported workflows pass tests with real applications and
+failure cases. Capri reports partial work honestly and never claims success
+without evidence.
 
 ## CAP-04 — Contextual awareness and proactive conversation · P1
 
-Make Capri feel present while keeping control over when she speaks.
+The initiative logic (levels, cooldowns, generation, dismissal) is
+platform-neutral and kept. Its event source was a Windows hook, so on Linux
+Capri currently has nothing to react to. **Needs a Linux backend.**
 
-- [ ] Introduce an event pipeline for supported app/window changes, media activity, idle/return, lock/unlock, sleep/resume and app/session shutdown.
-- [x] Prefer application and Windows events over continuously sending screenshots to a model. Add vision only when an event needs visual interpretation and permission exists.
-- [x] Separate observation, interpretation, deciding whether to speak and generating a line. Give events timestamps, source identity and confidence.
-- [x] Add opt-in initiative levels: off, occasional and conversational, plus quiet hours, cooldowns, per-app exclusions and a conversation frequency limit.
-- [ ] Suppress initiative during games, fullscreen media, calls, presentations, quiet mode and active user speech unless explicitly allowed.
-- [ ] Give user messages priority over generated observations. Drop stale comments instead of delivering them after the moment has passed.
-- [ ] Use the current character, selected language and shared memory; avoid repeated catchphrases, generic interruptions and claims of seeing content without perception access.
-- [x] Let the user dismiss a comment and reduce that kind of initiative without deleting the whole conversation.
-- [ ] Support a brief optional departure line on an appropriate event. Actual Windows shutdown must never wait for Qwen or voice synthesis; use an already prepared line only if the system still permits playback, otherwise skip it. [Windows session-ending guidance](https://learn.microsoft.com/en-us/windows/win32/shutdown/wm-queryendsession).
+Planned sources: `ext-idle-notify-v1` for idle/return,
+`zwlr_foreign_toplevel_manager_v1` for app and fullscreen changes on wlroots,
+systemd-logind for lock/unlock, sleep and shutdown, and MPRIS for media.
+GNOME and KDE do not expose foreign-toplevel; document that gap.
 
-**Example:** a verified media-open event may lead to “We watching this?” when the user has enabled that behavior. A filename alone does not establish what the video contains.
+- [ ] An event pipeline for app/window changes, media, idle/return, lock/unlock, sleep/resume and shutdown. **Needs a Linux backend.**
+- [x] Prefer events over sending screenshots. Use vision only when an event needs it and permission exists.
+- [x] Observation, interpretation, deciding to speak and writing the line are separate steps. Events carry a timestamp, source and confidence.
+- [x] Opt-in initiative levels (off, occasional, conversational), quiet hours, cooldowns, per-app exclusions and a frequency limit.
+- [x] The user can dismiss a comment and turn that kind of initiative down without clearing the conversation.
+- [ ] Stay quiet during games, fullscreen media, calls, presentations, quiet mode and active speech unless allowed.
+- [ ] User messages beat generated observations. Drop stale comments.
+- [ ] Use the current character, language and memory; avoid repeated catchphrases and claims of seeing content without perception access.
+- [ ] An optional short goodbye at shutdown. Take a logind delay inhibitor only if a line is already prepared, release it within a few seconds, and never wait for a model or voice synthesis.
+- [ ] Metadata only: event names, never window titles, screenshots or audio (heritage rule 4).
 
-**Done when:** recorded test events produce timely, varied and contextually appropriate reactions; quiet modes and priority rules are respected; no proactive task changes files, music or settings without separate authorization.
+**Example:** a verified media-open event (MPRIS) may lead to "We watching
+this?" when the user enabled it. A filename alone does not say what a video is.
 
-Implementation status (2026-10-26): opt-in event initiative preview is implemented, with native process/fullscreen, idle/return, lock and power metadata; no window titles/images/audio. Tool-free Qwen generation shares current history/persona/memory, commits genuine assistant context and uses normal subtitles/voice. Native fixture, settings UI, cancellation, scheduling and real-agent recall checks pass. Observation pauses when hidden. Broader media events, reliable browser-call/windowed-game detection, prepared farewells, cross-channel priority and wider character/repetition qualification remain pending. [Details](docs/initiative.md), [narrow upstream context fix](docs/upstream-compatibility.md).
+[Initiative](docs/initiative.md)
+
+**Done when:** recorded test events give timely, varied and fitting reactions;
+quiet modes and priority rules hold; no proactive task changes files, music or
+settings without separate permission.
 
 ## CAP-05 — Optional screen and webcam perception · P1 screen / P2 webcam
 
-- [ ] Provide separate screen and webcam permissions, both off by default, with visible active indicators and immediate pause/stop controls.
-- [x] Offer explicit choices: one-shot screenshot, selected window/monitor, event-triggered observation or a bounded continuous mode.
-- [ ] Let users select a camera and preview its feed. Avoid recording audio or images merely to enable a preview.
-- [ ] Add screenshot resizing/cropping, change detection, request rate limits and a visual model profile appropriate to available resources.
-- [ ] Support exclusion lists and stop capture on lock or when the chosen source becomes unavailable. A disabled source must never be described as active.
-- [x] Attach capture time and source to observations. Explain when an image is stale or details are unreadable rather than inventing them.
-- [x] Keep screenshots and webcam frames ephemeral by default. Saving or sharing captures requires a separate explicit choice.
-- [x] Route vision observations into the existing conversation with their provenance. Keep observed scene content separate from instructions and authorization.
+The picker, preview, question flow, bounded observation leases, change
+detection, revocation and provenance handling are platform-neutral and kept.
+The frame source was Windows-only. **Needs a Linux backend:** wlr-screencopy
+(`grim`) on wlroots, the ScreenCast portal elsewhere.
 
-**Done when:** the chosen source, indicator, actual capture and model claims agree; stop releases access; capture respects exclusions; disabled perception does not impair text or voice chat.
+- [ ] A Linux frame source for one-shot and bounded observation. Reuse the portal's own picker where the compositor requires it.
+- [x] Explicit choices: one-shot screenshot, selected window or monitor, bounded continuous mode.
+- [x] Capture time and source travel with each observation; stale or unreadable images are reported as such.
+- [x] Frames are ephemeral by default; saving needs a separate choice.
+- [x] Observations enter the conversation with provenance, kept apart from instructions and permissions.
+- [x] Hide, lock, suspend and source loss revoke access without auto-resume.
+- [ ] Separate screen and webcam permissions, both off by default, with visible indicators and immediate stop.
+- [ ] Webcam selection and preview through PipeWire or V4L2, without recording audio or images just to preview.
+- [ ] Cropping, exclusions, rate limits and a vision profile that fits available resources.
+- [ ] Event-driven visual initiative, after CAP-04 has an event source.
 
-Implementation status (2026-10-26): one-shot window/monitor capture is wired through an explicit picker, preview and question UI. Metadata enumeration collects no thumbnails; a selected-source stream closes after one frame. Hide/lock/suspend/close revoke capture. PNG bytes go only to local tool-free vision; the OpenClaw SDK atomically commits question, text answer and provenance without image bytes. Actual generated-window capture, camera denial, real Qwen, trained-voice playback and ordinary-agent recall pass isolated end-to-end checks. Bounded selected-source observation now adds 5/10/20-minute leases, change detection, 15/30/60-second minimum analysis intervals, visible stop controls, foreground cancellation, transient descriptions and timestamped context in ordinary text/voice turns. Hide/lock/suspend/source-loss revoke access without auto-resume. Webcam, crop/exclusion controls, event-driven visual initiative and broader quality/resource qualification remain pending. [Snapshot](docs/screen-snapshot.md), [observation](docs/screen-observation.md).
+[Snapshot](docs/screen-snapshot.md) · [Observation](docs/screen-observation.md)
 
-## CAP-06 — Hardware profiles, lower VRAM and game mode · P0 for baseline profiles, P2 for broad hardware coverage
+**Done when:** the chosen source, the indicator, the real capture and the
+model's claims agree; stop releases access; disabled perception never slows
+text or voice chat.
 
-- [ ] Detect GPU, VRAM, RAM, available disk space and supported compute backends. Keep a manual profile override.
-- [ ] Offer tested **Quality**, **Balanced** and **Lightweight** profiles with clear descriptions of response quality, supported features and expected resource use.
-- [ ] Measure the combined peak requirements of LLM, voice, vision, context/cache and other services. Reserve a safety margin rather than checking only model weight size.
-- [ ] Evaluate smaller/quantized text models against character consistency, tool use, memory, plain-text output, avatar protocol and latency before including them.
-- [ ] Keep ASR/classification on CPU where beneficial; provide a documented CPU fallback and explicitly state its tested limitations.
-- [ ] Load optional vision/voice components on demand and unload them after configurable inactivity where startup costs make that sensible.
-- [ ] Build a one-click game mode: stop optional observation and initiative, unload owned GPU models, show completion and restore services on request.
-- [ ] Recover from out-of-memory errors with an explained fallback or profile suggestion. Do not silently change voice quality or kill unrelated processes.
+## CAP-06 — Hardware profiles, lower VRAM and game mode · P0 baseline, P2 broad coverage
 
-**Done when:** every offered profile has a tested minimum configuration and measured peak memory; switching preserves history and settings; game mode demonstrably releases the resources it claims to release.
+Hardware probing is ported: DRM sysfs for AMD/Intel, `nvidia-smi` for NVIDIA,
+hwmon temperatures, `/proc` process load. Shared GTT memory on an APU counts as
+RAM, not VRAM. Setup offers minimal, balanced, desktop and quality profiles.
 
-### CAP-06A — AMD GPU, CPU and NPU voice backends · P2 for AMD/CPU, exploratory for NPUs
+- [x] Detect GPU, VRAM, RAM and CPU. Keep a manual profile override.
+- [ ] Detect usable compute backends (Vulkan, CUDA, ROCm) and free disk space, and explain a missing driver separately from an unsupported device.
+- [ ] Profiles with tested descriptions of quality, features and resource use.
+- [ ] Measure combined peak use of LLM, voice, vision, context and other services, with a safety margin. Re-measure `config/memory-estimates.json` and `config/speech-storage.json` on Linux.
+- [ ] Evaluate smaller or quantized text models for character, tool use, memory, plain text, avatar protocol and latency.
+- [ ] Keep recognition and classification on CPU where it helps; document the CPU fallback and its limits.
+- [ ] Load vision and voice on demand and unload after configurable inactivity.
+- [ ] Game mode: stop observation and initiative, unload owned GPU models, show when done and restore on request. Consider starting it automatically while Feral GameMode (`gamemoded`) is active.
+- [ ] Recover from out-of-memory errors with an explained fallback. Never silently lower voice quality or kill unrelated processes.
+- [ ] CPU/GPU load control (was a Windows Job Object): a cgroup v2 `CPUQuota` through a `systemd-run --user` scope. **Needs a Linux backend.** [Heritage](docs/linux/windows-heritage.md#cpugpu-load-reservation--p1)
 
-Share the speech adapter contract with [CAP-17](#cap-17--hugging-face-model-and-voice-library--p1-foundation-p2-expansion).
-CAP-06A owns device execution and preservation/export of the trained Capri voice.
-CAP-17 supplies Hub packages, alternative model families and per-language selection.
+[Hardware](docs/hardware.md) · [Load control](docs/local-model-load.md)
 
-**Current 1.0.0 implementation.** Chatterbox uses NVIDIA CUDA or the separately
-pinned experimental ROCm path on selected supported AMD configurations.
-Qwen3-TTS 0.6B Base provides a separate reference-conditioned CPU voice beta;
-it is not an export of the trained Chatterbox adapter and can be slower than
-real time. Text acceleration, ASR and TTS have separate hardware requirements.
-[AMD voice requirements](docs/amd-voice.md)
+**Done when:** each profile has a tested minimum configuration and measured
+peak memory; switching keeps history and settings; game mode really frees what
+it claims to.
 
-The portability research below began on 2026-10-31. Whole-pipeline Chatterbox CPU
-export, DirectML/Windows ML and NPU synthesis remain research/qualification work.
-Radeon support still needs physical qualification for each advertised
-GPU/driver combination; no universal GPU or NPU guarantee is made.
+### CAP-06A — GPU, CPU and NPU voice backends · P2
 
-**Preserve the voice first.** The English release uses the pinned Chatterbox Turbo
-base plus Capri's trained adapter and reference. Resemble AI also publishes an
-official [Chatterbox Turbo ONNX model](https://huggingface.co/ResembleAI/chatterbox-turbo-ONNX),
-with separate speech-encoder, embedding, language-model and conditional-decoder
-graphs. It is evidence that an ONNX route exists, not a drop-in export of Capri's
-adapter. Validate base-revision/tokenizer/preprocessing compatibility, merge our
-adapter into the matching base and export that exact voice. Keep the same reference,
-normalization, generation limits and applicable upstream processing. Do not replace
-the trained voice with stock reference-only cloning and advertise equivalent results.
-The English ONNX export does not establish multilingual-model compatibility.
+Shares the speech adapter contract with [CAP-17](#cap-17--hugging-face-model-and-voice-library--p1-foundation-p2-expansion).
+CAP-06A owns device execution and preserving the trained Capri voice; CAP-17
+supplies Hub packages, other model families and per-language selection.
 
-| Route                                 | Intended role                                                                                                      | Constraints and decision                                                                                                                                                                                        |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PyTorch CPU                           | Reference implementation and optional compatibility fallback on PCs without supported GPU speech                   | Generalize the entire voice path, not only the decoder. Benchmark latency/CPU/RAM first; expose slower operation honestly. Same weights do not guarantee real-time synthesis on every CPU.                      |
-| Native Windows PyTorch + AMD ROCm/HIP | First targeted AMD GPU prototype, preserving the current model and adapter                                         | Use an explicitly supported GPU/OS/driver/framework combination from AMD's matrix and a separate pinned environment. Do not promise all Radeon generations or infer Windows support from Linux/WSL.             |
-| ONNX Runtime + DirectML               | Broad Windows GPU compatibility candidate, including older AMD/Intel hardware outside a qualified ROCm combination | Check exact exported opset, operators, cache tensors and dynamic shapes. DirectML is sustained engineering/maintenance; keep it an isolated compatibility provider rather than the sole long-term architecture. |
-| ONNX Runtime + Windows ML             | Longer-term provider management on supported newer Windows systems                                                 | Dynamic EP delivery requires Windows 11 24H2+ and compatible drivers. Keep a separate Windows 10 path. Probe the actual model, not merely provider availability.                                                |
-| OpenVINO / VitisAI / QNN              | Separate Intel, AMD Ryzen AI and Qualcomm NPU prototypes                                                           | No universal NPU backend or guaranteed whole-model placement. Qualify per provider/device/driver/precision. Qualcomm Snapdragon targets also require a separate ARM64 application/runtime qualification.        |
+**State on Linux.** Chatterbox voice needs the CUDA or ROCm voice locks
+recompiled for `x86_64-manylinux_2_28`. Accelerated Qwen pins `win_amd64`
+wheels and reports unavailable. The Qwen3-TTS CPU beta needs its lock
+recompiled. The NPU (OpenVINO) setup is not ported. Linux helps here: ROCm and
+CUDA are first-class on Linux, and PyTorch ships official ROCm wheels.
+
+**Preserve the voice first.** The English voice is the pinned Chatterbox Turbo
+base plus Capri's trained adapter and reference. Resemble AI publishes a
+[Chatterbox Turbo ONNX model](https://huggingface.co/ResembleAI/chatterbox-turbo-ONNX);
+it shows an ONNX route exists, not that our adapter exports as-is. Check base
+revision, tokenizer and preprocessing, merge the adapter into the matching base
+and export that exact voice. Never replace the trained voice with stock
+reference cloning and advertise the same result. The English export says
+nothing about the multilingual model.
+
+| Route                        | Role                                           | Constraints                                                                                                                                               |
+| ---------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PyTorch CUDA                 | Baseline on NVIDIA                             | Recompile the lock for Linux. Keep NVIDIA architecture checks scoped to NVIDIA.                                                                           |
+| PyTorch ROCm                 | AMD GPUs                                       | Use a GPU/driver/ROCm combination from AMD's support matrix and a separate pinned venv. Integrated GPUs are often outside the matrix; test, never assume. |
+| PyTorch CPU                  | Reference path and fallback without GPU speech | Generalize the whole voice path, not only the decoder. Benchmark first; same weights do not mean real time on every CPU.                                  |
+| ONNX Runtime (CPU, then GPU) | Portable export of the merged voice            | Check opset, operators, cache tensors and dynamic shapes per execution provider.                                                                          |
+| OpenVINO / AMD XDNA          | Intel and AMD Ryzen AI NPU prototypes          | Driver and runtime support on Linux varies by kernel and device. No universal NPU backend or guaranteed full placement.                                   |
 
 **Implementation sequence**
 
-- [ ] Introduce a provider-independent speech contract: probe, load, warmup,
-      synthesize/cancel, health, memory reporting and unload. Keep the current
-      NVIDIA pipeline as the qualified baseline. Token generation and audio decoding
-      must be independently placeable, with capabilities reported per stage.
-- [ ] Replace hard-coded `cuda:0`, unconditional CUDA synchronization/graphs,
-      NVIDIA-only memory queries and install-time vendor gates with explicit backend
-      adapters. Keep NVIDIA architecture checks scoped to NVIDIA. PyTorch HIP can
-      expose the `torch.cuda` namespace; distinguish the runtime using its actual
-      backend metadata rather than treating that namespace as NVIDIA detection.
-- [ ] Build a complete CPU reference path and compare the trained voice with the
-      current FP32 baseline. Cap threads so speech does not monopolize ASR/routing/LLM
-      CPU resources. Keep CUDA Graph optimizations disabled for other backends until
-      separately qualified. Decoder-on-CPU alone is not a full CPU voice implementation.
-- [ ] Prototype native ROCm/HIP synthesis on one officially supported Windows AMD
-      configuration, then a second device class. Resolve compatible Python, PyTorch,
-      torchaudio and Chatterbox dependencies in an isolated environment; do not replace
-      the existing NVIDIA environment or relax dependency/TLS checks globally.
-- [ ] Reproduce the official ONNX pipeline on CPU, then export the exact merged
-      Capri voice. Validate tensor layouts, special tokens, reference conditioning,
-      cache lifecycle, long/short text, cancellation and phrase boundaries. Publish
-      converted weights as separately versioned model assets with hashes; keep binary
-      weights out of the source repository.
-- [ ] Profile DirectML execution on real AMD hardware before selecting it as a
-      compatibility backend. Check export opset against provider support, use supported
-      session options and prevent repeated CPU/GPU copies of the autoregressive cache.
-      Do not label synthesis GPU-accelerated when almost all work falls back to CPU.
-      A direct `torch-directml` port can be a small isolated feasibility experiment;
-      its maintenance status, available wheel versions and operator coverage must be
-      checked before considering it. Do not downgrade the shared NVIDIA environment
-      or assume that changing the device string ports our CUDA-specific optimizations.
-- [ ] Evaluate Windows ML provider management separately. Current Microsoft docs
-      explicitly exclude GenAI scenarios for its MIGraphX EP; do not assume that this
-      EP can execute the autoregressive T3 model. Consider only proven supported
-      subgraphs until upstream capability changes and is revalidated.
-- [ ] Run NPU feasibility work per stage. Test fixed/bucketed shapes, persistent
-      cache inputs and operator coverage before quantization. Quantize only after an
-      FP32/FP16 reference is established, using representative calibration material
-      where required. Measure compilation and transfer costs; partial NPU execution
-      may be slower than CPU/GPU. A hybrid backend is acceptable if its benefit and
-      real placement are reported accurately.
-- [ ] Prioritize x64 Intel/AMD NPU experiments first. Treat Qualcomm QNN/Snapdragon
-      as a separate Windows ARM64 milestone covering Node/Electron, Python/native
-      packages, installers and other services, not just a TTS provider switch.
-- [ ] Extend the installer and settings with independent text/ASR/TTS capability
-      detection and qualified backend selection. Distinguish missing driver, missing
-      runtime, unsupported model/device and insufficient memory. Download only the
-      selected environment/model format; CPU/different-voice fallback is explicit,
-      never a silent loss of voice identity or quality.
-- [ ] Qualify multilingual speech separately after the English trained voice.
-      Exporting Turbo graphs does not convert the distinct multilingual model or make
-      all supported speech languages available on every new backend.
+- [ ] A provider-independent speech contract: probe, load, warm up, synthesize/cancel, health, memory and unload. Token generation and audio decoding placeable independently, with capabilities per stage.
+- [ ] Replace hard-coded `cuda:0`, unconditional CUDA synchronization and graphs, NVIDIA-only memory queries and install-time vendor gates with backend adapters. PyTorch HIP exposes the `torch.cuda` namespace; tell runtimes apart by backend metadata.
+- [ ] A complete CPU reference path compared against the FP32 baseline, with capped threads so speech does not starve recognition, routing or the LLM.
+- [ ] ROCm synthesis on one supported AMD configuration, then a second device class, in an isolated venv. Never replace the NVIDIA environment or relax dependency/TLS checks globally.
+- [ ] Reproduce the official ONNX pipeline on CPU, then export the exact merged Capri voice. Validate layouts, special tokens, conditioning, cache lifecycle, text length, cancellation and phrase boundaries. Publish converted weights as hashed, versioned assets outside the repository.
+- [ ] Do not label synthesis GPU-accelerated when most work falls back to CPU.
+- [ ] NPU feasibility per stage: fixed or bucketed shapes, persistent cache inputs, operator coverage, then quantization against an FP32/FP16 reference. Measure compile and transfer cost.
+- [ ] Setup detects text, recognition and voice capability separately and distinguishes missing driver, missing runtime, unsupported device and insufficient memory. Download only the selected environment. CPU or different-voice fallback is explicit.
+- [ ] Qualify multilingual speech separately after the English voice.
 
-**Qualification and release gates**
+**Qualification**
 
-- [ ] Measure cold/warm first playable audio, synthesis real-time factor
-      (generation seconds / generated audio seconds), p50/p95, peak host RAM and actual
-      device memory, provider partitioning/transfers and concurrent Qwen/ASR contention.
-      NPU TOPS and a successful tensor addition are not end-to-end TTS benchmarks.
-- [ ] Compare the same held-out English sentences, short acknowledgements, long
-      sentences, names and punctuation against NVIDIA FP32. Use blind listening for
-      identity, naturalness, expression and artifacts, plus transcription checks.
-      Numerical subgraph parity is useful; bit-identical sampled waveforms are not
-      required. Do not assume INT8/INT4 preserves the trained voice.
-- [ ] Test native install/repair/update, missing and incompatible drivers,
-      cancellation, OOM/device loss, repeated load/unload and game-mode resource release
-      on each advertised hardware family. Keep current CUDA behavior covered.
-- [ ] Record exact GPU/NPU model, OS/build, driver, runtime/provider versions,
-      model revision, merged adapter/reference hashes and export/precision settings.
-      Track experimental, physically verified and unsupported combinations separately.
-- [ ] Review redistribution licenses and deployment requirements for provider
-      binaries, runtime packages and converted model assets before shipping them.
+- [ ] Measure cold/warm first playable audio, real-time factor, p50/p95, peak host and device memory, provider partitioning and contention with the LLM and recognition.
+- [ ] Compare the same held-out English sentences against NVIDIA FP32 with blind listening and transcription checks. Do not assume INT8/INT4 keeps the voice.
+- [ ] Test install, repair, missing or wrong drivers, cancellation, OOM, device loss, repeated load/unload and game-mode release on each advertised hardware family.
+- [ ] Record exact device, distribution, kernel, driver, runtime versions, model revision, adapter/reference hashes and export settings. Track experimental, verified and unsupported combinations separately.
+- [ ] Review redistribution licenses for runtime packages and converted model assets before shipping them.
 
-CPU/export correctness can be investigated on the existing development PC; real
-AMD/NPU compatibility must be checked on those devices. WSL2 and CUDA-translation
-layers such as ZLUDA remain optional research, not the normal Windows installer
-dependency or a promised shortcut to unchanged CUDA performance. Do not publish a
-date or blanket AMD/NPU support claim before the relevant release gates pass.
+References: [AMD ROCm compatibility matrix](https://rocm-handbook.amd.com/projects/amd-rocm-programming-guide/en/latest/compatibility/compatibility-matrix.html),
+[PyTorch HIP semantics](https://docs.pytorch.org/docs/stable/notes/hip.html),
+[ONNX Runtime execution providers](https://onnxruntime.ai/docs/execution-providers/).
+Recheck matrices when choosing pins; rolling documentation is not a Capri promise.
 
-References checked for planning: [AMD Windows PyTorch matrix](https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/compatibility/compatibilityrad/windows/windows_compatibility.html),
-[AMD unified compatibility matrix](https://rocm-handbook.amd.com/projects/amd-rocm-programming-guide/en/latest/compatibility/compatibility-matrix.html),
-[ONNX Runtime DirectML support and limits](https://onnxruntime.ai/docs/execution-providers/DirectML-ExecutionProvider.html),
-[PyTorch HIP runtime semantics](https://docs.pytorch.org/docs/stable/notes/hip.html),
-[Microsoft DirectML maintenance status](https://github.com/microsoft/DirectML),
-[PyTorch DirectML setup](https://learn.microsoft.com/en-us/windows/ai/directml/pytorch-windows),
-[ZLUDA project](https://github.com/vosen/ZLUDA),
-[Windows ML providers and requirements](https://learn.microsoft.com/en-us/windows/ai/new-windows-ml/supported-execution-providers).
-Recheck matrices when selecting actual pins; rolling documentation is not a
-released Capri compatibility promise.
+[AMD voice requirements](docs/amd-voice.md) · [Voice GPU compatibility](docs/voice-gpu-compatibility.md)
 
 ## CAP-07 — Measured performance improvements · ongoing P0
 
-- [ ] Deliver the long-session compaction benchmarks and separate the context
-      preparation and API-stream phases described in [CAP-12A](#cap-12a--responsive-context-compaction--p0).
-- [ ] Instrument end of user speech, end-of-turn decision, final transcription, classification, model admission/prefill, first visible text, first speech request, first playable audio and playback start.
-- [ ] Report text-to-response and voice-to-response separately. Separate cold startup, warm operation, long history and tool-based requests.
-- [ ] Track median and p95 on a repeatable benchmark set with stated hardware, context size, quality settings and sample count.
-- [ ] Maintain CPU routing with a bounded timeout and ordinary-path fallback; expand fast-path coverage only with separate calibration and regression checks.
-- [ ] Profile context growth, repeated instructions, cache invalidation, memory retrieval, serialization, queueing, GPU contention, speech buffering and first-chunk synthesis.
-- [ ] Tune silence detection and speech chunking while preserving natural pauses, accurate transcripts and understandable speech.
-- [ ] Use bounded queues, cancellation, stale-result rejection and deliberate startup prewarming across every optional service.
-- [ ] Establish measured latency budgets per hardware profile after the baseline. Treat a four-second warm first-audio result as an initial reference to investigate, not a universal promise.
+- [ ] Claude Code bridge: a reply takes about 20 s. Measure CLI startup, prompt size and first token, then drop tool definitions the text-only bridge cannot use. [Linux roadmap](docs/linux/roadmap.md#1-faster-claude-code-chat)
+- [ ] Long-session compaction benchmarks, with context preparation and API streaming timed separately ([CAP-12A](#cap-12a--responsive-context-compaction--p0)).
+- [ ] Instrument end of speech, end-of-turn decision, final transcription, classification, prefill, first visible text, first speech request, first playable audio and playback start.
+- [ ] Report text-to-response and voice-to-response separately; separate cold start, warm use, long history and tool requests.
+- [ ] Track median and p95 on a repeatable set with stated hardware, context size, settings and sample count.
+- [ ] Keep CPU routing with a bounded timeout and ordinary-path fallback; widen the fast path only with calibration and regression checks.
+- [ ] Profile context growth, repeated instructions, cache invalidation, retrieval, serialization, queueing, GPU contention, speech buffering and first-chunk synthesis.
+- [ ] Tune silence detection and speech chunking without losing natural pauses or accuracy.
+- [ ] Bounded queues, cancellation, stale-result rejection and deliberate prewarming in every optional service.
+- [ ] Latency budgets per hardware profile once a Linux baseline exists. A four-second warm first audio is a reference to investigate, not a promise.
 
-**Done when:** changes include comparable before/after measurements and quality checks. Faster first text alone does not establish faster audible responses.
+[Performance](docs/performance.md)
+
+**Done when:** changes come with comparable before/after measurements and
+quality checks. Faster first text does not prove faster audible replies.
 
 ## CAP-08 — Legacy removal and repository hygiene · P0
 
-- [x] Inventory entry points, runtime dependencies, configuration, scripts, models, training assets, experiments and documentation. Map each to an active feature or supported developer workflow.
-- [x] Identify abandoned VTuber/ASR/TTS paths and historical experiments. Decide what to retain as a separate developer workflow and what to retire.
-- [x] Verify dynamic imports, runtime paths, setup scripts and voice-training/export dependencies before removing anything.
-- [x] Archive recoverable development artifacts before deleting obsolete local material. Never classify user history, trained voices or source datasets as disposable cache.
-- [x] Remove retired launchers, dependencies, stale documentation and dead configuration together. Test the supported paths afterward.
-- [x] Keep models, environments, private data and generated reports out of the source repository; use one documented data/cache layout with size information and a cleanup command.
+Upstream finished its cleanup ([cleanup.md](docs/cleanup.md)). The fork then
+removed the Windows code and recorded its lessons in the
+[heritage doc](docs/linux/windows-heritage.md).
 
-Implementation evidence and recovery details: [cleanup.md](docs/cleanup.md). The local cleanup is complete; fresh-PC bootstrap and release qualification remain CAP-15/CAP-16 work.
+- [x] Inventory entry points, dependencies, configuration, scripts, models and docs; map each to a feature or developer workflow.
+- [x] Retire abandoned paths and experiments after checking dynamic imports, runtime paths and setup scripts.
+- [x] Keep models, environments, private data and generated reports out of the repository.
+- [x] Remove PowerShell, C#, DirectShow and `.cmd` sources, the Windows installer and updater.
+- [ ] Remove the Windows-only tests that are always skipped on Linux.
+- [ ] Remove dead locale keys that mention `setup-*.cmd` (all 50 languages).
+- [ ] Remove or repoint upstream links and the private-repository token flow (`community-links.mjs`, `github-access.mjs`).
+- [ ] Rename Windows-flavoured wording that survives in code and docs: Recycle Bin, drives, `.exe`/`.dll` names in `CALL_CAMERA_FILES`.
+- [ ] Rename the `ollama*` settings and URLs that now point at the managed llama.cpp host, with a settings migration.
 
-**Done when:** a clean checkout includes only maintained source and essential assets, installation recreates runtime dependencies, and existing user data survives migration. Cleanup is a planned task, not authorization to delete files while editing this roadmap.
+**Done when:** a clean checkout holds only maintained source and essential
+assets, and no message tells a Linux user about Windows.
 
 ## CAP-09 — Incremental architecture and code refactoring · P0
 
-- [ ] Define boundaries for desktop UI, conversation orchestration, OpenClaw transport, models, voice/DSP, ASR, vision, actions, initiative and persistence.
-- [ ] Introduce typed/versioned contracts for tools, events, settings and worker messages. Validate messages at process boundaries.
-- [ ] Make settings schema-driven, separate shipped defaults from user overrides, and implement versioned migrations with recovery.
-- [ ] Give optional services a consistent lifecycle: start, readiness, cancel, health, failure and shutdown. Keep failures isolated from basic chat.
-- [ ] Centralize capability reporting so Capri describes only features actually enabled and available in the current interface.
-- [ ] Reduce responsibilities of large orchestration files in small behavior-preserving changes. Keep the same conversation/session semantics throughout.
-- [ ] Document pinned upstream patches, compatibility checks and the plan to update or retire them. Avoid undocumented edits inside dependencies.
-- [ ] Establish formatting, linting, type checking, naming conventions and contributor documentation; avoid unnecessary framework replacement.
+- [ ] Boundaries for desktop UI, conversation, OpenClaw transport, models, voice/DSP, recognition, vision, actions, initiative and persistence.
+- [ ] Typed, versioned contracts for tools, events, settings and worker messages, validated at process boundaries.
+- [ ] Schema-driven settings, shipped defaults separate from user overrides, versioned migrations with recovery.
+- [ ] One lifecycle for optional services: start, ready, cancel, health, failure, shutdown. Failures never break basic chat.
+- [ ] One capability report, so Capri only describes features that are enabled and available. Today `platformFeatures` and `platformUnavailable` do part of this; fold them into it.
+- [ ] Shrink large orchestration files in small behavior-preserving steps. `apps/desktop/main.mjs` is about 10,000 lines.
+- [ ] Document pinned upstream patches (`patch-openclaw.mjs`), their checks and the plan to retire them.
+- [ ] Formatting, linting, type checking and naming conventions; no framework replacement for its own sake.
 
-**Done when:** supported features behave as before, module contracts and dependency direction are documented, and each refactoring step passes relevant checks. “Refactor everything” is replaced by reviewable changes.
+[Refactoring notes](docs/REFACTORING.md) · [Architecture](docs/architecture.md)
+
+**Done when:** features behave as before, module contracts and dependency
+direction are documented, and every step passes its checks.
 
 ## CAP-10 — Reliability, accessibility and polish · P0
 
-- [ ] Maintain a bug backlog with severity, reproduction steps, affected versions, expected behavior and regression coverage for material failures.
+- [ ] A bug backlog with severity, reproduction, affected versions, expected behavior and regression tests.
 - [ ] Test cancellation, reconnects, missing models, unavailable devices, permission denial, interrupted downloads, sleep/resume and GPU/voice failures.
-- [ ] Cover long conversations, repeated messages, simultaneous channel input and partial tool completion. Prevent duplicate actions and stale audio/visual results.
-- [ ] Verify multiple monitors, DPI/scaling changes, off-screen recovery, taskbars, fullscreen apps, click-through regions, sprite dragging and resize/zoom behavior.
-- [ ] Keep subtitles readable, history usable, keyboard navigation consistent and controls accessible to screen readers where supported.
-- [ ] Offer reduced motion, independent glitch intensity, high-contrast/readable text and independent speech/effect volume.
-- [ ] Produce understandable recovery messages and optional redacted diagnostic exports. Avoid exposing secrets, private prompts or screenshots in routine logs.
-- [ ] Require no unresolved release-blocking bugs in the supported release scope. Track lower-severity known issues explicitly instead of promising “all bugs fixed.”
+- [ ] Long conversations, repeated messages, simultaneous channel input and partial tool completion without duplicate actions or stale audio.
+- [ ] Wayland window behavior: only Capri's shape catches clicks (`setShape`), compositor-driven dragging, multiple monitors, fractional scaling, fullscreen apps, off-screen recovery, and the Electron window vs. the layer-shell overlay.
+- [ ] Test at least sway and one of GNOME or KDE; record what each compositor allows.
+- [ ] Readable subtitles, usable history, consistent keyboard navigation and screen-reader access where supported (AT-SPI).
+- [ ] Reduced motion, independent glitch intensity, high-contrast text and separate speech/effect volume.
+- [ ] Clear recovery messages and optional redacted diagnostic exports. No secrets, private prompts or screenshots in routine logs.
+- [ ] No unresolved blocking bugs in the supported scope; track lower-severity issues openly.
 
-**Done when:** normal use and recovery paths pass a documented release checklist, and visual/audio polish does not compromise usability or performance.
+**Done when:** normal use and recovery pass a documented checklist, and polish
+does not cost usability or performance.
 
 ## CAP-11 — Unified settings and capability controls · P0
 
-The desktop settings panel, temporary approval cards for supported capabilities
-and model-independent reminders, timers and stopwatch are implemented. Recurring
-schedules and delivery while Capri is closed remain future work. [Timers and settings actions](docs/timers-and-actions.md)
+The settings panel, temporary approval cards and model-independent reminders,
+timers and stopwatch exist. [Timers and settings actions](docs/timers-and-actions.md)
 
-- [ ] Provide one settings interface for languages, model profiles, microphone/output devices, voice, effects, subtitles, appearance and resource use.
-- [ ] Provide separate controls for initiative, screen access, webcam, application integration, file scopes and external channels.
-- [ ] Explain each setting in ordinary language, including its effect on quality, latency, resources and privacy. Provide preview and restore-default actions where useful.
-- [ ] Make autostart and background operation opt-in. Show whether the app is hidden, listening, observing or using GPU resources.
-- [ ] Offer a single quiet/privacy control that stops new microphone/screen/webcam capture and proactive speech; keep it distinct from muting playback.
-- [ ] State when settings apply immediately and when a service restart/download is required. Preserve independent user preferences across updates.
+- [ ] One settings interface for languages, models, audio devices, voice, effects, subtitles, appearance and resource use.
+- [ ] Separate controls for initiative, screen, webcam, app integration, file scopes and external channels.
+- [ ] Each setting explained in plain language, including its cost in quality, latency, resources and privacy. Preview and restore-default where useful.
+- [ ] A companion CLI for keyboard shortcuts and scripts: `capri.mjs desktop --action stop|toggle-mic|say "…"` hands a fixed allowlist of actions to the running instance through Electron's `second-instance` event (the single-instance lock already exists). Users bind keys in their compositor (`bindsym $mod+c exec …` on sway), which works where `globalShortcut` cannot. Add a Unix socket only if scripts need replies. The CLI never grants more than the UI does.
+- [ ] Offer the same actions through the GlobalShortcuts portal on GNOME and KDE, after checking what the pinned Electron supports.
+- [ ] Opt-in autostart through an XDG autostart entry (`~/.config/autostart/capri.desktop`). Nothing exists yet.
+- [ ] Show whether Capri is hidden, listening, observing or using the GPU.
+- [ ] One quiet/privacy switch that stops new microphone, screen and webcam capture and proactive speech, separate from muting playback.
+- [ ] Say when a setting applies at once and when it needs a restart or download. Keep preferences across updates.
+- [ ] Settings that cannot work on this platform say so, instead of failing when used.
 
-**Done when:** ordinary users can configure supported features without editing JSON or using a terminal, and UI state reflects actual service state.
+**Done when:** ordinary users configure supported features without editing
+JSON or using a terminal, and the UI matches real service state.
 
 ## CAP-12 — Memory management and user data · P0
 
-**Baseline.** OpenClaw owns the shared session, preserves the original history,
-and already summarizes active replay for normal local and API chat. At 32K, the
-24 KiB active-transcript guard can trigger before the token ceiling. The local
-CPU embedding index already supports hybrid keyword and semantic search through
-`memory_search` and `memory_get`. Direct Lemonade/NPU dialogue assembles a
-separate short prompt. Existing controls clear context and saved memory
-separately. Settings can display saved facts, the Brain folder supplies local
-document retrieval, and the separately password-protected memory box has an
-explicit unlock lifecycle. These are distinct from the tagged recall design
-below and do not encrypt ordinary history. [Architecture](docs/architecture.md) · [Context management](docs/context-management.md) · [Security](SECURITY.md)
+**Baseline.** OpenClaw owns the shared session, keeps the original history and
+summarizes active replay for local and API chat. At 32K the 24 KiB
+active-transcript guard can trigger before the token ceiling. A local CPU
+embedding index supports hybrid keyword and semantic search through
+`memory_search` and `memory_get`; on Linux it needs `llama-server` and the
+embedding model and is switched off without them. Settings show saved facts,
+the Brain folder supplies local document retrieval, and a separate
+password-protected memory box has its own unlock lifecycle. Ordinary history is
+not encrypted. Direct Lemonade dialogue code is kept but untested on Linux.
+
+[Architecture](docs/architecture.md) · [Context management](docs/context-management.md) · [Security](SECURITY.md)
+
+- [ ] Install a GPU build of `llama-cpp` and the embedding model, and confirm memory search turns itself back on. [Linux roadmap](docs/linux/roadmap.md#4-memory-recall)
 
 ### CAP-12A — Responsive context compaction · P0
 
-- [ ] Establish comparable local and API baselines for short turns, warm long
-      sessions, cold starts and vision/tool turns. Record prompt tokens, time
-      spent in compaction, provider wait, first visible text, first playable audio
-      and fallback count. Keep text, file paths and secrets out of diagnostics.
-- [ ] Give context preparation and first-text wait independent bounded budgets.
-      Apply context-pressure accounting to API turns too, without treating a
-      stream header or an internal event as visible text. Reproduce the observed
-      case where the shared watchdog expired after slow compaction and a silent
-      provider stream. Keep an absolute turn deadline.
-- [ ] Schedule native compaction between turns as the full prompt approaches
-      its working budget. Reserve space for instructions, tools, images and the
-      reply. Tune the early byte guard against measured token pressure rather than
-      compacting at a fixed number of messages. Foreground input takes priority;
-      use the session lease and reject stale commits after a new turn or reset.
-- [ ] Keep a bounded extractive fallback when a turn cannot fit. Reuse audited
-      OpenClaw-compatible excerpts where possible and qualify them for the managed
-      API path. Preserve recent replies, unresolved asks, decisions and exact
-      identifiers. Keep original history accessible and never replay tool actions
-      from a summary. Avoid extra paid summary calls in the default foreground path.
-- [ ] Keep configured model capacity separate from the amount sent per turn.
-      Larger provider windows require verified support and separate latency/cost
-      checks. Keep the local hardware limits and 32K baseline while qualifying
-      compaction and recall.
+- [ ] Comparable local and API baselines for short turns, warm long sessions, cold starts and vision/tool turns: prompt tokens, compaction time, provider wait, first text, first audio and fallback count. No text, paths or secrets in diagnostics.
+- [ ] Separate bounded budgets for context preparation and first-text wait. Apply context-pressure accounting to API turns, without counting a stream header as visible text. Reproduce the case where slow compaction plus a silent stream hit the shared watchdog. Keep an absolute turn deadline.
+- [ ] Compact natively between turns as the prompt nears its budget, reserving room for instructions, tools, images and the reply. Tune the byte guard against measured tokens. Foreground input wins; use the session lease and reject stale commits.
+- [ ] A bounded extractive fallback when a turn cannot fit. Keep recent replies, open asks, decisions and exact identifiers. Never replay tool actions from a summary. No extra paid summary calls in the default path.
+- [ ] Keep model capacity separate from what is sent per turn. Larger windows need verified support and cost checks. The Claude Code bridge is a provider like any other here.
 
 **Acceptance.** A synthetic long conversation crosses the 32K budget with its
-latest ask, decisions and original history intact. A stalled summary or provider
-stream yields a bounded recovery, with no repeated actions. Compare p50/p95
-first text and first audio against the existing build on the same fixtures.
+latest ask, decisions and original history intact. A stalled summary or stream
+recovers within bounds with no repeated actions. Compare p50/p95 first text and
+first audio against the current build.
 
 ### CAP-12B — Tagged long-term memory · P1
 
-- [ ] Pilot automatic, local retrieval using the existing OpenClaw index and a
-      single bounded pre-reply step. Evaluate the pinned Active Memory hook for
-      direct retrieval; reuse its search and injection contracts where suitable.
-      Keep ordinary recall free of extra generation calls. A slow or unavailable
-      index must leave normal dialogue usable, with an explicit fallback for
-      memory questions. Skip obvious greetings and routine commands.
-- [ ] Store one fact, preference, event or decision per Markdown record in
-      `data/workspace/memory/` with a stable ID, source reference, date and tags.
-      Let Capri invent tags when saving records. Use an open vocabulary with no
-      global tag count limit, a small per-record cap and normalization for case,
-      Unicode and obvious aliases. Preserve distinct meanings and allow users
-      to edit tags or merge aliases. Import legacy notes without rewriting them.
-- [ ] Rank individual records using semantic similarity, exact names and terms,
-      and weighted tag matches. A common tag such as `editing` only boosts
-      candidates; it cannot load every record in the group. Deduplicate by fact
-      and source, downrank superseded records and apply a minimum relevance score.
-      Start with up to four records and 600–1,000 total prompt tokens. An explicit
-      request to remember details can make one deeper, separately bounded search.
-- [ ] Insert selected excerpts as temporary turn data after the stable prompt
-      prefix. Reuse the same ranking and limits for local chat, external API
-      chat and direct Lemonade/NPU dialogue. Replace broad Markdown injection
-      with a compact, user-controlled profile and selected records once parity
-      is verified. Avoid duplicating excerpts in saved conversation or feeding
-      them back on every later turn. Offer separate sharing permission for
-      recalled memories per remote API profile and enforce it at final request
-      assembly, including on-demand tool results. Keep indexes and embeddings local.
-- [ ] Save explicit user requests to remember something and confirmed durable
-      facts with provenance. Treat user corrections as superseding older records.
-      Keep unverified guesses, credentials, role-play and screen/tool output out
-      of automatic memory. Separate owner-approved notes from raw chat archives.
-- [ ] In Settings, let users inspect, search, edit, export and delete memory.
-      Keep display history, active context, long-term records, attachments and
-      diagnostics distinct. Version backups and migrations. Clearing memory
-      invalidates pending writers and removes derived indexes/caches. Archived
-      conversations stay separate and cannot silently recreate cleared records.
-      Reuse the same owner store for future authorized channels in CAP-13.
+- [ ] Automatic local retrieval with the existing OpenClaw index and one bounded pre-reply step. Evaluate the pinned Active Memory hook. No extra generation calls for ordinary recall. A slow or missing index leaves dialogue usable. Skip greetings and routine commands.
+- [ ] One fact, preference, event or decision per Markdown record in `data/workspace/memory/`, with a stable ID, source, date and tags. Open tag vocabulary with a small per-record cap and normalization; users can edit and merge tags. Import old notes without rewriting them.
+- [ ] Rank records by semantic similarity, exact terms and weighted tags. A common tag only boosts candidates. Deduplicate, downrank superseded records, apply a minimum score. Start with up to four records and 600–1,000 tokens; an explicit "remember" request allows one deeper bounded search.
+- [ ] Insert excerpts as temporary turn data after the stable prompt prefix, with the same ranking for local, API and Claude Code chat. Do not save excerpts into the conversation. Per-provider sharing permission for recalled memories, enforced at final request assembly. Indexes and embeddings stay local.
+- [ ] Save explicit "remember this" requests and confirmed facts with provenance; corrections supersede older records. Keep guesses, credentials, role-play and screen/tool output out of automatic memory.
+- [ ] In Settings: inspect, search, edit, export and delete memory. Clearing memory stops pending writers and removes derived indexes. Archived conversations cannot recreate cleared records.
 
-**Acceptance.** An exact subtitle export fact can be found among hundreds of
-records tagged `editing`. Test newly invented tags, English/Russian recall,
-corrections, duplicates, index failure, model switching, cache reset, interrupted
-migration and provider sharing disabled. Compare recall accuracy, input tokens
-and first-reply latency with compaction alone. Require zero additional model
-calls for simple turns.
+**Acceptance.** An exact fact is found among hundreds of records sharing a tag.
+Test new tags, English/Russian recall, corrections, duplicates, index failure,
+model switching, cache reset, interrupted migration and sharing disabled. Zero
+extra model calls for simple turns.
 
 ## CAP-13 — Telegram parity · P2
 
-- [ ] Audit the current adapter and complete end-to-end pairing with an explicitly authorized Telegram account/chat.
-- [ ] Support text, photos and voice messages with the selected language/voice settings and the same durable memory as desktop.
-- [ ] Give remote requests explicit device and capability scope. Desktop authorization must not automatically grant every remote action.
-- [ ] Handle retries, reconnects, duplicate delivery, attachment limits and offline desktop availability without repeating actions.
-- [ ] Make desktop/Telegram playback and notifications configurable; avoid speaking the same reply unexpectedly on multiple devices.
-- [ ] Document setup, credential storage, account revocation and the feature differences between channels.
+This repository has no Telegram adapter. Start by checking what the pinned
+OpenClaw version offers.
 
-**Done when:** a verified desktop-to-Telegram-to-desktop scenario retains context and permissions correctly, including voice/photo input and interrupted connectivity.
+- [ ] Audit the available adapter and pair it with an explicitly authorized Telegram account or chat.
+- [ ] Text, photos and voice messages with the selected language and voice, and the same memory as the desktop.
+- [ ] Remote requests get explicit device and capability scope; desktop permission does not grant every remote action.
+- [ ] Retries, reconnects, duplicate delivery, attachment limits and an offline desktop without repeated actions.
+- [ ] Configurable playback and notifications; no unexpected speech on several devices.
+- [ ] Document setup, credential storage (system keyring), revocation and channel differences.
+
+**Done when:** a desktop → Telegram → desktop scenario keeps context and
+permissions, including voice and photo input and lost connectivity.
 
 ## CAP-14 — Public repository and distribution · P0
 
-Public 1.0.0 is released. The public repository has a clean publication history,
-protected main, pull-request checks, GPL-3.0-only project code, published
-installer/source checksums and private vulnerability reporting. Distribution
-terms for character/model/voice assets remain separate. The installer is
-unsigned; broader clean-machine and device qualification remain acceptance work.
+The fork is public under GPL-3.0-only with protected main, pull requests, CI on
+Ubuntu and private vulnerability reporting. It publishes no releases. Terms for
+character, model and voice assets are separate from the code license.
 
-- [ ] Define supported Windows versions and architectures, hardware minimums and the feature/profile compatibility matrix. Advertise only tested configurations.
-- [ ] Remove developer-specific paths and machine assumptions; support user-selected install/model paths, spaces, Unicode and standard user accounts.
-- [ ] Separate the reusable assistant platform from character, sprite and voice packs. Provide an installable public default pack with documented distribution permissions.
-- [ ] Inventory licenses, attribution, redistribution status and training-data provenance for code, models, fonts, sprites, voice samples and adapters. Keep private/reference assets out of public releases unless cleared for distribution.
-- [x] Select the project license and publish LICENSE, third-party notices, README, quick start, architecture, troubleshooting, contribution and security-reporting guidance.
-- [x] Audit the initial public source/history and 1.0.0 release artifacts for credentials, private conversation data, absolute personal paths and accidental media/dataset inclusion. Repeat before each publication.
-- [x] Add CI for checks that can run without GPU, secrets or the owner's PC; keep GPU/quality integration tests reproducible and separately runnable.
-- [x] Publish versioned build artifacts, checksums, dependency/model manifests and release notes. Verify update/install artifact integrity.
-- [ ] Sign the Windows installer and application binaries and qualify publisher trust on clean systems.
-- [ ] Test installation from the actual published artifact on a clean supported Windows system without preinstalled development tools.
+- [x] License, third-party notices, README, contribution and security guidance.
+- [x] CI for checks that need no GPU, secrets or the owner's machine; GPU and quality tests stay separately runnable.
+- [ ] A support matrix: distributions (developed on Arch, tested in CI on Ubuntu), compositors (wlroots, GNOME, KDE), GPU vendors and features. Advertise only tested combinations.
+- [ ] No developer-specific paths: user-chosen model and data paths, spaces and Unicode, ordinary user accounts.
+- [ ] Separate the assistant platform from character, sprite and voice packs; ship a default pack with clear distribution terms.
+- [ ] Inventory licenses, attribution, redistribution and training-data provenance for code, models, fonts, sprites, voice samples and adapters.
+- [ ] Audit history and any release artifacts for credentials, private data, personal paths and stray media before each publication.
+- [ ] Decide on releases: tagged source releases with checksums first; packages later (see CAP-15).
 
-**Done when:** a new user can obtain a tagged release, understand its requirements, install it and use the documented default configuration. The public package must not depend on the developer's private Capri voice or local runtime files.
+**Done when:** a new user can get a tagged release, understand its
+requirements, set it up and use the default configuration without the
+developer's private voice or local files.
 
-## CAP-15 — Guided installer and first-run wizard · P0
+## CAP-15 — Install and first run · P0
 
-The per-user Windows wizard provisions private runtimes and selected models,
-supports local inference, deferred Hugging Face selection or an API profile, bundles the Capri voice reference,
-and registers shortcuts and uninstall. Installer session recovery, retries and
-resumable downloads are available for supported components. Broader hardware
-qualification, device audition, storage choices and signing remain open.
-[Wizard design and limits](docs/installation.md)
+Today Capri runs from a checkout: `npm ci`, `npm run doctor`, `npm run setup`,
+`npm run models:pull`, `npm run desktop`. System packages (Node 24,
+`llama-server`, optionally `uv`, `stockfish` and a keyring) come from the
+distribution. [Installation](docs/installation.md)
 
-The following is the target guided setup flow; device audition and a guided
-first conversation are not separate steps in the current eight-page installer.
-Current pages are Welcome, License, Location, Hardware, Components, Review,
-Installing and Finish. See the wizard guide for the shipped controls.
+- [x] Speech components get a pinned, uv-managed Python per component under `.runtime/`, with no global Python setup. A broken venv is moved aside, never deleted.
+- [ ] `npm run doctor` names the exact distribution package for each missing dependency (Arch first, then Debian/Ubuntu and Fedora).
+- [ ] A desktop entry (`.desktop` file and icon) so Capri starts from the app launcher.
+- [ ] Packaging: an AUR package first. Flatpak only after weighing its sandbox against features that need host access (Wayland protocols, PipeWire, `llama-server`, AT-SPI).
+- [ ] Progress, retry and resume across every component, including network loss. Respect metered connections: show download sizes and ask before large downloads.
+- [ ] Verify downloads against pinned manifests; a partly installed model is never shown as ready.
+- [ ] Change an installation later: add a language, move model storage, change voice or profile, repair or remove a component.
+- [ ] Never need root. Data follows XDG directories, separate from the checkout.
+- [ ] A guided first run inside the app, following the steps below.
+- [ ] Setup dies with a crashed Capri: a watchdog under `setpriv --pdeathsig` that kills the whole setup process group (heritage rule 3).
 
-| Step                         | What the user selects                                    | What the wizard explains/checks                                                    |
-| ---------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| 1. Welcome and requirements  | Interface language                                       | Supported systems, local processing, network downloads and what will be installed  |
-| 2. Hardware and profile      | Recommended profile or manual override                   | Detected hardware, measured requirements and feature/quality tradeoffs             |
-| 3. Storage                   | App, model and data locations                            | Download size, installed size, required free space and shared cache behavior       |
-| 4. Languages                 | Conversation, recognition and speech languages           | Available combinations, quality status, required packs and optional auto-detection |
-| 5. Character and voice       | A supported character/voice pack                         | Preview, language support, attribution and whether the pack is optional            |
-| 6. Devices and voice effects | Microphone, output device and clean/effect preset        | Live device test, input level, headphones guidance and a voice preview             |
-| 7. Optional capabilities     | Screen, webcam, initiative, integrations and file scopes | Separate choices, actual access granted and how to revoke it; disabled defaults    |
-| 8. Install and verify        | Confirm the selected configuration                       | Progress by component, real download progress, retries, pause/resume and errors    |
-| 9. First conversation        | A short guided test                                      | Model readiness, recognition, first response, subtitles and where settings live    |
+| Step                        | The user chooses                                      | Capri explains or checks                                                      |
+| --------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 1. Welcome and requirements | Interface language                                    | Local processing, network downloads, what will be installed, missing packages |
+| 2. Hardware and profile     | Recommended profile or override                       | Detected hardware, compute backends, quality trade-offs                       |
+| 3. Inference                | Local model, API connection or Claude Code bridge     | Download size, cost and privacy of each choice                                |
+| 4. Storage                  | Model and data locations                              | Download and installed size, free space, shared cache                         |
+| 5. Languages                | Conversation, recognition and speech languages        | Available combinations, quality status, needed packs                          |
+| 6. Character and voice      | A character/voice pack                                | Preview, language support, attribution                                        |
+| 7. Devices and effects      | Microphone, output device, effect preset              | Live PipeWire device test, input level, voice preview                         |
+| 8. Optional capabilities    | Screen, webcam, initiative, integrations, file scopes | Each grant separately, how to revoke it, which compositor features apply      |
+| 9. Install and verify       | Confirm                                               | Per-component progress, retries, pause/resume, errors                         |
+| 10. First conversation      | A short guided test                                   | Model ready, recognition, first reply, subtitles, where settings live         |
 
-- [x] Provision the owned application runtimes and selected model dependencies without a terminal or global Python/Node setup.
-- [ ] Verify progress, ETA, retry and resumption across the full set of components, including network loss and reboot.
-- [ ] Verify downloaded artifacts against pinned manifests before use and prevent partially installed models from being selected as ready.
-- [ ] Support modifying an installation later: add a language, move model storage, change a voice/profile, repair a component or remove unused packs.
-- [ ] Request elevated privileges only for a step that needs them. Keep user data separate from application binaries and verify a standard-user install path.
-- [ ] Use concise explanations, an accessible expandable detail view and explicit choices for consequential permissions. Avoid mandatory reading countdowns; they add waiting without establishing understanding.
-- [ ] Provide an offline-capable bundle as a later option, subject to component distribution permissions.
+**Done when:** a tester sets Capri up on a clean supported distribution, has a
+first conversation, understands what access is enabled, and can repair or
+change the setup without starting over.
 
-**Done when:** a nontechnical tester completes installation and the first conversation from a clean supported machine, understands enabled access, and can repair or change the configuration without reinstalling everything.
+## CAP-16 — Updates, recovery and removal · P0
 
-## CAP-16 — Updates, recovery and uninstallation · P0
+Today: `git pull`, `npm ci`, restart. The in-app installer reports unavailable,
+but automatic update checks still query upstream `CapriChooms/CapriCore` and
+can announce Windows releases this fork cannot install.
 
-In-app updates use the public CapriCore channel without requiring an account or
-token. Saved optional credentials remain protected; failed optional access does
-not block anonymous public downloads. Stable/experimental selection, update
-notifications with defer-until-next-launch, verified staging/rollback and
-selective Windows uninstall are implemented. Continuing qualification covers
-interrupted installs, legacy migrations, retained data and wider Windows setups.
-Updates and recovery · [Installation wizard](docs/installation.md)
+- [ ] Turn off upstream update checks, or point them at this fork's tagged releases. Notify through a desktop notification, not a tray balloon.
+- [ ] Version the app, settings schema, model profiles, character packs and voice packs separately, with a compatibility matrix.
+- [ ] Before an update: verify it, prepare migrations, back up settings. After a failed update: roll back to the previous tag.
+- [ ] Update owned runtimes (`.runtime/`) without breaking shared model caches, trained voices or user recordings.
+- [ ] A repair flow (`npm run doctor` and an in-app equivalent) that recovers from an interrupted update without a terminal.
+- [ ] Removal keeps user data and models by default, with separate explicit choices to delete them. It removes Capri's desktop entry, autostart entry and user services and leaves everything else alone. Preflight every removal first and refuse symlinks on owned paths (heritage rules 5–7).
+- [ ] With a package (CAP-15), updates come from the package manager and the in-app path only notifies.
 
-- [ ] Version the app, configuration schemas, model profiles, character packs and voice packs independently with a compatibility matrix.
-- [ ] Offer stable and optional preview channels; allow users to defer updates and choose whether model downloads happen automatically.
-- [ ] Verify updates, prepare migrations, preserve data and support rollback when an upgrade fails.
-- [ ] Update owned runtimes without breaking shared model caches, trained voices or an installation used by another profile.
-- [ ] Provide a repair/diagnostic flow and a supported way to recover from an incomplete update without a terminal.
-- [ ] Let uninstallation keep user data/models by default, with separate explicit choices to remove them. Remove owned autostart entries and services, and leave unrelated software alone.
-
-**Done when:** upgrade, interrupted upgrade, rollback, repair and uninstall have been tested with existing conversations and custom settings.
+**Done when:** update, interrupted update, rollback, repair and removal are
+tested with existing conversations and custom settings.
 
 ## CAP-17 — Hugging Face model and voice library · P1 foundation, P2 expansion
 
-The foundation ships in public 1.0.0: Hub model discovery, compatible GGUF
-imports, encrypted optional Hub credentials and reviewed voice adapters.
-The [detailed implementation plan](docs/plans/hugging-face-integration.md)
-records current code boundaries, compatibility gaps, security requirements,
-candidate TTS engines and acceptance scenarios.
+The foundation is platform-neutral and kept: Hub search and inspection,
+encrypted optional tokens, pinned verified downloads, complete GGUF shard
+imports, model-aware capabilities and context, disk estimates, cancellation and
+removal. GGUF imports run through the managed `llama-server` host (its settings
+are still named `ollama*`). Saved tokens need a system keyring (GNOME Keyring
+or KWallet). [Implementation plan](docs/plans/hugging-face-integration.md)
 
-The implementation includes Hub search/inspection, encrypted
-tokens, pinned verified downloads, complete GGUF shard imports, model-aware
-capabilities/context, disk estimates, cancellation and removal. An isolated real
-Ollama import produced a short text reply. Wizard can defer model selection to
-the new library. HF cloud LLM is available as an API preset.
+- [x] **CAP-17A — Shared contracts.** Versioned model/package descriptors and install plans, retained voice selections, model-aware capability checks, protected credentials.
+- [x] **CAP-17B — Hub and downloads.** Search and link import, immutable revisions, verified resumable downloads, disk accounting, repair and cache inventory.
+- [x] **CAP-17C — Local language models.** Import complete GGUF sets and optional projectors through the managed host; select, cancel, repair and remove.
+- [ ] **CAP-17C — Linux check.** Import, select and chat with a Hub GGUF model end to end on Linux with Vulkan, then CUDA and ROCm builds of `llama-server`.
+- [ ] **CAP-17C — Broader qualification.** Templates, context, tools, vision, switching and recovery for each advertised architecture and quantization.
+- [ ] **CAP-17D — Voice adapters on Linux.** Per-language Chatterbox Turbo, multilingual Chatterbox and Qwen3-TTS CPU adapters, and English Turbo training with audition and rollback. The code exists; it installs once the voice locks are rebuilt for Linux.
+- [ ] **CAP-17D — Broader voice qualification.** Language and device quality and latency; evaluate families such as Kokoro; training recipes only for compatible architectures.
+- [x] **CAP-17E — Hub access and cloud preset.** Optional gated/private Hub access and a Hugging Face Inference Providers OpenAI-compatible preset.
+- [ ] **CAP-17E — More backends.** HF cloud TTS and an approved local Transformers adapter, with explicit data-sharing choices.
+- [ ] **CAP-17F — Qualification.** Each advertised model, language and device combination, plus clean setup, update, repair, cancellation, offline use and removal.
 
-Voice settings now select a reviewed adapter per language. Chatterbox Turbo has
-local English LoRA training with a separate candidate, audition and rollback;
-multilingual Chatterbox and the Qwen3-TTS CPU BETA use the Capri reference voice.
-Arbitrary HF voice architectures do not yet have automatic fine-tuning recipes.
-Their absence is shown explicitly. Language quality, exact voice similarity and
-unmeasured hardware combinations remain qualification work.
-
-- [x] **CAP-17A — Shared contracts.** Version model/package descriptors and install plans, retain voice selections, validate model-aware text/tools/vision/context capabilities and protect HF credentials.
-- [x] **CAP-17B — Hub and downloads.** Search and repository-link import, immutable revision/file resolution, verified resumable downloads, disk accounting, repair and owned cache inventory.
-- [x] **CAP-17C — Local language-model foundation.** Import complete GGUF weight sets and optional projectors through the managed Ollama lifecycle; support selection, cancellation, repair and removal. Keep requirements unknown before choosing a specific Hub model.
-- [ ] **CAP-17C — Broader model qualification.** Validate templates, context, tools, vision, switching and recovery for each additional advertised architecture and quantization.
-- [x] **CAP-17D — Reviewed voice adapters.** Per-language selections for Chatterbox Turbo, multilingual Chatterbox and Qwen3-TTS CPU (BETA); English Turbo training keeps a separate candidate with audition/rollback.
-- [ ] **CAP-17D — Broader voice qualification.** Measure language/device quality and latency, evaluate further families such as Kokoro and add training recipes only for compatible architectures.
-- [x] **CAP-17E — Hub access and cloud LLM preset.** Encrypted optional gated/private Hub access and a Hugging Face Inference Providers OpenAI-compatible API preset.
-- [ ] **CAP-17E — More backends.** Qualify HF cloud TTS and an approved local Transformers adapter, including explicit provider data-sharing choices.
-- [ ] **CAP-17F — Qualification.** Validate each advertised model/language/device combination, clean installation, upgrade, repair, cancellation, offline use and selective uninstall. Expand the catalog using measured results.
-
-Future expansion builds on the shipped contracts, public GGUF and voice adapters.
-CAP-12A supplies the context and cancellation baseline for release qualification.
-CAP-02 defines language quality, CAP-06 hardware budgets, CAP-14 artifact/privacy
-checks, and CAP-15/CAP-16 installation and removal. CAP-12B continues as the
-separate bounded-memory milestone.
-
-**Done when** users can discover a supported model, understand its hardware and
-language limits, install it with accurate progress, use it for dialogue or speech,
-switch or recover safely, and remove selected packages. Each supported combination
-has reproducible evidence. Imported model metadata is checked against the pinned
-runtime and qualified capabilities before features become available.
+**Done when:** users can find a supported model, understand its hardware and
+language limits, install it with accurate progress, use it, switch or recover
+safely and remove it. Imported metadata is checked against the pinned runtime
+before features turn on.
 
 ## Release checklist
 
-The Hugging Face expansion adds a separate acceptance gate for each model,
-runtime, language and device combination through CAP-17.
-
-- [ ] Supported configurations and experimental limitations are documented.
-- [ ] Every advertised feature passes installation and end-to-end acceptance checks on a clean machine.
-- [ ] Shared context, cancellation, action verification and data migration have no release-blocking regressions.
-- [ ] Performance reports distinguish cold/warm behavior and report first text separately from first audio.
-- [ ] Changes to memory pass long-session, bounded-recall, deletion and remote-sharing checks from CAP-12.
-- [ ] Optional capture/actions are disabled until selected; permission indicators match real behavior.
-- [ ] Download/update integrity, packaging, attribution and public-asset distribution checks are complete.
-- [ ] Diagnostics are redacted; release artifacts contain no private data or credentials.
-- [ ] Uninstall, data preservation, backup/restore and recovery are verified.
+- [ ] Supported distributions, compositors and hardware, and experimental limits, are documented.
+- [ ] Every advertised feature passes setup and end-to-end checks on a clean machine.
+- [ ] No feature that reports "not available on Linux yet" is advertised.
+- [ ] Shared context, cancellation, action verification and data migration have no blocking regressions.
+- [ ] Performance reports separate cold and warm, first text and first audio.
+- [ ] Memory changes pass the long-session, bounded-recall, deletion and sharing checks from CAP-12.
+- [ ] Capture and actions stay off until selected; indicators match real behavior.
+- [ ] Download integrity, attribution and asset distribution checks are complete.
+- [ ] Diagnostics are redacted; artifacts hold no private data or credentials.
+- [ ] Removal, data preservation, backup/restore and recovery are verified.
 
 ## Mapping from the original list
 
-| Original item                                   | Expanded work                                                                                               |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 1. Voice effects                                | CAP-01, CAP-11                                                                                              |
-| 2. Multilingual TTS/STT                         | CAP-02, CAP-06, CAP-15                                                                                      |
-| 3. Files, desktop tasks and contextual comments | CAP-03, CAP-04, CAP-11                                                                                      |
-| 4. Screen and webcam                            | CAP-05, CAP-11                                                                                              |
-| 4.5. Lightweight models                         | CAP-06                                                                                                      |
-| 5. Speed                                        | CAP-07, CAP-12A                                                                                             |
-| 6. Remove unused files                          | CAP-08                                                                                                      |
-| 7. Professional refactoring                     | CAP-09                                                                                                      |
-| 8. Bugs and polish                              | CAP-10                                                                                                      |
-| 9. GitHub release                               | CAP-14, CAP-16                                                                                              |
-| 10. Installer wizard                            | CAP-11, CAP-15                                                                                              |
-| Added foundations                               | CAP-12A context compaction, CAP-12B tagged memory, CAP-13 Telegram parity, CAP-16 update/recovery lifecycle |
-| Hugging Face integration                        | CAP-17 model/voice catalog, verified downloads, runtime adapters and multilingual qualification             |
+| Original item                                   | Epics                                                                     |
+| ----------------------------------------------- | ------------------------------------------------------------------------- |
+| 1. Voice effects                                | CAP-01, CAP-11                                                            |
+| 2. Multilingual TTS/STT                         | CAP-02, CAP-06, CAP-15                                                    |
+| 3. Files, desktop tasks and contextual comments | CAP-03, CAP-04, CAP-11                                                    |
+| 4. Screen and webcam                            | CAP-05, CAP-11                                                            |
+| 4.5. Lightweight models                         | CAP-06                                                                    |
+| 5. Speed                                        | CAP-07, CAP-12A                                                           |
+| 6. Remove unused files                          | CAP-08                                                                    |
+| 7. Professional refactoring                     | CAP-09                                                                    |
+| 8. Bugs and polish                              | CAP-10                                                                    |
+| 9. GitHub release                               | CAP-14, CAP-16                                                            |
+| 10. Installer wizard                            | CAP-11, CAP-15                                                            |
+| Added foundations                               | CAP-12A compaction, CAP-12B tagged memory, CAP-13 Telegram, CAP-16 update |
+| Hugging Face integration                        | CAP-17                                                                    |
 
-For implementation, split each epic into issues with a concrete workflow, dependencies, acceptance criteria, validation evidence and any user-data migration. Scope work to one reviewable feature or behavior-preserving change at a time.
+Split each epic into issues with a concrete workflow, dependencies, acceptance
+criteria and validation evidence. Keep each change to one reviewable feature or
+behavior-preserving step.

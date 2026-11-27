@@ -3,7 +3,8 @@
 What comes next for the Linux fork, in rough order. Updated 2026-11-26, after
 PR #1 (Linux port) and PR #2 (test suite and CI) were merged.
 
-The [Windows heritage](windows-heritage.md) page has the design rules and the
+The [product roadmap](../../ROADMAP.md) has the longer-term epics and their Linux
+status. The [Windows heritage](windows-heritage.md) page has the design rules and the
 planned Linux mechanism for each feature. This page tracks the order of work.
 
 ## Where things stand
@@ -71,6 +72,10 @@ is large: persona plus about 30 tool descriptions the bridge cannot use.
       can announce Windows releases this fork cannot install. Turn them off, or
       point them at this fork.
 - [ ] `CALL_CAMERA_FILES` still names the Windows camera host (`.exe`, `.dll`).
+- [ ] Tray balloons are off on Linux (`platformFeatures.trayBalloons`), so the
+      update notice in `showUpdateTrayNotice` never shows. Once update checks
+      point at this fork, send it as a desktop notification (Electron's
+      `Notification`, which uses `org.freedesktop.Notifications`).
 
 ## Later: features not ported yet
 
