@@ -410,30 +410,8 @@ try {
   assert.equal((await visibility())['/settings.html'], false);
   await settingsView(application, 'general');
   assert.equal(await pin.getAttribute('aria-pressed'), originalPin);
-  const support = await settingsView(application, 'support');
-  assert.equal(await support.getByRole('button', { name: 'TikTok' }).count(), 1);
-  assert.equal(
-    await support.locator('.brand-tiktok .brand-icon[aria-hidden="true"] svg').count(),
-    1,
-  );
-  const links = await support.locator('[data-companion-tab="support"]').evaluate((group) => {
-    const boosty = group.querySelector('.brand-boosty').getBoundingClientRect();
-    const lava = group.querySelector('.brand-lava').getBoundingClientRect();
-    const social = [...group.querySelectorAll('.support-social [data-community]')];
-    return {
-      aligned: boosty.y === lava.y && boosty.right < lava.left,
-      above: social.every((button) => button.getBoundingClientRect().top > lava.bottom),
-      masks: social.map(
-        (button) => getComputedStyle(button.querySelector('.brand-icon')).maskImage,
-      ),
-      oneColor: new Set(social.map((button) => getComputedStyle(button).color)).size === 1,
-    };
-  });
-  assert.equal(links.aligned && links.above && links.oneColor, true);
-  assert.match(links.masks[0], /discord\.svg/);
-  assert.match(links.masks[3], /github\.svg/);
   console.log(
-    'PASS settings draft highlighting and persistence, palette preview, memory and timer navigation, digital dials, contextual help and official marks.',
+    'PASS settings draft highlighting and persistence, palette preview, memory and timer navigation, digital dials and contextual help.',
   );
   const ownerId = await application.evaluate(
     ({ BrowserWindow }) =>

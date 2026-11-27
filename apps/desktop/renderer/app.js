@@ -311,7 +311,6 @@ const companionPanel = new CompanionPanel({
     wakeFeedback.configure(value, () => api.wakeAudio());
   },
 });
-document.getElementById('support-author').onclick = () => api.openSettings('support');
 document.getElementById('report-bug').onclick = () => api.openSettings('bug');
 const inferencePicker = new InferencePicker({
   button: document.getElementById('inference-label'),

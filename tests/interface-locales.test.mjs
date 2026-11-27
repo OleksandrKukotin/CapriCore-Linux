@@ -76,7 +76,7 @@ test('the FAQ ships localized questions and answers with supported destinations'
     'Windows 11',
     'YouTube Music',
   ];
-  assert.ok(entries.length >= 32);
+  assert.ok(entries.length >= 29);
   assert.equal(new Set(entries.map(({ id }) => id)).size, entries.length);
   for (const key of FAQ_KEYS) assert.ok(Object.hasOwn(source, key), key);
   for (const { id, actions } of entries)

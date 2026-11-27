@@ -1,6 +1,6 @@
 # Credits and Hall of Fame
 
-Open **Settings → Credits**, beside **Support the author**. The Hall of Fame honours the core team, major supporters and community helpers, and early access supporters listed by GitHub nickname. The curated `majorSupporters` and `communityHelpers` groups accept display names, including spaces and underscores, independently of GitHub logins. Manual roster refresh preserves both groups.
+Open **Settings → Credits**, below **Report a bug**. The Hall of Fame honours the core team, major supporters and community helpers, and early access supporters listed by GitHub nickname. The curated `majorSupporters` and `communityHelpers` groups accept display names, including spaces and underscores, independently of GitHub logins. Manual roster refresh preserves both groups.
 
 The packaged `config/hall-of-fame.json` contains public nicknames and the three credited team roles. Capri reads this local file only when Credits is opened. It does not contact GitHub, load remote avatars, or request authentication to display the list. Names are displayed as text and are excluded from interface translation. Search filters the local list without sending the query anywhere.
 

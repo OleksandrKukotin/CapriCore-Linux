@@ -84,7 +84,7 @@ test('local RPC buffers fragmented frames, answers ping, publishes generic activ
   const activity = body(socket.writes[1]);
   assert.equal(activity.cmd, 'SET_ACTIVITY');
   assert.equal(activity.args.activity.details, 'Hanging out with Capri');
-  assert.equal(activity.args.activity.buttons.length, 2);
+  assert.equal(activity.args.activity.buttons.length, 1);
   assert.deepEqual(Object.keys(activity.args.activity).sort(), [
     'assets',
     'buttons',

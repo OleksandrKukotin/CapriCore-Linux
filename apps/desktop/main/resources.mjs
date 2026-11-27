@@ -270,7 +270,7 @@ export function createDesktopResources({
       type: 'image/webp',
       asyncRead: true,
     });
-  for (const brand of ['boosty', 'lava', 'discord', 'github', 'capricore'])
+  for (const brand of ['discord', 'github', 'capricore'])
     resources.set(`/brand/${brand}.svg`, {
       file: path.join(root, 'assets/default/brand', `${brand}.svg`),
       type: 'image/svg+xml',

@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Please search existing issues first. Do not paste API keys, tokens, personal conversations, recordings or private model weights.
-        Use [private vulnerability reporting](https://github.com/CapriChooms/CapriCore/security/advisories/new) for a security issue.
+        Use [private vulnerability reporting](https://github.com/OleksandrKukotin/CapriCore-Linux/security/advisories/new) for a security issue.
   - type: input
     id: version
     attributes:

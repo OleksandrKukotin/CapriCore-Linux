@@ -2,25 +2,15 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-export const BOOSTY_DONATION_URL = 'https://boosty.to/overyx/donate';
-export const LAVA_DONATION_URL = 'https://app.lava.top/overyx?donate=open';
+const PROJECT = 'https://github.com/OleksandrKukotin/CapriCore-Linux';
 
-// Renderer requests identifiers, never arbitrary URLs. Presence and Support use
-// the same destinations so replacing an invite cannot leave an old RPC button.
+// Renderer requests identifiers, never arbitrary URLs. Discord presence uses the
+// same table, so a changed destination cannot leave an old button behind.
 export const COMMUNITY_LINKS = Object.freeze({
-  boosty: 'https://boosty.to/overyx',
-  'boosty-donate': BOOSTY_DONATION_URL,
-  lava: 'https://app.lava.top/overyx',
-  'lava-donate': LAVA_DONATION_URL,
-  tiktok: 'https://www.tiktok.com/@overyx2',
-  youtube: 'https://www.youtube.com/@CapriChoom',
-  discord: 'https://discord.gg/capricore',
-  github: 'https://github.com/CapriChooms/CapriCore',
-  website: 'https://capri-core.com/',
-  faq: 'https://capri-core.com/#faq',
-  releases: 'https://github.com/CapriChooms/CapriCore/releases/latest',
-  issues: 'https://github.com/CapriChooms/CapriCore/issues/new/choose',
-  'issue-list': 'https://github.com/CapriChooms/CapriCore/issues',
+  github: PROJECT,
+  releases: PROJECT + '/releases/latest',
+  issues: PROJECT + '/issues/new/choose',
+  'issue-list': PROJECT + '/issues',
 });
 
 export function loadCommunityLinks(root) {
@@ -30,32 +20,24 @@ export function loadCommunityLinks(root) {
     const links = Object.fromEntries(
       Object.entries(COMMUNITY_LINKS).map(([id, fallback]) => [
         id,
-        !id.endsWith('-donate') && Object.hasOwn(value, id) ? value[id] : fallback,
+        Object.hasOwn(value, id) ? value[id] : fallback,
       ]),
     );
-    for (const [id, destination] of Object.entries(links)) {
+    for (const destination of Object.values(links)) {
       if (typeof destination !== 'string') return COMMUNITY_LINKS;
       const url = new URL(destination);
+      // A maintainer may move the project, but only within GitHub over HTTPS.
       if (
         url.protocol !== 'https:' ||
         url.username ||
         url.password ||
-        url.origin !== new URL(COMMUNITY_LINKS[id]).origin
+        url.origin !== 'https://github.com'
       )
         return COMMUNITY_LINKS;
-      // Upgrades may retain an older community config. This shipped invitation
-      // has expired; it must not override the replacement in the new build.
-      if (id === 'discord' && url.pathname.replace(/\/$/u, '') === '/ETMtqsGaZN')
-        links[id] = COMMUNITY_LINKS.discord;
-      if (
-        ['github', 'issues', 'issue-list', 'releases'].includes(id) &&
-        /^\/CapriChooms\/Capri(?:\/|$)/u.test(url.pathname)
-      )
-        links[id] = COMMUNITY_LINKS[id];
     }
     return Object.freeze(links);
   } catch {
-    // Older or malformed maintainer configuration keeps safe built-in links.
+    // A missing or malformed configuration keeps the built-in links.
     return COMMUNITY_LINKS;
   }
 }

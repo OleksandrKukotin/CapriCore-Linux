@@ -46,9 +46,6 @@ export function registerCompanionIpc(handle, deps) {
     if (!Object.hasOwn(COMMUNITY_LINKS, id)) throw new Error('Unknown community link');
     await shell.openExternal(links[id]);
   });
-  handle('capri:donation-open', (_value, { role }) =>
-    role === 'settings' ? deps.openDonation() : false,
-  );
   handle('capri:personality-get', () => ({
     text: readPersonality(rt.workspace),
     original: defaultPersonality(),
@@ -199,33 +196,6 @@ export function registerCompanionIpc(handle, deps) {
       ...(deps.verification ? { installerDirectory: null } : {}),
     });
   };
-  handle('capri:bug-report-send', async (value, { role }) => {
-    if (role !== 'settings' || deps.verification) throw new Error('Open Report a bug in Settings.');
-    const input = validateReport(value);
-    if (!input.description) throw new Error('Describe the problem before sending the report.');
-    if (collectingReport) throw new Error('A diagnostic report is already being collected.');
-    collectingReport = true;
-    try {
-      const report = await createReport(input);
-      if (report.bytes.length > 4 * 1024 ** 2)
-        throw new Error('The report is too large. Try sending without recent logs.');
-      const response = await fetch('https://capri-core.com/api/reports/v1', {
-        method: 'POST',
-        headers: { 'content-type': 'application/zip' },
-        credentials: 'omit',
-        redirect: 'error',
-        signal: AbortSignal.timeout(20000),
-        body: report.bytes,
-      }).catch(() => null);
-      const id = response?.headers.get('x-capri-report-id');
-      await response?.body?.cancel();
-      if (response?.status !== 202 || !/^[a-f0-9]{32}$/u.test(id ?? ''))
-        throw new Error('The report could not be sent. You can save a ZIP and share it manually.');
-      return { sent: true, reportId: id };
-    } finally {
-      collectingReport = false;
-    }
-  });
   const saveReport = async (input, owner, extraSnapshot) => {
     if (collectingReport) throw new Error('A diagnostic report is already being collected.');
     collectingReport = true;

@@ -240,7 +240,6 @@ try {
   report.checks.push('Every visible settings info button opens its unique guide step');
 
   for (const [section, selectors] of [
-    ['support', ['.support-donation-card', '[aria-labelledby="support-community-title"]']],
     [
       'credits',
       [

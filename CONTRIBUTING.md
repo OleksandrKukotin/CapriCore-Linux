@@ -1,8 +1,8 @@
 # Contributing
 
-CapriCore is public. You can read the source, download releases and fork
-[CapriChooms/CapriCore](https://github.com/CapriChooms/CapriCore) without an
-early-access invitation. A GitHub account is needed to submit an issue or pull
+CapriCore-Linux is public. You can read the source, download releases and fork
+[OleksandrKukotin/CapriCore-Linux](https://github.com/OleksandrKukotin/CapriCore-Linux) without an
+invitation. A GitHub account is needed to submit an issue or pull
 request, but not to install Capri or check for updates.
 
 ## Propose a change
@@ -14,7 +14,7 @@ request, but not to install Capri or check for updates.
 3. Make the change and run the relevant checks below. Use synthetic fixtures
    rather than personal conversations, credentials or recordings.
 4. Push your branch to your fork and open a pull request targeting
-   **CapriChooms/CapriCore → main**. Explain the original problem, resulting
+   **OleksandrKukotin/CapriCore-Linux → main**. Explain the original problem, resulting
    behavior, reproduction steps and validation results.
 
 `main` is protected: changes go through pull requests, the required `windows`

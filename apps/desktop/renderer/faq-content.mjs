@@ -21,11 +21,8 @@ const microphone = settings('microphone', 'Voice input');
 const replies = settings('voice', 'Spoken replies');
 const music = settings('music', 'Music listening');
 const report = settings('bug', 'Report a bug');
-const support = settings('support', 'Support the author');
 const releases = external('releases', 'Official releases');
-const website = external('website', 'Official website');
 const github = external('github', 'Source code on GitHub');
-const discord = external('discord', 'Discord');
 
 // Adapted from the Discord community FAQ collected in CapriPosts. Keep routes
 // and link identifiers separate from translated prose.
@@ -38,7 +35,6 @@ const topics = [
         'Where can I download Capri?',
         'Get CapriSetup from the official website or the latest public release on GitHub.',
         releases,
-        website,
       ],
       [
         'free',
@@ -57,21 +53,6 @@ const topics = [
         'What is the difference between the installer and the ZIP?',
         'CapriSetup runs the wizard directly. To install from the source ZIP, extract it first, then run Install Capri.cmd from the extracted folder.',
         releases,
-      ],
-      [
-        'github-404',
-        'Why does a GitHub link show a 404 error?',
-        'Older links may lead to a private early-access repository. Use the public source page below. If you need access to a private release, check whether you accepted the GitHub invitation.',
-        github,
-        discord,
-      ],
-      [
-        'preview',
-        'How do I get experimental builds?',
-        'Experimental builds for supporters appear in Updates after you connect a GitHub account with access to the private repository. Request access through the community and accept the invitation.',
-        updates,
-        support,
-        discord,
       ],
     ],
   ],
@@ -200,7 +181,6 @@ const topics = [
         'platforms',
         'Is there an official mobile, macOS or Linux version?',
         'The public build is for Windows. A mobile release is not planned for the near future. There is no confirmed release date for macOS or Linux.',
-        website,
       ],
       [
         'windows-ten',
@@ -263,14 +243,6 @@ const topics = [
         'Open Report a bug from the toolbar or Settings. Include your Capri version, steps to reproduce and the exact error. Review diagnostic attachments before sharing them. You can also check existing GitHub issues.',
         report,
         external('issue-list', 'GitHub issues'),
-      ],
-      [
-        'support',
-        'How can I support Capri?',
-        'The Support the author page links to Boosty and Lava.top. Support is optional and helps fund development.',
-        support,
-        external('boosty', 'Boosty'),
-        external('lava', 'Lava.top'),
       ],
     ],
   ],

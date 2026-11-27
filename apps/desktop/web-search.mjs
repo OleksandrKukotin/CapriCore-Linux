@@ -276,7 +276,12 @@ export class WebSearch {
               signal: combined,
               headers: {
                 accept: wiki ? 'application/json' : 'text/html, application/xhtml+xml;q=0.9',
-                ...(wiki ? { 'user-agent': 'CapriCore/1.1 (https://capri-core.com)' } : {}),
+                ...(wiki
+                  ? {
+                      'user-agent':
+                        'CapriCore-Linux (https://github.com/OleksandrKukotin/CapriCore-Linux)',
+                    }
+                  : {}),
                 ...(typeof language === 'string' &&
                 /^[a-z]{2,3}(?:-[a-z\d]{2,8}){0,3}$/iu.test(language)
                   ? { 'accept-language': language }

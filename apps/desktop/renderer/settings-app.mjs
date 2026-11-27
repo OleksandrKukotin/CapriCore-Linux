@@ -1931,7 +1931,6 @@ async function navigate(id, focus = null, match = null) {
     if (id !== 'developer') developer.close();
     if (current && id !== current) {
       if (current === 'voice') void models.voices.stopPreview();
-      if (current === 'support') companion.showSupportFrame(false);
       closeRequested = false;
       notice();
     }
@@ -1953,8 +1952,8 @@ async function navigate(id, focus = null, match = null) {
     language.details();
     companion.panel.toggleAttribute('data-microphone-section', id === 'microphone');
     if (panel === companion.panel || id === 'microphone') {
-      await companion.open(true, ['bug', 'support'].includes(id) ? id : 'settings');
-      if (!['bug', 'support'].includes(id))
+      await companion.open(true, id === 'bug' ? id : 'settings');
+      if (id !== 'bug')
         $('companion-panel-title').textContent = ui.text(
           id === 'microphone' ? 'Wake acknowledgement' : row[1],
         );
@@ -2182,7 +2181,6 @@ function event(value) {
       companion.stopWakePreview();
     }
     settingsVisible = value.visible === true;
-    companion.showSupportFrame(settingsVisible && current === 'support');
     syncCameraPreview();
     credits.setVisible(value.visible === true);
     developer.setVisible(value.visible === true && current === 'developer');

@@ -7,7 +7,6 @@ import {
   prepareTeleportMotion,
   transitStart,
 } from './avatar-teleport-motion.mjs';
-import { ChessFrameEffect } from './chess-frame-effect.mjs';
 import {
   applyInterfaceTheme,
   BACKGROUND_BRIGHTNESS_RANGE,
@@ -153,42 +152,10 @@ export class CompanionPanel {
     this.panel.innerHTML = `
       <div class="settings-heading"><h2 id="companion-panel-title">Companion settings</h2><button type="button" id="companion-close" aria-label="Close settings">×</button></div>
       <div class="preferences-content">
-        <section data-companion-tab="support" class="support-content settings-stack">
-          <section class="settings-card support-donation-card" aria-labelledby="support-donation-title">
-          <div id="support-frame" aria-hidden="true" hidden></div>
-          <div class="support-art" aria-hidden="true"><div class="support-orbit"></div><div class="support-heart">♥</div><i></i><i></i><i></i><i></i><span>CAPRI / COMMUNITY LINK</span></div>
-          <h3 id="support-donation-title">Help Capri grow</h3><p class="support-developer"><span>Developed by</span> <strong data-untranslated>Overyx</strong></p><p>Capri is free. If she makes your day a little brighter, you can support her development. Every contribution means a lot. Thank you for being here.</p>
-          <div class="settings-actions support-links">
-            <div class="support-donations" dir="ltr">
-              <button type="button" data-community="boosty-donate" class="brand-boosty"><span class="brand-icon" aria-hidden="true"></span><span dir="auto">Donate via Boosty</span></button>
-              <button type="button" id="support-donation-open" class="brand-lava"><span class="brand-icon" aria-hidden="true"></span><span dir="auto">Donate via Lava.top</span></button>
-            </div>
-          </div>
-          <button type="button" class="support-donation-browser" data-community="lava-donate">Open donation in browser</button>
-          <p class="settings-help">Payment methods and availability depend on Lava.top and your country.</p>
-          </section>
-          <section class="settings-card" aria-labelledby="support-community-title">
-          <h3 id="support-community-title">Community</h3>
-          <div class="settings-actions support-links">
-            <div class="support-social">
-              <button type="button" data-community="discord" class="brand-discord" data-untranslated><span class="brand-icon" aria-hidden="true"></span><span>Discord</span></button>
-              <button type="button" data-community="tiktok" class="brand-tiktok" data-untranslated><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="18" r="4"/><path d="M12 18V2l7 4"/></svg></span><span>TikTok</span></button>
-              <button type="button" data-community="youtube" class="brand-youtube" data-untranslated><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 7.1a3 3 0 0 0-2.1-2.1C19 4.5 12 4.5 12 4.5s-7 0-8.9.5A3 3 0 0 0 1 7.1a31.5 31.5 0 0 0 0 9.8A3 3 0 0 0 3.1 19c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31.5 31.5 0 0 0 0-9.8ZM9.8 15.3V8.7l5.8 3.3-5.8 3.3Z"/></svg></span><span>YouTube</span></button>
-              <button type="button" data-community="github" class="brand-github" data-untranslated><span class="brand-icon" aria-hidden="true"></span><span>GitHub</span></button>
-            </div>
-            <div class="support-resources">
-              <button type="button" data-community="website" class="brand-website" aria-label="capri-core.com" dir="ltr" data-untranslated>
-                <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 44 52"><path d="M27 1 3 26h15L12 47 38 17H23z" transform="translate(4 3)" fill="var(--site-brand-red)"/><path d="M27 1 3 26h15L12 47 38 17H23z" fill="var(--site-brand-green)"/></svg></span>
-                <span class="site-brand-wordmark" aria-hidden="true"><span>CAPRI</span> <span>CORE</span></span>
-              </button>
-            </div>
-          </div>
-          </section>
-        </section>
         <section data-companion-tab="bug" class="settings-stack" hidden>
           <section class="settings-card" aria-labelledby="bug-details-title">
           <h3 id="bug-details-title">Report a problem</h3>
-          <p>Send your description and selected diagnostics privately to the Capri maintainer. You can also save and review a ZIP on this PC.</p>
+          <p>Save your description and selected diagnostics as a ZIP on this computer. Review it before sharing.</p>
           <label for="bug-category">Problem area</label><select id="bug-category"><option value="voice">Voice</option><option value="recognition">Speech recognition</option><option value="model">Language model</option><option value="startup">Startup</option><option value="interface">Interface</option><option value="installer">Installation</option><option value="other">Other</option></select>
           <label for="bug-title">Short title</label><input id="bug-title" type="text" maxlength="160" dir="auto">
           <label for="bug-description">What went wrong?</label>
@@ -201,7 +168,7 @@ export class CompanionPanel {
           <h3 id="bug-logs-title">Logs</h3>
           <label><input type="checkbox" id="bug-logs" checked> <span>Include recent diagnostic logs</span></label>
           <p class="settings-help">Chat-history files, memory, recordings and screenshots are excluded. Known secrets and common personal paths are redacted. Review logs before sharing.</p>
-          <div class="settings-actions"><button type="button" id="bug-send">Send report</button><button type="button" id="bug-save">Save report</button><button type="button" data-community="issues">Open GitHub issues</button></div>
+          <div class="settings-actions"><button type="button" id="bug-save">Save report</button><button type="button" data-community="issues">Open GitHub issues</button></div>
           </section>
         </section>
         <section data-companion-tab="settings" class="settings-stack" hidden>
@@ -802,19 +769,6 @@ export class CompanionPanel {
       button.onclick = () =>
         api.communityLink(button.dataset.community).catch((error) => onError(error.message));
     });
-    this.get('support-donation-open').onclick = async ({ currentTarget: button }) => {
-      if (button.disabled) return;
-      button.disabled = true;
-      button.setAttribute('aria-busy', 'true');
-      try {
-        if ((await api.openDonation()) === false) onError('Could not open the donation window.');
-      } catch {
-        onError('Could not open the donation window.');
-      } finally {
-        button.disabled = false;
-        button.removeAttribute('aria-busy');
-      }
-    };
     this.readSettings = () => ({
       windowLayout: this.get('companion-window-layout').value,
       horizontalMonitorPosition: this.get('horizontal-monitor-position').value,
@@ -938,17 +892,6 @@ export class CompanionPanel {
       expected: this.get('bug-expected').value,
       actual: this.get('bug-actual').value,
       includeLogs: this.get('bug-logs').checked,
-    });
-    action('bug-send', async () => {
-      this.result('Sending report…');
-      try {
-        const value = await api.sendBugReport(reportFields());
-        this.result('Report sent.');
-        this.get('companion-result').append(' · ' + value.reportId);
-      } catch (error) {
-        this.result('');
-        throw error;
-      }
     });
     action('bug-save', async () => {
       this.result('Collecting diagnostics…');
@@ -1245,32 +1188,15 @@ export class CompanionPanel {
     this.get('personality-text').value = text;
     this.savedPersonality = text;
   }
-  showSupportFrame(visible) {
-    if (visible && !this.supportFrame) {
-      const frame = this.get('support-frame');
-      const color = getComputedStyle(frame).getPropertyValue('--support-heart-color').trim();
-      const section = frame.closest('.support-content');
-      this.supportFrame = new ChessFrameEffect(frame, {
-        color,
-        inset: -4,
-        speed: 0.4,
-        // The section gutter and part of the panel padding are available for the effect.
-        getOutsetLimit: () =>
-          Math.floor(Number.parseFloat(getComputedStyle(section).paddingInlineStart)) + 8,
-      });
-    }
-    this.supportFrame?.setVisible(visible);
-  }
   async open(open, tab = 'settings') {
     if ((await this.onOpen(open)) === false) return false;
     this.panel.hidden = !open;
-    this.showSupportFrame(open && tab === 'support');
     if (!open || tab !== 'settings') {
       this.stopWakePreview();
       this.savedMemory.close();
     }
     this.get('companion-result').textContent = '';
-    this.get('companion-result').hidden = tab === 'support';
+    this.get('companion-result').hidden = false;
     if (!open) return;
     this.tab = tab;
     this.panel.dataset.tab = tab;
@@ -1278,11 +1204,7 @@ export class CompanionPanel {
       section.hidden = section.dataset.companionTab !== tab;
     });
     this.get('companion-panel-title').textContent = this.ui.text(
-      tab === 'support'
-        ? 'Support the author'
-        : tab === 'bug'
-          ? 'Report a bug'
-          : 'Companion settings',
+      tab === 'bug' ? 'Report a bug' : 'Companion settings',
     );
     this.ui.apply(this.ui.language);
     if (tab === 'settings' && !this.deferDrafts) {

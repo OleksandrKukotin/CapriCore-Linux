@@ -4,7 +4,7 @@
 
 Capri is a Linux AI desktop companion powered by OpenClaw. Run a bundled local model, import a compatible Hugging Face GGUF model, connect to an OpenAI-compatible API, or chat through your signed-in Claude Code. Capri supports text and voice chat, persistent memory, an animated desktop avatar, and optional tools for working with apps and files.
 
-[Documentation](docs/README.md) · [Linux roadmap](docs/linux/roadmap.md) · [Windows heritage and Linux plan](docs/linux/windows-heritage.md) · [Contribute](CONTRIBUTING.md) · Upstream: [CapriChooms/CapriCore](https://github.com/CapriChooms/CapriCore), [website](https://capri-core.com/), [Discord](https://discord.gg/capricore)
+[Documentation](docs/README.md) · [Linux roadmap](docs/linux/roadmap.md) · [Windows heritage and Linux plan](docs/linux/windows-heritage.md) · [Contribute](CONTRIBUTING.md) · Upstream: [CapriChooms/CapriCore](https://github.com/CapriChooms/CapriCore)
 
 **CapriCore-Linux** is a Linux-only fork of [CapriChooms/CapriCore](https://github.com/CapriChooms/CapriCore), developed on Arch Linux with sway (Wayland). The Windows installer, updater and native helpers were removed; what they taught us, and the Linux mechanism that replaces each one, is in [docs/linux/windows-heritage.md](docs/linux/windows-heritage.md). The fork runs from source; there is no installer or in-app updater.
 

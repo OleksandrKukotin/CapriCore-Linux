@@ -344,9 +344,9 @@ try {
   await owner.evaluate(() => window.capri.openSettings('model-context'));
   await page.locator('[data-section="models"][aria-current="page"]').waitFor();
   await page.waitForFunction(() => document.activeElement?.id === 'models-context');
-  page = await settingsView(application, 'support');
+  page = await settingsView(application, 'credits');
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.locator('[data-companion-tab="support"]').waitFor({ state: 'visible' });
+  await page.locator('#credits-panel').waitFor({ state: 'visible' });
   await application.evaluate(({ BrowserWindow }) =>
     BrowserWindow.getAllWindows()
       .find((window) => window.webContents.getURL() === 'capri://desktop/index.html')
@@ -378,13 +378,7 @@ try {
     );
   };
   await assertAboveStartup();
-  const heartOffset = await page.locator('.support-art').evaluate((art) => {
-    const heart = art.querySelector('.support-heart').getBoundingClientRect();
-    const orbit = art.querySelector('.support-orbit').getBoundingClientRect();
-    return Math.abs(heart.top + heart.height / 2 - orbit.top - orbit.height / 2);
-  });
-  assert.ok(heartOffset <= 1, 'The support heart must remain centered in its orbit');
-  await page.screenshot({ path: path.join(folder, 'support.png') });
+  await page.screenshot({ path: path.join(folder, 'credits.png') });
   page = await settingsView(application, 'personality');
   await page.locator('#personality-text').fill('A warm fictional cyberpunk companion.');
   await saveSettings(page);
@@ -438,8 +432,8 @@ try {
   assert.ok(width <= 680 && width > 300);
   await page.screenshot({ path: path.join(folder, 'languages.png') });
   await page.selectOption('#language-interface', 'ru');
-  await page.locator('[data-section="support"]').click();
-  await page.locator('[data-companion-tab="support"]').waitFor();
+  await page.locator('[data-section="credits"]').click();
+  await page.locator('#credits-panel').waitFor();
   assert.equal(await page.locator('#settings-draft-actions').isHidden(), true);
   await page.locator('#settings-window-close').click();
   await page.locator('#settings-draft-actions').waitFor();
@@ -448,11 +442,11 @@ try {
   assert.equal(await page.locator('#language-panel').isVisible(), false);
   assert.equal(await page.locator('#language-interface').inputValue(), 'ru');
   await page.locator('#settings-discard').click();
-  await settingsView(application, 'support');
-  await page.locator('[data-companion-tab="support"]').waitFor({ state: 'visible' });
-  assert.ok((await page.locator('.support-developer').textContent()).includes('Overyx'));
-  assert.equal(await page.locator('[data-community="tiktok"]').textContent(), 'TikTok');
-  assert.equal(await page.locator('#companion-result').isVisible(), false);
+  await settingsView(application, 'credits');
+  await page.locator('#credits-panel').waitFor({ state: 'visible' });
+  // The original author stays credited; no payment or upstream community links remain.
+  assert.ok((await page.locator('#credits-panel').textContent()).includes('Overyx'));
+  assert.equal(await page.locator('[data-community]:not([data-community="issues"])').count(), 0);
   assert.equal((await page.evaluate(() => window.capri.bootstrap())).languages.interface, 'en');
   page = await settingsView(application, 'languages');
   await page.selectOption('#language-interface', 'ru');
@@ -461,7 +455,7 @@ try {
   await settingsView(application, 'voice');
   await page.locator('#voice-source-local').click();
   await page.selectOption('#language-speech', 'off');
-  await page.locator('[data-section="support"]').click();
+  await page.locator('[data-section="credits"]').click();
   await saveSettings(page);
   await page.waitForFunction(
     () =>
@@ -550,7 +544,7 @@ try {
     JSON.stringify({
       passed: true,
       checks: [
-        'support panel',
+        'credits panel',
         'settings navigation',
         'last Settings section, per-section content scroll and sidebar scroll survive reopening and renderer recreation',
         'explicit context shortcut still focuses its control',
@@ -565,7 +559,7 @@ try {
         'Google Gemini preset and copied quoted/long auth keys through isolated encrypted IPC',
         'oversized and multiline key paste rejected before browser mutation or IPC',
         'key validation retains invalid drafts and distinguishes model HTTP 404',
-        'support author attribution and clean status',
+        'original author credited without payment or upstream links',
         'independent settings window stays usable during active startup feedback',
         'structured diagnostic report form',
         'no renderer errors',

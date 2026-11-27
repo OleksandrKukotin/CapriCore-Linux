@@ -76,10 +76,7 @@ export class DiscordPresence {
       details: 'Hanging out with Capri',
       timestamps: { start: this.started },
       ...(config.assetKey ? { assets: { large_image: config.assetKey, large_text: 'Capri' } } : {}),
-      buttons: [
-        { label: 'Get Capri', url: this.communityLinks.github },
-        { label: 'Join Her Discord', url: this.communityLinks.discord },
-      ],
+      buttons: [{ label: 'Get Capri', url: this.communityLinks.github }],
       instance: false,
     };
   }

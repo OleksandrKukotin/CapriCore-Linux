@@ -155,7 +155,6 @@ import { ChessPageAccess } from './chess/source.mjs';
 import { registerAccessIpc } from './main/access-ipc.mjs';
 import { registerCompanionIpc } from './main/companion-ipc.mjs';
 import { crashReporter } from './main/crash-report.mjs';
-import { DonationWindow } from './main/donation-window.mjs';
 import { UpdateService } from './update-service.mjs';
 import { GitHubAccess, githubTokenUrl, credentialStorage } from './github-access.mjs';
 import { installSpeechComponents } from '../../packages/installer/src/speech-components.mjs';
@@ -8158,13 +8157,6 @@ async function initializeDesktop() {
         maintenance = false;
       }
     };
-    const donations = new DonationWindow({
-      BrowserWindow,
-      session,
-      shell,
-      dialog,
-      text: (text) => uiText(text, languages.value.interface),
-    });
     const companionAccess = registerCompanionIpc(handle, {
       root,
       state,
@@ -8174,7 +8166,6 @@ async function initializeDesktop() {
       onStyleChanged: () => void syncInitiative().catch(() => observer.publish('failed')),
       dialog: localizedDialog(dialog, (text) => uiText(text, languages.value.interface)),
       getWindow: () => (settingsHost?.window?.isVisible() ? settingsHost.window : window),
-      openDonation: () => donations.open(settingsHost?.window),
       emit,
       shell,
       assertIdle,

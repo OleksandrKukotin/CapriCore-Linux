@@ -42,7 +42,7 @@ try {
   application.on('window', (page) => page.on('pageerror', (e) => report.errors.push(e.message)));
   const owner = await application.firstWindow();
   await owner.waitForFunction(() => document.body.dataset.phase === 'ready');
-  const settings = await settingsView(application, 'support');
+  const settings = await settingsView(application, 'bug');
   settings.on('request', (req) => {
     if (/^https?:/u.test(req.url()) && !req.url().startsWith('http://127.0.0.1:'))
       report.externalRequests.push(req.url());
@@ -50,7 +50,7 @@ try {
   const sections = await settings
     .locator('[data-section]')
     .evaluateAll((nodes) => nodes.map((node) => node.dataset.section));
-  assert.equal(sections.indexOf('credits'), sections.indexOf('support') + 1);
+  assert.equal(sections.indexOf('credits'), sections.indexOf('bug') + 1);
   await settings.evaluate(() => {
     const originalFetch = window.fetch.bind(window);
     const fillText = CanvasRenderingContext2D.prototype.fillText;
@@ -267,7 +267,7 @@ try {
     ),
     0,
   );
-  await settings.locator('[data-section="support"]').click();
+  await settings.locator('[data-section="bug"]').click();
   assert.equal(await panel.isVisible(), false);
   await settings.locator('[data-section="credits"]').click();
   await panel.waitFor();

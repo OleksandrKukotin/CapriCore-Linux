@@ -409,7 +409,7 @@ try {
   await settings.emulateMedia({ reducedMotion: 'no-preference' });
   await settle();
   await waitForMotion();
-  await settings.locator('[data-section="support"]').click();
+  await settings.locator('[data-section="bug"]').click();
   await settle();
   assert.equal(await runningCount(), 0, 'Hidden credits tab suppresses every credits animation');
   await assertStillRays('The hidden Credits tab stops drawing rays');
