@@ -1,13 +1,13 @@
 # Interface localization
 
-The Windows Setup.exe also includes all 50 interface languages. Its language is
-chosen on the Welcome page and is independent of the conversation/voice language.
-The initial selection follows the Windows UI culture, with English fallback.
-See [installer localization](installation.md).
+CapriCore-Linux ships four interface languages: English, French, Polish and
+Ukrainian. The other 47 upstream catalogs were removed. A saved interface
+language that is no longer shipped falls back to English; the conversation,
+recognition and voice settings are kept.
 
-The desktop has 50 interface locales. Open Menu → Languages… → Interface language, then apply. Language names appear in their own language, with English kept first for recovery. Interface changes apply immediately and persist on restart. They do not change conversation language, recognition, the voice, microphone permissions, file permissions or owner memory. UI-only changes also work when a speech model is absent.
+Open Menu → Languages… → Interface language, then apply. Open Menu → Languages… → Interface language, then apply. Language names appear in their own language, with English kept first for recovery. Interface changes apply immediately and persist on restart. They do not change conversation language, recognition, the voice, microphone permissions, file permissions or owner memory. UI-only changes also work when a speech model is absent.
 
-Coverage includes the common controls, native menus, settings, tooltips, screen-observation controls, voice effects, microphone settings and known status/error messages. Arabic, Hebrew, Persian and Urdu use right-to-left settings and text layout; the companion's screen position and portrait geometry remain stable. Number/date formatting follows the selected interface locale. Dialogue, subtitle content, drafts, device names, file paths and window titles remain data and are not translated by the UI layer. Newly added or unknown UI messages fall back to English.
+Coverage includes the common controls, native menus, settings, tooltips, screen-observation controls, voice effects, microphone settings and known status/error messages. Right-to-left layout support remains in the code, although no shipped language uses it. Number/date formatting follows the selected interface locale. Dialogue, subtitle content, drafts, device names, file paths and window titles remain data and are not translated by the UI layer. Newly added or unknown UI messages fall back to English.
 
 ## Editable sources
 

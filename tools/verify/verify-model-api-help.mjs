@@ -129,13 +129,13 @@ try {
   await page.evaluate(async () => {
     const value = await window.capri.bootstrap();
     return window.capri.setLanguages(
-      { ...value.languages, interface: 'ru' },
+      { ...value.languages, interface: 'uk' },
       value.settingsVersions.languages,
     );
   });
-  await page.waitForFunction(() => document.documentElement.lang === 'ru');
-  assert.match(await page.locator('#inference-panel h2').innerText(), /^Подключения API\b/u);
-  assert.match(await page.locator('#api-model').getAttribute('placeholder'), /^Пример:/);
+  await page.waitForFunction(() => document.documentElement.lang === 'uk');
+  assert.match(await page.locator('#inference-panel h2').innerText(), /^Підключення API\b/u);
+  assert.match(await page.locator('#api-model').getAttribute('placeholder'), /^Приклад:/);
   await apiHelp('model').click();
   await page.locator('dialog.settings-guide[open][lang="ru"]').waitFor();
   await page.locator('#api-model[data-settings-guide-highlight]').waitFor();
@@ -148,7 +148,7 @@ try {
     'Russian labels and examples update immediately; no horizontal window overflow',
   );
   await page.locator('[data-section="models"]').click();
-  assert.equal(await page.locator('#models-folder').innerText(), 'Открыть папку моделей');
+  assert.equal(await page.locator('#models-folder').innerText(), 'Відкрити папку моделей');
   await page.locator('#models-folder').scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(folder, 'models-ru.png') });
   await page.locator('[data-section="api"]').click();

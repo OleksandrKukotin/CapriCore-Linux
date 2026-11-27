@@ -19,9 +19,7 @@ import {
   managedInstallation,
 } from '../../packages/updater/src/transaction.mjs';
 import { listUpdateReleases, githubCredential } from '../../packages/updater/src/github.mjs';
-import { gitlabReleaseUrl } from '../../packages/updater/src/gitlab.mjs';
 import {
-  EXPERIMENTAL_REPOSITORY,
   REPOSITORY,
   compareVersions,
   selectRelease,
@@ -32,7 +30,6 @@ import {
 import { platformUnavailable } from '../../packages/runtime/src/host/platform.mjs';
 
 function isExperimentalRelease(release) {
-  // A private preview can be marked Latest on GitHub only as a regular release.
   try {
     return parseVersion(release.tag_name).pre.length > 0 || release.prerelease === true;
   } catch {
@@ -40,8 +37,6 @@ function isExperimentalRelease(release) {
   }
 }
 
-const privateAccessMessage =
-  'GitHub access is unavailable for this private repository. Connect GitHub in Updates and check your Capri invitation and token approval.';
 const automaticCheckInterval = 30 * 60_000;
 
 export function validateUpdateSettings(value, automaticDefault = true) {
@@ -86,7 +81,8 @@ export class UpdateService {
       managedInstallation(root);
       this.mode = 'managed';
     } catch {
-      /* A source checkout is never overwritten by the updater. */
+      // A git checkout is never overwritten by the updater; it updates with git pull.
+      if (existsSync(path.join(root, '.git'))) this.mode = 'checkout';
     }
     this.value = {
       phase: 'idle',
@@ -154,56 +150,16 @@ export class UpdateService {
       return null;
     }
   }
-  async findRelease(experimental, signal, { reportPrivateFailure = false } = {}) {
+  /** The payload a release must carry for this installation, or none for a checkout. */
+  get kind() {
+    return { managed: 'source', checkout: 'checkout' }[this.mode] ?? 'installer';
+  }
+  async findRelease(experimental, signal) {
     const token = await this.optionalCredential();
     signal.throwIfAborted();
-    const selection = {
-      current: this.current,
-      experimental,
-      kind: this.mode === 'managed' ? 'source' : 'installer',
-    };
-    const publicReleases = this.releases({ token, signal, allowAnonymousFallback: true });
-    const selectPublic = (items) => {
-      const release = selectRelease(items, selection);
-      return release && { ...release, repository: REPOSITORY };
-    };
-    if (!experimental || !token) {
-      const release = selectPublic(await publicReleases);
-      if (experimental && !token && !release && reportPrivateFailure)
-        throw Object.assign(new Error(privateAccessMessage), { code: 'GITHUB_ACCESS_REQUIRED' });
-      return release;
-    }
-
-    const previewSignal = AbortSignal.any([signal, AbortSignal.timeout(8000)]);
-    const [publicResult, previewResult] = await Promise.allSettled([
-      publicReleases,
-      this.releases({ token, signal: previewSignal, repository: EXPERIMENTAL_REPOSITORY }),
-    ]);
-    signal.throwIfAborted();
-    const publicRelease =
-      publicResult.status === 'fulfilled' ? selectPublic(publicResult.value) : null;
-    const previewRelease =
-      previewResult.status === 'fulfilled'
-        ? selectRelease(previewResult.value.filter(isExperimentalRelease), {
-            ...selection,
-            repository: EXPERIMENTAL_REPOSITORY,
-          })
-        : null;
-    if (
-      previewRelease &&
-      (!publicRelease ||
-        compareVersions(
-          releaseVersion(previewRelease, EXPERIMENTAL_REPOSITORY),
-          publicRelease.tag_name,
-        ) > 0)
-    )
-      return { ...previewRelease, repository: EXPERIMENTAL_REPOSITORY };
-    if (publicResult.status === 'rejected') throw publicResult.reason;
-    if (reportPrivateFailure && !publicRelease && previewResult.status === 'rejected') {
-      if (previewResult.reason?.code === 'GITHUB_ACCESS_REQUIRED') throw previewResult.reason;
-      throw new Error('GitHub update check failed. Try again.');
-    }
-    return publicRelease;
+    const items = await this.releases({ token, signal, allowAnonymousFallback: true });
+    const release = selectRelease(items, { current: this.current, experimental, kind: this.kind });
+    return release && { ...release, repository: REPOSITORY };
   }
   checkOnStartup() {
     if (this.startupAttempted) return this.automaticOperation ?? Promise.resolve(this.snapshot());
@@ -272,65 +228,47 @@ export class UpdateService {
     return {
       tag: selected.tag_name,
       experimental: isExperimentalRelease(selected),
-      bytes: releaseAsset(selected, this.mode === 'managed' ? 'source' : 'installer').bytes,
-      ...(selected.repository === EXPERIMENTAL_REPOSITORY
-        ? { repository: EXPERIMENTAL_REPOSITORY }
-        : {}),
+      bytes: releaseAsset(selected, this.kind).bytes,
     };
   }
   async history(experimental = false) {
     if (typeof experimental !== 'boolean') throw new Error('Invalid update channel.');
     const token = await this.optionalCredential();
     const signal = AbortSignal.timeout(20000);
-    const publicRequest = this.releases({ token, signal, allowAnonymousFallback: true });
-    const previewRequest =
-      experimental && token
-        ? this.releases({ token, signal, repository: EXPERIMENTAL_REPOSITORY })
-        : Promise.resolve(null);
-    const [publicResult, previewResult] = await Promise.allSettled([publicRequest, previewRequest]);
-    if (publicResult.status === 'rejected') throw publicResult.reason;
+    const items = await this.releases({ token, signal, allowAnonymousFallback: true });
     const entries = new Map();
-    const add = (items, repository) => {
-      for (const release of items) {
-        try {
-          const prerelease = isExperimentalRelease(release);
-          if (release.draft || (repository === EXPERIMENTAL_REPOSITORY && !prerelease)) continue;
-          if (prerelease && !experimental) continue;
-          const id = repository + '@' + release.tag_name;
-          entries.set(id, {
-            release: { ...release, repository },
-            view: {
-              id,
-              tag: release.tag_name,
-              experimental: prerelease,
-              notes: typeof release.body === 'string' ? release.body.slice(0, 12000) : '',
-              update:
-                compareVersions(releaseVersion(release, repository), this.current) > 0 &&
-                Boolean(releaseAsset(release, this.mode === 'managed' ? 'source' : 'installer')),
-            },
-          });
-        } catch {
-          // Ignore releases without a compatible version tag.
-        }
+    for (const release of items) {
+      try {
+        const prerelease = isExperimentalRelease(release);
+        if (release.draft || (prerelease && !experimental)) continue;
+        const id = REPOSITORY + '@' + release.tag_name;
+        entries.set(id, {
+          release: { ...release, repository: REPOSITORY },
+          view: {
+            id,
+            tag: release.tag_name,
+            experimental: prerelease,
+            notes: typeof release.body === 'string' ? release.body.slice(0, 12000) : '',
+            update:
+              compareVersions(releaseVersion(release), this.current) > 0 &&
+              Boolean(releaseAsset(release, this.kind)),
+          },
+        });
+      } catch {
+        // Ignore releases without a compatible version tag.
       }
-    };
-    add(publicResult.value, REPOSITORY);
-    if (previewResult.status === 'fulfilled' && previewResult.value)
-      add(previewResult.value, EXPERIMENTAL_REPOSITORY);
+    }
     this.historyEntries = entries;
     this.historyExperimental = experimental;
     return {
       releases: [...entries.values()]
         .sort((a, b) => compareVersions(releaseVersion(b.release), releaseVersion(a.release)))
         .map(({ view }) => view),
-      previewUnavailable:
-        experimental && (previewResult.status === 'rejected' || !previewResult.value),
     };
   }
   historyUrl(id) {
     const entry = this.historyEntries?.get(id);
     if (!entry) throw new Error('Load release history and choose a version.');
-    if (entry.release.downloadSource === 'gitlab') return gitlabReleaseUrl(entry.release.tag_name);
     return (
       'https://github.com/' +
       entry.release.repository +
@@ -342,8 +280,6 @@ export class UpdateService {
     const entry = this.historyEntries?.get(id);
     if (!entry?.view.update) throw new Error('This version is not available as an in-app update.');
     if (this.busy()) throw new Error('Wait for the update operation to finish.');
-    if (entry.release.repository === EXPERIMENTAL_REPOSITORY && !(await this.optionalCredential()))
-      throw new Error('Connect GitHub to access private preview versions.');
     if (this.busy()) throw new Error('Wait for the update operation to finish.');
     this.cancelAutomaticCheck();
     this.selected = entry.release;
@@ -417,9 +353,7 @@ export class UpdateService {
     this.prepared = null;
     this.selected = null;
     try {
-      const selected = await this.findRelease(experimental, this.controller.signal, {
-        reportPrivateFailure: true,
-      });
+      const selected = await this.findRelease(experimental, this.controller.signal);
       this.controller.signal.throwIfAborted();
       this.selected = selected;
       return this.publish({

@@ -26,9 +26,10 @@ exists.
 
 - **Desktop.** The Electron companion opens on Wayland (developed on sway) with
   animation, teleports, mouth layers, dialogue, compact controls, tray and
-  resource monitoring. Its transparent area still catches clicks and the window
-  cannot be dragged yet. A native layer-shell overlay is in [`apps/overlay`](apps/overlay).
-  The interface has 50 offline languages.
+  resource monitoring. It moves by its header; its transparent area still
+  catches clicks, and resizing, roaming and teleports are off on Wayland. A
+  native layer-shell overlay is in [`apps/overlay`](apps/overlay).
+  The interface ships in English, French, Polish and Ukrainian.
 - **Inference and memory.** Local models through a system `llama-server`,
   Hugging Face GGUF imports, saved OpenAI-compatible API profiles, and the
   [Claude Code bridge](README.md#chat-through-claude-code-no-model-download).
@@ -289,7 +290,7 @@ removed the Windows code and recorded its lessons in the
 - [x] Keep models, environments, private data and generated reports out of the repository.
 - [x] Remove PowerShell, C#, DirectShow and `.cmd` sources, the Windows installer and updater.
 - [ ] Remove the Windows-only tests that are always skipped on Linux.
-- [ ] Remove dead locale keys that mention `setup-*.cmd` (all 50 languages).
+- [ ] Remove dead locale keys that mention `setup-*.cmd`.
 - [ ] Remove or repoint upstream links and the private-repository token flow (`community-links.mjs`, `github-access.mjs`).
 - [ ] Rename Windows-flavoured wording that survives in code and docs: Recycle Bin, drives, `.exe`/`.dll` names in `CALL_CAMERA_FILES`.
 - [ ] Rename the `ollama*` settings and URLs that now point at the managed llama.cpp host, with a settings migration.
@@ -318,7 +319,7 @@ direction are documented, and every step passes its checks.
 - [ ] A bug backlog with severity, reproduction, affected versions, expected behavior and regression tests.
 - [ ] Test cancellation, reconnects, missing models, unavailable devices, permission denial, interrupted downloads, sleep/resume and GPU/voice failures.
 - [ ] Long conversations, repeated messages, simultaneous channel input and partial tool completion without duplicate actions or stale audio.
-- [ ] Wayland window behavior: only Capri's shape catches clicks (`setShape`), compositor-driven dragging, multiple monitors, fractional scaling, fullscreen apps, off-screen recovery, and the Electron window vs. the layer-shell overlay.
+- [ ] Wayland window behavior: only Capri's shape catches clicks and the avatar places itself again (layer-shell overlay; Electron's `setShape` does nothing on Wayland), resizing, multiple monitors, fractional scaling, fullscreen apps and off-screen recovery. The window already moves by its header. [Linux roadmap](docs/linux/roadmap.md#2-companion-window-on-wayland)
 - [ ] Test at least sway and one of GNOME or KDE; record what each compositor allows.
 - [ ] Readable subtitles, usable history, consistent keyboard navigation and screen-reader access where supported (AT-SPI).
 - [ ] Reduced motion, independent glitch intensity, high-contrast text and separate speech/effect volume.
@@ -461,11 +462,12 @@ change the setup without starting over.
 
 ## CAP-16 — Updates, recovery and removal · P0
 
-Today: `git pull`, `npm ci`, restart. The in-app installer reports unavailable,
-but automatic update checks still query upstream `CapriChooms/CapriCore` and
-can announce Windows releases this fork cannot install.
+Today: `git pull`, `npm ci`, restart. Update checks read this fork's GitHub
+releases and tell a git checkout to update with `git pull`; the in-app installer
+reports unavailable.
 
-- [ ] Turn off upstream update checks, or point them at this fork's tagged releases. Notify through a desktop notification, not a tray balloon.
+- [x] Point update checks at this fork's tagged releases.
+- [ ] Notify through a desktop notification, not a tray balloon.
 - [ ] Version the app, settings schema, model profiles, character packs and voice packs separately, with a compatibility matrix.
 - [ ] Before an update: verify it, prepare migrations, back up settings. After a failed update: roll back to the previous tag.
 - [ ] Update owned runtimes (`.runtime/`) without breaking shared model caches, trained voices or user recordings.

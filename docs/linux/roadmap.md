@@ -33,14 +33,28 @@ is large: persona plus about 30 tool descriptions the bridge cannot use.
 
 ### 2. Companion window on Wayland
 
-- [ ] Only Capri's shape should catch clicks. Today the whole transparent window
-      does (`pointerPassthrough` is off). Try `BrowserWindow.setShape` with the
-      sprite and control regions.
-- [ ] Dragging the window. Wayland ignores `setBounds` positions; the compositor
-      has to move the window (`-webkit-app-region: drag`, which uses
-      `xdg_toplevel.move`).
-- [ ] Decide between the Electron window and the native layer-shell overlay in
-      `apps/overlay` for the avatar.
+Tested on labwc with Electron 45 and `WAYLAND_DEBUG=1`. A Wayland client cannot
+place its own window: `setPosition` is ignored while `getBounds()` echoes it,
+and `getCursorScreenPoint()` reads 0,0. `setShape` never changes the input
+region (`setIgnoreMouseEvents` does, but cannot be undone without a cursor).
+
+- [x] Dragging the window: on Wayland the header is a `-webkit-app-region: drag`
+      region, so the compositor moves it (`xdg_toplevel.move`).
+- [x] Features that place the window (roaming, teleports, perching, detach hops)
+      are off on Wayland; Settings shows roaming as unavailable.
+- [ ] Resizing. The edges poll the cursor, so they are hidden on Wayland.
+      `resizable: true` would let the compositor resize (`xdg_toplevel.resize`),
+      but Electron's Linux `resize` event cannot tell a user resize from Capri's
+      own `setBounds` calls, and the size clamp would undo it. Mark Capri's own
+      resizes first, then save the rest.
+- [ ] Only Capri's shape should catch clicks. Electron cannot do this on
+      Wayland; a layer-shell surface can (`apps/overlay` already sets its input
+      region from the sprite's alpha).
+- [ ] Show the avatar through the layer-shell overlay: Electron renders the
+      companion offscreen and streams frames and the hit mask to
+      `capri-overlay`, which passes pointer events back. Layer-shell margins
+      also restore roaming, teleports and perching. GNOME has no layer-shell
+      and keeps the Electron window.
 
 ### 3. Speech
 
@@ -67,15 +81,24 @@ is large: persona plus about 30 tool descriptions the bridge cannot use.
 ### 5. Cleanup
 
 - [ ] Remove the 16 Windows-only tests that are always skipped on Linux.
-- [ ] Remove the dead locale keys that mention `setup-*.cmd` (all 50 languages).
-- [ ] Automatic update checks still query upstream `CapriChooms/CapriCore` and
-      can announce Windows releases this fork cannot install. Turn them off, or
-      point them at this fork.
+- [ ] Remove the dead locale keys that mention `setup-*.cmd`.
+- [ ] Replace the locale key "Windows did not confirm removal. Check the file and
+      Recycle Bin." with Linux wording. The locale check requires every
+      translation to keep the word "Windows", so this needs a new key in every
+      shipped language. The other trash strings already read "trash" in English.
+- [x] Update checks use this fork's GitHub releases. A git checkout is offered
+      any newer tagged release and updates with `git pull`; pre-releases are the
+      experimental channel. The GitLab mirror and private preview repository are
+      gone.
+- [ ] The updater's download, staging and GitHub-token code is unused on Linux.
+      Remove it or reuse it when packaging exists (CAP-16).
+- [ ] The FAQ still describes the Windows installer and upstream. Rewrite it
+      for Linux.
 - [ ] `CALL_CAMERA_FILES` still names the Windows camera host (`.exe`, `.dll`).
 - [ ] Tray balloons are off on Linux (`platformFeatures.trayBalloons`), so the
-      update notice in `showUpdateTrayNotice` never shows. Once update checks
-      point at this fork, send it as a desktop notification (Electron's
-      `Notification`, which uses `org.freedesktop.Notifications`).
+      update notice in `showUpdateTrayNotice` never shows. Send it as a desktop
+      notification instead (Electron's `Notification`, which uses
+      `org.freedesktop.Notifications`).
 
 ## Later: features not ported yet
 

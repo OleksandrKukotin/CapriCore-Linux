@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -20,16 +20,14 @@ assert.equal(entries.length, guides.size, 'Each tab has one guide');
 assert.deepEqual([...guides.keys()].sort(), SETTINGS_SECTIONS.map(([id]) => id).sort());
 for (const [id, steps] of guides) {
   assert.ok(steps.length, id);
-  for (const [target, en, ru] of steps) {
+  for (const [target, en, options] of steps) {
     assert.ok(target.trim(), id);
-    for (const pair of [en, ru]) {
-      assert.equal(pair.length, 2, id);
-      assert.ok(
-        pair.every((value) => value.trim()),
-        id,
-      );
-    }
-    assert.match(ru[1], /[а-я]/iu, id);
+    assert.equal(en.length, 2, id);
+    assert.ok(
+      en.every((value) => value.trim()),
+      id,
+    );
+    assert.ok(options === undefined || !Array.isArray(options), id);
   }
 }
 
@@ -101,12 +99,7 @@ try {
   await settings.emulateMedia({ reducedMotion: 'no-preference' });
   await settings.waitForSelector('#settings-guide-open[data-guide-pending]:enabled');
   const initialPulse = await pulse();
-  const heart = await main.locator('.support-button').evaluate((button) => {
-    const style = getComputedStyle(button);
-    return { animation: style.animationName, duration: style.animationDuration };
-  });
   assert.equal(initialPulse.animation, 'support-glow');
-  assert.deepEqual(heart, { animation: initialPulse.animation, duration: initialPulse.duration });
   assert.ok(initialPulse.accent);
   assert.equal(initialPulse.color, initialPulse.accent);
   const resetHelp = settings.locator(
@@ -127,9 +120,16 @@ try {
   assert.equal((await pulse()).animation, 'none');
   assert.equal((await pulse()).pending, true);
   await settings.waitForFunction(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
-  for (const [locale, language] of [
-    ['en', 1],
-    ['ru', 2],
+  const ukrainianGuide = JSON.parse(
+    readFileSync(path.join(root, 'apps/desktop/guide-locales/uk.json'), 'utf8'),
+  );
+  // English is authored inline; translated guide titles come from guide-locales.
+  // Like the guide itself, a step is translated only when both its title and text are.
+  const ukrainianPair = (pair) =>
+    pair.every((text) => ukrainianGuide[text]) ? pair.map((text) => ukrainianGuide[text]) : pair;
+  for (const [locale, translate] of [
+    ['en', (pair) => pair],
+    ['uk', ukrainianPair],
   ]) {
     await setLanguage(locale);
     let stepCount = 0;
@@ -144,7 +144,7 @@ try {
         while (dialog.open && results.length <= catalog.length) {
           const target = pane.querySelector('[data-settings-guide-highlight]');
           const catalogIndex = Number(dialog.dataset.catalogStep);
-          const selector = catalog[catalogIndex]?.[3]?.spotlight ?? catalog[catalogIndex]?.[0];
+          const selector = catalog[catalogIndex]?.[2]?.spotlight ?? catalog[catalogIndex]?.[0];
           const frame = dialog.querySelector('.guide-spotlight');
           const bounds = frame.getBoundingClientRect();
           const card = dialog.querySelector('.guide-dialog').getBoundingClientRect();
@@ -166,7 +166,7 @@ try {
             spotlight: Boolean(
               target &&
                 !frame.hidden &&
-                (catalog[catalogIndex]?.[3]?.spotlight || bounds.bottom < card.top),
+                (catalog[catalogIndex]?.[2]?.spotlight || bounds.bottom < card.top),
             ),
             labelsCovered: labels.every((label) => {
               const rect = label.getBoundingClientRect();
@@ -189,8 +189,8 @@ try {
         results.map(({ catalogIndex }, index) => ({
           index: index + 1,
           catalogIndex,
-          title: steps[catalogIndex][language][0],
-          description: steps[catalogIndex][language][1],
+          title: translate(steps[catalogIndex][1])[0],
+          description: translate(steps[catalogIndex][1])[1],
           correctTarget: true,
           spotlight: true,
           labelsCovered: true,
@@ -224,7 +224,7 @@ try {
             throw new Error(`${section} step ${index} info did not open`, { cause: error });
           }
           assert.equal(await modal.getAttribute('data-catalog-step'), String(index), section);
-          assert.equal(await title.textContent(), steps[index][language][0], section);
+          assert.equal(await title.textContent(), translate(steps[index][1])[0], section);
           await settings.keyboard.press('Escape');
           await modal.waitFor({ state: 'hidden' });
           await settings.waitForTimeout(50);
@@ -240,7 +240,6 @@ try {
   report.checks.push('Every visible settings info button opens its unique guide step');
 
   for (const [section, selectors] of [
-    ['support', ['.support-donation-card', '[aria-labelledby="support-community-title"]']],
     [
       'credits',
       [
@@ -292,7 +291,7 @@ try {
       await modal.waitFor({ state: 'hidden' });
     }
   }
-  report.checks.push('Support, Credits and developer contextual guides frame each whole block');
+  report.checks.push('Credits and developer contextual guides frame each whole block');
 
   await settingsView(app, 'voice');
   for (const [selector, screenshot] of [
@@ -388,45 +387,6 @@ try {
   await modal.waitFor({ state: 'hidden' });
   report.checks.push('French guide uses its translation, and external navigation closes the tour');
 
-  await setLanguage('de');
-  await open('general');
-  assert.equal(await title.getAttribute('lang'), 'en');
-  assert.equal(await title.textContent(), guides.get('general')[0][1][0]);
-  await settings.keyboard.press('Escape');
-  await modal.waitFor({ state: 'hidden' });
-  report.checks.push('Missing guide translations fall back to English with the correct language');
-
-  await setLanguage('ar');
-  await open('general');
-  assert.equal(await title.textContent(), 'إخفاء كابري في منطقة الإعلام');
-  assert.equal(await title.evaluate((element) => getComputedStyle(element).direction), 'rtl');
-  assert.equal(await modal.evaluate((element) => getComputedStyle(element).direction), 'rtl');
-  const rtlNext = await next.boundingBox();
-  const rtlBack = await modal.locator('#settings-guide-back').boundingBox();
-  assert.ok(rtlNext.x + rtlNext.width < rtlBack.x, 'RTL navigation follows the reading direction');
-  await settings.screenshot({
-    path: path.join(folder, 'arabic-settings-guide.png'),
-    animations: 'disabled',
-  });
-  assert.match(
-    await modal
-      .locator('.guide-progress')
-      .evaluate((element) => getComputedStyle(element).backgroundImage),
-    /270deg/u,
-  );
-  await settings.keyboard.press('ArrowLeft');
-  assert.equal(await modal.getAttribute('data-step'), '2');
-  assert.equal(await title.getAttribute('lang'), 'en');
-  assert.equal(await title.evaluate((element) => getComputedStyle(element).direction), 'ltr');
-  await setLanguage('en');
-  await settings.waitForFunction(
-    () => document.querySelector('dialog.settings-guide').dataset.uiLocale === 'en',
-  );
-  assert.equal(await modal.evaluate((element) => getComputedStyle(element).direction), 'ltr');
-  await settings.keyboard.press('Escape');
-  await modal.waitFor({ state: 'hidden' });
-  report.checks.push('Arabic guide direction, navigation, English fallback and language switch');
-
   await setLanguage('en');
   await settingsView(app, 'appearance');
   const theme = settings.locator('#theme-preset');
@@ -488,7 +448,7 @@ try {
   await reopenedOpener.evaluate((button) => button.click());
   await reopened.locator('dialog.settings-guide[open][data-section="general"]').waitFor();
   report.checks.push(
-    'Incomplete guides reuse the heart pulse and theme accent, respect reduced motion, and completed guides remain available across app restarts',
+    'Incomplete guides pulse in the theme accent, respect reduced motion, and completed guides remain available across app restarts',
   );
   report.passed = true;
 } catch (error) {

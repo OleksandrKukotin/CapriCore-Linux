@@ -188,7 +188,7 @@ export class GuideOverlay {
   refresh() {
     const locale = this.language();
     this.content = guideContent(locale);
-    this.tourLanguage = /^ru(?:-|$)/i.test(locale) ? 'ru' : 'en';
+    this.tourLanguage = 'en';
     this.faqText = this.faq();
     this.opener.title = this.faqText.menuTitle;
     this.opener.setAttribute('aria-label', this.faqText.menuTitle);

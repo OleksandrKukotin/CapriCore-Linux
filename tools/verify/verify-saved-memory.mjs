@@ -36,7 +36,7 @@ initialize(rt);
 mkdirSync(path.join(folder, 'desktop'), { recursive: true });
 writeFileSync(
   path.join(folder, 'desktop/languages.json'),
-  JSON.stringify({ schemaVersion: 1, settings: { ...LANGUAGE_DEFAULTS, interface: 'ru' } }),
+  JSON.stringify({ schemaVersion: 1, settings: { ...LANGUAGE_DEFAULTS, interface: 'uk' } }),
 );
 writeFileSync(
   path.join(rt.workspace, 'USER.md'),
@@ -44,7 +44,7 @@ writeFileSync(
 );
 writeFileSync(
   path.join(rt.workspace, 'MEMORY.md'),
-  '# Memory\n\n- The sample project is a garden sensor.\n- Для тестового проекта важны короткие и понятные ответы.\n',
+  '# Memory\n\n- The sample project is a garden sensor.\n- Для тестового проєкту важливі короткі й зрозумілі відповіді.\n',
 );
 const notes = path.join(rt.workspace, 'memory/capri-owner-notes.md');
 const markup = '<img src=x onerror="window.memoryExecuted=true"> is plain saved text.';
@@ -78,7 +78,7 @@ try {
       .showInactive(),
   );
   const settings = await settingsView(app, 'dialogue');
-  assert.equal(await settings.evaluate(() => document.documentElement.lang), 'ru');
+  assert.equal(await settings.evaluate(() => document.documentElement.lang), 'uk');
   await settings.emulateMedia({ reducedMotion: 'reduce' });
   const errors = [];
   settings.on('pageerror', (error) => errors.push(error.message));
@@ -105,7 +105,7 @@ try {
   const search = settings.locator('#saved-memory-search');
   await search.fill('fern');
   assert.equal(await settings.locator('#saved-memory-list > li').count(), 1);
-  await search.fill('несуществующая запись');
+  await search.fill('неіснуючий запис');
   assert.equal(await settings.locator('#saved-memory-list > li').count(), 0);
   assert.ok((await settings.locator('#saved-memory-status').innerText()).length > 10);
   await search.fill('');

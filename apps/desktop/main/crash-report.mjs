@@ -54,7 +54,7 @@ export function crashReporter({
         message: text('Capri closed unexpectedly.'),
         detail: [
           logsOpened ? 'The logs folder is open.' : 'The logs folder could not be opened.',
-          'Save and review a diagnostic ZIP, then send it to Overyx in a Discord direct message.',
+          'Save a diagnostic ZIP and review it before sharing.',
         ]
           .map(text)
           .join('\n\n'),

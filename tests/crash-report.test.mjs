@@ -29,7 +29,8 @@ test('a renderer crash reveals the logs once and asks before exporting', async (
   await report({ surface: 'settings', reason: 'crashed' });
   assert.equal(actions.length, 2);
   assert.equal(actions[0], 'Explorer');
-  assert.match(actions[1].detail, /Overyx in a Discord direct message/u);
+  assert.match(actions[1].detail, /review it before sharing/u);
+  assert.doesNotMatch(actions[1].detail, /Discord|Overyx/u);
   assert.deepEqual(actions[1].buttons, ['Save report', 'Dismiss']);
   resolve({ response: 0 });
   await pending;

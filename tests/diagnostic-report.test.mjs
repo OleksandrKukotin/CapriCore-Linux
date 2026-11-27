@@ -751,69 +751,15 @@ test('report IPC cancels before collection, serializes exports and atomically sa
   assert.equal(unpack(readFileSync(saved)).get('REPORT.md'), 'Synthetic diagnostic report');
 });
 
-test('the Settings preload can submit a diagnostic ZIP and receive the server receipt', async (t) => {
-  const base = fixture();
-  const settingsFrame = { url: 'capri://desktop/settings.html' };
-  const companionFrame = { url: 'capri://desktop/index.html' };
-  const windowFor = (frame) => ({ isDestroyed: () => false, webContents: { mainFrame: frame } });
-  const settings = windowFor(settingsFrame);
-  const companion = windowFor(companionFrame);
-  const handlers = new Map();
-  const handle = createIpcHandler(
-    { handle: (name, callback) => handlers.set(name, callback) },
-    {
-      getWindow: () => companion,
-      url: companionFrame.url,
-      getSettingsWindow: () => settings,
-      settingsUrl: settingsFrame.url,
-      settingsChannels: SETTINGS_CHANNELS,
-    },
-  );
-  const reportId = '0123456789abcdef0123456789abcdef';
-  const bytes = await diagnosticZip([{ name: 'REPORT.md', bytes: 'Synthetic report' }]);
-  registerCompanionIpc(handle, {
-    root: base,
-    state: base,
-    createReport: async ({ input }) => {
-      assert.equal(input.description, 'Synthetic report');
-      assert.equal(input.includeLogs, false);
-      return { bytes };
-    },
-  });
-  const upload = t.mock.method(globalThis, 'fetch', async (url, options) => {
-    assert.equal(url, 'https://capri-core.com/api/reports/v1');
-    assert.equal(options.method, 'POST');
-    assert.equal(options.headers['content-type'], 'application/zip');
-    assert.equal(options.credentials, 'omit');
-    assert.equal(options.redirect, 'error');
-    assert.equal(unpack(options.body).get('REPORT.md'), 'Synthetic report');
-    return new Response(null, { status: 202, headers: { 'x-capri-report-id': reportId } });
-  });
-  const payload = { description: 'Synthetic report', includeLogs: false };
-  const send = handlers.get('capri:bug-report-send');
-  await assert.rejects(
-    send({ sender: companion.webContents, senderFrame: companionFrame }, payload),
-    /Open Report a bug in Settings/,
-  );
-  assert.throws(
-    () => send({ sender: settings.webContents, senderFrame: { ...settingsFrame } }, payload),
-    /Untrusted IPC sender/,
-  );
+test('diagnostic reports stay on this computer: no upload or donation calls are exposed', () => {
   let preloadApi;
   runInNewContext(readFileSync(new URL('../apps/desktop/preload.cjs', import.meta.url), 'utf8'), {
     require: () => ({
       contextBridge: { exposeInMainWorld: (_name, api) => (preloadApi = api) },
-      ipcRenderer: {
-        invoke: async (channel, input) =>
-          handlers.get(channel)(
-            { sender: settings.webContents, senderFrame: settingsFrame },
-            input,
-          ),
-      },
+      ipcRenderer: { invoke: async () => {}, on: () => {}, removeListener: () => {} },
     }),
   });
-  await assert.rejects(preloadApi.sendBugReport({ title: 'Test' }), /Describe the problem/);
-  assert.equal(upload.mock.callCount(), 0);
-  assert.deepEqual(await preloadApi.sendBugReport(payload), { sent: true, reportId });
-  assert.equal(upload.mock.callCount(), 1);
+  assert.equal(typeof preloadApi.bugReport, 'function');
+  assert.equal(preloadApi.sendBugReport, undefined);
+  assert.equal(preloadApi.openDonation, undefined);
 });

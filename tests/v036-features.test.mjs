@@ -17,7 +17,7 @@ import {
   defaultPersonality,
 } from '../packages/runtime/src/personality.mjs';
 import { GitHubAccess, GITHUB_ACCESS_URL, githubTokenUrl } from '../apps/desktop/github-access.mjs';
-import { EXPERIMENTAL_REPOSITORY } from '../packages/updater/src/releases.mjs';
+import { REPOSITORY } from '../packages/updater/src/releases.mjs';
 import { listReleases } from '../packages/updater/src/github.mjs';
 import { visuallySleeping } from '../apps/desktop/sleep-service.mjs';
 import { PresenceModel } from '../apps/desktop/renderer/presence-model.mjs';
@@ -116,7 +116,7 @@ test('private GitHub access is validated, encrypted and reused without GitHub CL
     root: destination,
     storage,
     verify: async (value) => {
-      assert.equal(value.repository, EXPERIMENTAL_REPOSITORY);
+      assert.equal(value.repository, REPOSITORY);
       seen.push(value.token);
       return [];
     },
@@ -126,7 +126,7 @@ test('private GitHub access is validated, encrypted and reused without GitHub CL
   });
   const status = await access.connect(token);
   assert.equal(status.connected, true);
-  assert.equal(status.repository, EXPERIMENTAL_REPOSITORY);
+  assert.equal(status.repository, REPOSITORY);
   assert.deepEqual(seen, [token]);
   const disk = readFileSync(access.file, 'utf8');
   assert.ok(!disk.includes(token));
@@ -139,7 +139,8 @@ test('private GitHub access is validated, encrypted and reused without GitHub CL
   const url = new URL(GITHUB_ACCESS_URL);
   assert.equal(url.origin, 'https://github.com');
   assert.equal(url.searchParams.get('contents'), 'read');
-  assert.equal(url.searchParams.get('target_name'), 'CapriChooms');
+  // A token for this public repository needs no organization resource owner.
+  assert.equal(url.searchParams.get('target_name'), null);
 });
 test('invalid access and failed replacement never overwrite a previously working encrypted credential', async () => {
   const destination = folder(),
@@ -185,7 +186,7 @@ test('closing during GitHub access validation cancels without saving a credentia
 });
 test('public release failures are distinguished from GitHub rate limits and never quote response bodies', async () => {
   for (const [status, headers, expected] of [
-    [404, {}, /public CapriChooms\/CapriCore releases/],
+    [404, {}, /public OleksandrKukotin\/CapriCore-Linux releases/],
     [403, { 'x-ratelimit-remaining': '4999' }, /Public Capri updates do not require a token/],
     [403, { 'x-ratelimit-remaining': '0' }, /limited/],
     [429, {}, /limited/],
@@ -215,13 +216,13 @@ test('strict GitHub access verification rejects invalid tokens and inaccessible 
     [
       404,
       'github_pat_' + 'a'.repeat(30),
-      /public CapriChooms\/CapriCore releases/,
+      /public OleksandrKukotin\/CapriCore-Linux releases/,
       'repository_not_visible',
     ],
     [
       404,
       'ghp_' + 'a'.repeat(30),
-      /public CapriChooms\/CapriCore releases/,
+      /public OleksandrKukotin\/CapriCore-Linux releases/,
       'repository_not_visible',
     ],
   ]) {

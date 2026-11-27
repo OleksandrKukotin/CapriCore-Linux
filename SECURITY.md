@@ -9,7 +9,7 @@ Permission bypass, malformed IPC, path traversal, unwanted capture, credential l
 
 The default installation scope intentionally gives Capri read/write access to its own source, configuration and data. It can be revoked in File access. This permits self-modification and is not a security boundary against altered application code or configuration. Additional folder grants and screen/microphone permissions remain separate capabilities in the shipped implementation.
 
-Report vulnerabilities through [GitHub private vulnerability reporting](https://github.com/CapriChooms/CapriCore/security/advisories/new). Do not post exploit details or credentials in public issues. Provide a minimal fixture-based reproduction; never attach private data, recordings, models or unredacted logs.
+Report vulnerabilities through [GitHub private vulnerability reporting](https://github.com/OleksandrKukotin/CapriCore-Linux/security/advisories/new). Do not post exploit details or credentials in public issues. Provide a minimal fixture-based reproduction; never attach private data, recordings, models or unredacted logs.
 
 The source exporter is a defense layer, not a guarantee that arbitrary future code contains no personal data. Review the artifact before publishing. Rotate any exposed credential. CI has read-only repository permissions; untrusted pull requests must not publish releases or run privileged desktop actions.
 
@@ -58,7 +58,7 @@ permission does not establish that its script is trustworthy. Stop an active
 computer-control session with **Escape**.
 
 Public downloads and update checks use
-[CapriChooms/CapriCore](https://github.com/CapriChooms/CapriCore/releases) without
+[OleksandrKukotin/CapriCore-Linux](https://github.com/OleksandrKukotin/CapriCore-Linux/releases) without
 a GitHub account or token. Optional saved GitHub access stays protected by the
 existing account-bound credential storage. Download hashes and manifests detect
 integrity problems; they do not replace publisher code signing. The current

@@ -1,6 +1,6 @@
 # Companion controls
 
-The title bar separates community actions (support and bug reports) from the menu,
+The title bar separates bug reports from the menu,
 hide and close controls. The cross opens **Sleep**, **Restart** and
 **Quit and unload models** choices. Hiding keeps Capri running; when she is
 outside the home frame, the main panel can be hidden separately.
@@ -149,10 +149,10 @@ network failure. Cancel remains available while paused.
 
 Reports are saved locally for review and contain allowlisted technical diagnostics
 plus the description supplied by the user. A separate button opens public GitHub
-issues; it does not submit or upload anything. Downloads and update checks use
-**CapriChooms/CapriCore** without an account or token. Community links, including
-**capri-core.com** and **discord.gg/capricore**, are maintained in config/community.json.
-The interface includes 50 offline language catalogs; translated availability is
+issues; it does not submit or upload anything. The project's GitHub links (source,
+releases and issues) are maintained in config/community.json. This fork has no
+donation, subscription or social-media links.
+The interface ships English, French, Polish and Ukrainian catalogs; translated availability is
 separate from model, voice and recognition quality. See [diagnostics](diagnostic-reports.md)
 and [localization](localization.md).
 

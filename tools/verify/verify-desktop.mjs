@@ -769,17 +769,12 @@ try {
   if (!real) {
     const [preferences] = await Promise.all([
       application.waitForEvent('window'),
-      page.locator('#support-author').click({ force: true }),
+      page.locator('#report-bug').click({ force: true }),
     ]);
     await preferences.waitForURL('capri://desktop/settings.html');
-    await preferences.locator('[data-section="support"][aria-current="page"]').waitFor();
-    assert.equal(
-      await preferences
-        .locator('.support-orbit')
-        .evaluate((el) => getComputedStyle(el).animationName),
-      'support-orbit',
-    );
-    await preferences.screenshot({ path: path.join(folder, 'support.png'), omitBackground: true });
+    await preferences.locator('[data-section="bug"][aria-current="page"]').waitFor();
+    assert.equal(await preferences.locator('#bug-send').count(), 0);
+    await preferences.screenshot({ path: path.join(folder, 'bug.png'), omitBackground: true });
     await preferences.locator('[data-section="appearance"]').click();
     await preferences.locator('#companion-glitch-enabled').check();
     await preferences.locator('#companion-glitch-strength').fill('35');

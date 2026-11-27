@@ -32,7 +32,12 @@ let application;
 try {
   application = await _electron.launch({
     executablePath: createRequire(import.meta.url)('electron'),
-    args: [path.join(root, 'apps/desktop/main.mjs'), '--verification'],
+    // Roaming moves the window, which a Wayland client cannot do; use XWayland.
+    args: [
+      ...(process.platform === 'linux' ? ['--ozone-platform=x11'] : []),
+      path.join(root, 'apps/desktop/main.mjs'),
+      '--verification',
+    ],
     env,
     timeout: 60000,
   });

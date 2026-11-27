@@ -111,7 +111,7 @@ try {
       (await page.getAttribute('body', 'data-presence')) === 'core' ? [] : ['avatar-detach'];
     assert.deepEqual(
       top.map(({ id }) => id),
-      ['support-author', 'report-bug', 'presence-toggle', ...detach, 'hide', 'quit'],
+      ['report-bug', 'presence-toggle', ...detach, 'hide', 'quit'],
     );
     assert.deepEqual(
       quick.map(({ id }) => id),

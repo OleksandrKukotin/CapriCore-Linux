@@ -4,18 +4,14 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import configured from '../config/community.json' with { type: 'json' };
-import {
-  BOOSTY_DONATION_URL,
-  COMMUNITY_LINKS,
-  LAVA_DONATION_URL,
-  loadCommunityLinks,
-} from '../apps/desktop/community-links.mjs';
+import { COMMUNITY_LINKS, loadCommunityLinks } from '../apps/desktop/community-links.mjs';
 import { DiscordPresence } from '../apps/desktop/discord-presence.mjs';
 import {
   COMMUNITY_LINKS as legacyLinks,
   registerCompanionIpc,
 } from '../apps/desktop/main/companion-ipc.mjs';
 
+const PROJECT = 'https://github.com/OleksandrKukotin/CapriCore-Linux';
 const parent = path.join(process.cwd(), '.runtime/community-links-tests');
 mkdirSync(parent, { recursive: true });
 function fixture(value) {
@@ -33,57 +29,28 @@ const activity = (links) =>
     communityLinks: links,
   }).activity();
 
-test('shipped community destinations and both Discord activity buttons use the same shared defaults', () => {
-  assert.equal(legacyLinks, COMMUNITY_LINKS, 'Existing imports retain the same safe allowlist');
+test('the only community destinations are this project on GitHub', () => {
+  assert.equal(legacyLinks, COMMUNITY_LINKS, 'Existing imports retain the same allowlist');
   assert.deepEqual(configured, COMMUNITY_LINKS);
-  assert.equal(COMMUNITY_LINKS.discord, 'https://discord.gg/capricore');
-  assert.equal(COMMUNITY_LINKS.boosty, 'https://boosty.to/overyx');
-  assert.equal(COMMUNITY_LINKS['boosty-donate'], 'https://boosty.to/overyx/donate');
-  assert.equal(COMMUNITY_LINKS.lava, 'https://app.lava.top/overyx');
-  assert.equal(COMMUNITY_LINKS.youtube, 'https://www.youtube.com/@CapriChoom');
-  assert.equal(COMMUNITY_LINKS.faq, 'https://capri-core.com/#faq');
-  assert.equal(
-    COMMUNITY_LINKS.releases,
-    'https://github.com/CapriChooms/CapriCore/releases/latest',
-  );
-  const buttons = activity().buttons;
-  assert.deepEqual(buttons, [
-    { label: 'Get Capri', url: COMMUNITY_LINKS.github },
-    { label: 'Join Her Discord', url: COMMUNITY_LINKS.discord },
-  ]);
+  assert.deepEqual(COMMUNITY_LINKS, {
+    github: PROJECT,
+    releases: PROJECT + '/releases/latest',
+    issues: PROJECT + '/issues/new/choose',
+    'issue-list': PROJECT + '/issues',
+  });
+  assert.deepEqual(activity().buttons, [{ label: 'Get Capri', url: PROJECT }]);
 });
 
-test('a retained older installation config cannot restore the expired shipped invitation', () => {
-  const links = loadCommunityLinks(fixture({ discord: 'https://discord.gg/ETMtqsGaZN' }));
-  assert.equal(links.discord, 'https://discord.gg/capricore');
-  assert.equal(activity(links).buttons[1].url, 'https://discord.gg/capricore');
-});
-
-test('retained private-era links migrate to public repository and issue reporting together', () => {
-  const links = loadCommunityLinks(
-    fixture({
-      github: 'https://github.com/CapriChooms/Capri',
-      issues: 'https://github.com/CapriChooms/Capri/issues/new',
-    }),
-  );
-  assert.equal(links.github, 'https://github.com/CapriChooms/CapriCore');
-  assert.equal(links.issues, 'https://github.com/CapriChooms/CapriCore/issues/new/choose');
-  assert.equal(activity(links).buttons[0].url, links.github);
-});
-
-test('a replacement invite updates presence and Support together without forwarding unknown configuration', async () => {
-  const invite = 'https://discord.gg/fresh-test-invite';
-  const root = fixture({ discord: invite, futurePrivateMetadata: 'fixture-private-value' });
+test('a moved project updates presence and Settings together without forwarding unknown keys', async () => {
+  const moved = 'https://github.com/example/CapriCore-Linux';
+  const root = fixture({ github: moved, futurePrivateMetadata: 'fixture-private-value' });
   const links = loadCommunityLinks(root);
   assert.deepEqual(Object.keys(links), Object.keys(COMMUNITY_LINKS));
   assert(Object.isFrozen(links));
-  assert.equal(
-    links.github,
-    COMMUNITY_LINKS.github,
-    'Older partial configs retain new default links',
-  );
+  assert.equal(links.github, moved);
+  assert.equal(links.releases, COMMUNITY_LINKS.releases, 'Partial configs keep the other links');
   const presence = activity(links);
-  assert.equal(presence.buttons[1].url, invite);
+  assert.equal(presence.buttons[0].url, moved);
   assert(!JSON.stringify(presence).includes('fixture-private-value'));
   const handlers = new Map(),
     opened = [];
@@ -95,73 +62,41 @@ test('a replacement invite updates presence and Support together without forward
     shell: { openExternal: async (url) => opened.push(url) },
   });
   const open = handlers.get('capri:community-link');
-  await open('discord');
-  await open('github');
-  await open('issues');
-  await open('lava');
-  await open('boosty');
-  await open('youtube');
-  await open('faq');
-  await open('releases');
-  assert.deepEqual(opened, [
-    presence.buttons[1].url,
-    presence.buttons[0].url,
-    COMMUNITY_LINKS.issues,
-    COMMUNITY_LINKS.lava,
-    COMMUNITY_LINKS.boosty,
-    COMMUNITY_LINKS.youtube,
-    COMMUNITY_LINKS.faq,
-    COMMUNITY_LINKS.releases,
-  ]);
-  for (const id of ['futurePrivateMetadata', '__proto__', 'constructor', 'file:///private'])
+  for (const id of ['github', 'issues', 'releases']) await open(id);
+  assert.deepEqual(opened, [moved, COMMUNITY_LINKS.issues, COMMUNITY_LINKS.releases]);
+  // Removed upstream destinations, prototype keys and URLs are not identifiers.
+  for (const id of [
+    'boosty',
+    'lava-donate',
+    'discord',
+    'website',
+    'futurePrivateMetadata',
+    '__proto__',
+    'constructor',
+    'file:///private',
+  ])
     await assert.rejects(open(id), /Unknown community link/);
-  assert.equal(opened.length, 8);
+  assert.equal(opened.length, 3);
+  assert.equal(handlers.has('capri:donation-open'), false);
+  assert.equal(handlers.has('capri:bug-report-send'), false);
 });
 
-test('malformed files and destinations outside their approved HTTPS origin use safe defaults', () => {
+test('malformed files and destinations outside GitHub over HTTPS use safe defaults', () => {
   assert.equal(loadCommunityLinks(fixture()), COMMUNITY_LINKS);
   for (const value of [
     null,
     [],
     'not-a-map',
-    { discord: null },
-    { discord: 'http://discord.gg/fresh-test-invite' },
-    { discord: 'https://user:password@discord.gg/fresh-test-invite' },
-    { discord: 'https://discord.gg:8443/fresh-test-invite' },
-    { discord: 'https://discord.gg.evil.invalid/fresh-test-invite' },
-    { discord: 'file:///private' },
+    { github: null },
+    { github: 'http://github.com/example/CapriCore-Linux' },
+    { github: 'https://user:password@github.com/example/CapriCore-Linux' },
+    { github: 'https://github.com:8443/example/CapriCore-Linux' },
     { github: 'https://github.com.evil.invalid/Capri' },
+    { issues: 'https://boosty.to/overyx' },
+    { releases: 'file:///private' },
   ])
     assert.equal(loadCommunityLinks(fixture(value)), COMMUNITY_LINKS);
   const broken = fixture();
   writeFileSync(path.join(broken, 'config/community.json'), '{broken');
   assert.equal(loadCommunityLinks(broken), COMMUNITY_LINKS);
-});
-
-test('donations use the pinned creator in Settings and in the system browser', async () => {
-  const root = fixture({
-    'lava-donate': 'https://app.lava.top/other-creator?donate=open',
-    'boosty-donate': 'https://boosty.to/other-creator/donate',
-  });
-  const links = loadCommunityLinks(root);
-  assert.equal(links['lava-donate'], LAVA_DONATION_URL);
-  assert.equal(links['boosty-donate'], BOOSTY_DONATION_URL);
-  const handlers = new Map();
-  const opened = [];
-  registerCompanionIpc((name, handler) => handlers.set(name, handler), {
-    root,
-    state: root,
-    rt: { workspace: root },
-    preferences: {},
-    openDonation: () => opened.push('checkout'),
-    shell: { openExternal: async (url) => opened.push(url) },
-  });
-  const openDonation = handlers.get('capri:donation-open');
-  assert.equal(openDonation(undefined, { role: 'companion' }), false);
-  openDonation('https://example.invalid', { role: 'settings' });
-  const open = handlers.get('capri:community-link');
-  await open('lava-donate');
-  await open('boosty-donate');
-  await open('boosty');
-  assert.deepEqual(opened, ['checkout', LAVA_DONATION_URL, BOOSTY_DONATION_URL, links.boosty]);
 });

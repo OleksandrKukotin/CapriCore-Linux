@@ -141,7 +141,6 @@ async function shadePixels() {
     const portrait = rect('#portrait-panel');
     const composer = rect('.composer');
     const reply = rect('#subtitle-frame');
-    const support = rect('#support-author');
     const reportButton = rect('#report-bug');
     const centerY = (r) => r.top + r.height / 2;
     const panelGap = document.body.hasAttribute('data-horizontal-portrait')
@@ -153,8 +152,8 @@ async function shadePixels() {
       corner: [1, 1],
       composer: [composer.left + composer.width / 2, centerY(composer)],
       cut: [composer.left + 2, composer.top + 2],
-      button: [support.left + support.width / 2, centerY(support)],
-      buttonGap: [(support.right + reportButton.left) / 2, centerY(support)],
+      button: [reportButton.left + reportButton.width / 2, centerY(reportButton)],
+      buttonGap: [reportButton.left - 2, centerY(reportButton)],
       panelGap,
     };
     clone.dataset.fixture = '';

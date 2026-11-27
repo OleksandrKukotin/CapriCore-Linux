@@ -152,13 +152,19 @@ test('allowlisted renderer modules and locale catalogs serve only shipped resour
     spriteFile: '',
     startupIntro: null,
   });
-  for (const name of ['en', 'ru', 'ar'])
+  for (const name of ['en', 'fr', 'pl', 'uk'])
     assert.equal(
       resourceResponse({ url: `capri://desktop/locales/${name}.json`, method: 'GET' }, resources)
         .status,
       200,
     );
-  for (const name of ['unknown.json', '%2e%2e/locales/ru.json?source=external'])
+  // Removed interface languages are no longer served.
+  for (const name of [
+    'ru.json',
+    'ar.json',
+    'unknown.json',
+    '%2e%2e/locales/uk.json?source=external',
+  ])
     assert.equal(
       resourceResponse({ url: `capri://desktop/locales/${name}`, method: 'GET' }, resources).status,
       404,
@@ -350,4 +356,20 @@ test('without pointer passthrough the window never becomes click-through', () =>
   pointer.setInteractive(false);
   assert.deepEqual(calls, []);
   assert.equal(pointer.ignored, false);
+});
+
+test('a Wayland client leaves window placement to the compositor', async () => {
+  const { clientPlacesWindows } = await import('../apps/desktop/platform-features.mjs');
+  assert.equal(clientPlacesWindows({ platform: 'linux', ozonePlatform: 'wayland' }), false);
+  assert.equal(clientPlacesWindows({ platform: 'linux', ozonePlatform: 'x11' }), true);
+  // Electron normally names its backend; otherwise the session type decides.
+  assert.equal(clientPlacesWindows({ platform: 'linux', sessionType: 'wayland' }), false);
+  assert.equal(clientPlacesWindows({ platform: 'linux', sessionType: 'x11' }), true);
+  assert.equal(clientPlacesWindows({ platform: 'linux' }), true);
+  // An explicit X11 backend (XWayland) can still place windows in a Wayland session.
+  assert.equal(
+    clientPlacesWindows({ platform: 'linux', ozonePlatform: 'x11', sessionType: 'wayland' }),
+    true,
+  );
+  assert.equal(clientPlacesWindows({ platform: 'win32', sessionType: 'wayland' }), true);
 });

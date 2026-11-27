@@ -3,13 +3,11 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
-import { EXPERIMENTAL_REPOSITORY, REPOSITORY } from './releases.mjs';
-import { listGitLabReleases } from './gitlab.mjs';
+import { REPOSITORY } from './releases.mjs';
 const execute = promisify(execFile);
 const cdns = new Set(['release-assets.githubusercontent.com', 'objects.githubusercontent.com']);
 function releasePath(repository) {
-  if (repository !== REPOSITORY && repository !== EXPERIMENTAL_REPOSITORY)
-    throw new Error('Unapproved update repository');
+  if (repository !== REPOSITORY) throw new Error('Unapproved update repository');
   return `/repos/${repository}/releases`;
 }
 export function approvedUrl(value, repository = REPOSITORY) {
@@ -64,10 +62,6 @@ export function githubFetch({
 } = {}) {
   return async (value, options = {}) => {
     const url = approvedUrl(value, repository);
-    if (repository === EXPERIMENTAL_REPOSITORY && !token)
-      throw Object.assign(new Error('Connect GitHub for private experimental updates.'), {
-        code: 'GITHUB_ACCESS_REQUIRED',
-      });
     const headers = { ...options.headers };
     for (const name of Object.keys(headers))
       if (/^(?:authorization|proxy-authorization|cookie)$/i.test(name)) delete headers[name];
@@ -116,8 +110,7 @@ export async function listReleases({
 } = {}) {
   const apiRoot = `https://api.github.com${releasePath(repository)}`;
   const request = githubFetch({ token, fetchImpl, repository, allowAnonymousFallback });
-  const privatePreview = repository === EXPERIMENTAL_REPOSITORY;
-  const strict = privatePreview || Boolean(token && !allowAnonymousFallback);
+  const strict = Boolean(token && !allowAnonymousFallback);
   const releases = [];
   for (let page = 1; page <= 5; page++) {
     const response = await request(`${apiRoot}?per_page=100&page=${page}`, {
@@ -142,11 +135,7 @@ export async function listReleases({
         );
       if (response.status === 404)
         throw Object.assign(
-          new Error(
-            privatePreview
-              ? 'GitHub access is unavailable for this private repository. Connect GitHub in Updates and check your Capri invitation and token approval.'
-              : `GitHub could not find the public ${repository} releases. Try again later.`,
-          ),
+          new Error(`GitHub could not find the public ${repository} releases. Try again later.`),
           {
             code: strict ? 'GITHUB_ACCESS_REQUIRED' : 'GITHUB_RELEASES_UNAVAILABLE',
             accessReason: 'repository_not_visible',
@@ -160,9 +149,7 @@ export async function listReleases({
       )
         throw Object.assign(
           new Error(
-            privatePreview
-              ? 'GitHub access is unavailable for this private repository. Connect GitHub in Updates and check your Capri invitation and token approval.'
-              : 'GitHub denied this update request. Public Capri updates do not require a token. Try again later.',
+            'GitHub denied this update request. Public Capri updates do not require a token. Try again later.',
           ),
           {
             code: strict ? 'GITHUB_ACCESS_REQUIRED' : 'GITHUB_REQUEST_DENIED',
@@ -195,22 +182,9 @@ export const assetUrl = (id, repository = REPOSITORY) =>
   `https://api.github.com${releasePath(repository)}/assets/${id}`;
 
 export async function listUpdateReleases(options = {}) {
-  if (options.repository && options.repository !== REPOSITORY) return listReleases(options);
-  const { signal, fetchImpl } = options;
-  try {
-    return await listReleases({
-      ...options,
-      signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(7500)]),
-    });
-  } catch (primaryError) {
-    signal?.throwIfAborted();
-    let releases;
-    try {
-      releases = await listGitLabReleases({ signal, fetchImpl });
-    } catch {
-      signal?.throwIfAborted();
-    }
-    if (releases?.length) return releases;
-    throw primaryError;
-  }
+  const { signal } = options;
+  return listReleases({
+    ...options,
+    signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(7500)]),
+  });
 }

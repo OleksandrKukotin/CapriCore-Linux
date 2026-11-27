@@ -974,14 +974,6 @@ body.settings-window {
 .settings-window :is(.settings-card, .settings-disclosure-content) {
   padding: var(--settings-card-padding);
 }
-.settings-window .support-donation-card {
-  border: 0;
-  padding-inline: calc(var(--settings-card-padding) + 6px);
-  padding-block-end: calc(var(--settings-card-padding) + 8px);
-}
-.settings-window .support-content {
-  row-gap: calc(var(--support-frame-gutter) + 14px);
-}
 .settings-window h3 {
   color: var(--settings-title);
   font-size: 14px;
@@ -1506,9 +1498,6 @@ body.settings-window {
 .settings-actions > .settings-help-row,
 .skill-settings-header .settings-help-row {
   margin-block: 0;
-}
-.settings-window .support-social:has(> .settings-help-row) {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .settings-help-row:has(> [hidden]:first-child),
 .settings-guide-copy {

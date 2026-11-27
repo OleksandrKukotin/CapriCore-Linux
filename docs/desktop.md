@@ -89,7 +89,7 @@ The gear opens a separate Settings window with search and these groups:
 | Conversation / Voice | Conversation and personality, Brain and private memory, Initiative, Languages, Microphone settings, Voice effects, Voice calls, Music listening |
 | Language model       | Language model, External AI provider, voice-model selection within the model settings                                                           |
 | Capabilities         | Computer control, Task training, User tools, Screen snapshot, Application access, File access, Timers and reminders                             |
-| Updates / Community  | Updates, Discord presence, Report a bug, Support the author, Credits                                                                            |
+| Updates / Community  | Updates, Discord presence, Report a bug, Credits                                                                                                |
 
 The selected section and scroll position are remembered. Search locates matching
 settings. Many appearance and audio changes preview immediately; **Save changes**

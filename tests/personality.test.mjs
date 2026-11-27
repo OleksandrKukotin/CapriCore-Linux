@@ -294,3 +294,21 @@ test('the reviewed OpenClaw adapter patch supports a clean package and prior pat
     assert.equal(digest(original), version.beforeSha256, 'Reviewed input checksum');
   }
 });
+
+test('an unedited personality from the Windows releases is refreshed to the Linux default', () => {
+  const workspace = folder(),
+    backupDirectory = folder();
+  const current = defaultPersonality();
+  // The 1.2.2 default differed only in naming the owner's desktop.
+  const windows = current.replace("the owner's Linux desktop.", "the owner's Windows desktop.");
+  assert.notEqual(windows, current);
+  writeFileSync(path.join(workspace, 'PERSONALITY.md'), windows);
+  const result = initializePersonality(workspace, { backupDirectory });
+  assert.equal(readFileSync(path.join(workspace, 'PERSONALITY.md'), 'utf8'), current);
+  assert.equal(readFileSync(path.join(result.backup, 'PERSONALITY.md'), 'utf8'), windows);
+  // An owner's own edit to that file is kept.
+  const edited = windows + '\n\nAlso loves synthwave.';
+  writeFileSync(path.join(workspace, 'PERSONALITY.md'), edited);
+  initializePersonality(workspace, { backupDirectory });
+  assert.equal(readFileSync(path.join(workspace, 'PERSONALITY.md'), 'utf8'), edited);
+});

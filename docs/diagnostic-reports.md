@@ -44,7 +44,7 @@ message. Recent renderer warnings/errors help diagnose audio-output failures.
 Hardware/probe failures become report entries instead of preventing export.
 
 For an English voice failure after installation, reproduce it, leave Capri open
-and save a report with recent logs enabled. Send the reviewed ZIP to the maintainer.
+and save a report with recent logs enabled. Review the ZIP before you share it.
 Installing the pack alone does not establish that its backend can run on the
 hardware. Chatterbox uses compatible NVIDIA/CUDA or the experimental, separately
 pinned AMD ROCm runtime on qualified Windows 11 Radeon configurations. An AMD GPU

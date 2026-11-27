@@ -58,7 +58,6 @@ export const SETTINGS_GROUPS = Object.freeze([
     sections: [
       ['updates', 'Updates', 'updates-panel'],
       ['bug', 'Report a bug', 'companion-settings'],
-      ['support', 'Support the author', 'companion-settings'],
       ['credits', 'Credits', 'credits-panel'],
     ],
   },

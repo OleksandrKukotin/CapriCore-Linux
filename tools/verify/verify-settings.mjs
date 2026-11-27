@@ -863,7 +863,7 @@ try {
   await page.waitForTimeout(1100);
   assert.equal(await page.locator('#stopwatch-hud').textContent(), paused);
   record('Stopwatch HUD, fresh elapsed replies and pause agree', { first, paused });
-  for (const locale of ['ru', 'ar', 'de', 'en']) {
+  for (const locale of ['uk', 'pl', 'fr', 'en']) {
     await page.evaluate(
       async (language) =>
         window.capri.setLanguages({

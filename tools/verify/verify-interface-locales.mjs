@@ -299,7 +299,7 @@ try {
           expected,
         );
     }
-    if (['de', 'ar', 'he', 'ja', 'hi', 'en', 'pt-BR'].includes(locale.id)) {
+    if (['en', 'fr', 'pl', 'uk'].includes(locale.id)) {
       await controls
         .locator('#language-panel .preferences-content')
         .evaluate((el) => (el.scrollTop = 0));

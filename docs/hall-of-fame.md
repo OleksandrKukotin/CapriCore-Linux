@@ -1,6 +1,6 @@
 # Credits and Hall of Fame
 
-Open **Settings → Credits**, beside **Support the author**. The Hall of Fame honours the core team, major supporters and community helpers, and early access supporters listed by GitHub nickname. The curated `majorSupporters` and `communityHelpers` groups accept display names, including spaces and underscores, independently of GitHub logins. Manual roster refresh preserves both groups.
+Open **Settings → Credits**, below **Report a bug**. The Hall of Fame honours the core team, major supporters and community helpers, and early access supporters listed by GitHub nickname. The curated `majorSupporters` and `communityHelpers` groups accept display names, including spaces and underscores, independently of GitHub logins. Manual roster refresh preserves both groups.
 
 The packaged `config/hall-of-fame.json` contains public nicknames and the three credited team roles. Capri reads this local file only when Credits is opened. It does not contact GitHub, load remote avatars, or request authentication to display the list. Names are displayed as text and are excluded from interface translation. Search filters the local list without sending the query anywhere.
 
@@ -22,6 +22,6 @@ The panel adapts to narrow Settings windows and offers a local nickname search. 
 
 ## Verification
 
-`node tools/verify/verify-credits.mjs` opens the real Settings window in an isolated profile. It checks navigation beside Support, every imported nickname, search and no-match results, five interface languages including RTL, a second theme, a narrow window, reduced motion, and closing without a settings draft. It also rejects external network requests during the checks. No owner settings, history, microphone, or models are needed. Unit tests for the roster importer cover pagination, validation, permanent credits, and keeping the previous file intact after failed imports.
+`node tools/verify/verify-credits.mjs` opens the real Settings window in an isolated profile. It checks navigation below Report a bug, every imported nickname, search and no-match results, the four interface languages, a second theme, a narrow window, reduced motion, and closing without a settings draft. It also rejects external network requests during the checks. No owner settings, history, microphone, or models are needed. Unit tests for the roster importer cover pagination, validation, permanent credits, and keeping the previous file intact after failed imports.
 
 `node tools/verify/verify-credits-motion.mjs` checks the floating names, gradient/bloom styling, real vertical movement, non-overlap, bounded visible animation count, scrolling/search, reduced motion and native window hide/restore. Its frame sample describes that isolated fixture on the current computer, rather than a performance guarantee for other hardware.

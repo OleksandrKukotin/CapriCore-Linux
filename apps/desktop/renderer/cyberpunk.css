@@ -2102,345 +2102,11 @@ body[data-presence='core'] #quick-actions {
   background: #5b1d34;
   border-color: #ff6289;
 }
-.support-button {
-  color: #ff63a3 !important;
-  text-shadow: 0 0 9px #ff278e;
-}
-.support-button,
 #settings-guide-open[data-guide-pending]:enabled,
 body[data-phase='offline'] #inference-label:enabled:not([hidden], [aria-expanded='true']) {
   animation: support-glow 3.8s ease-in-out infinite;
 }
-.support-heart {
-  font-size: 48px;
-  color: var(--support-heart-color);
-  text-shadow: 0 0 20px #f7419a99;
-}
-.support-content {
-  --support-heart-color: #ff77ae;
-  --support-frame-gutter: clamp(10px, 8vw - 23px, 34px);
-  text-align: center;
-  line-height: 1.6;
-  position: relative;
-  isolation: isolate;
-  padding: calc(var(--support-frame-gutter) + 2px) var(--support-frame-gutter) 16px;
-  row-gap: calc(var(--support-frame-gutter) + 14px);
-}
-.support-donation-card {
-  position: relative;
-  isolation: isolate;
-  overflow: visible;
-}
-#support-frame {
-  position: absolute;
-  z-index: -1;
-  pointer-events: none;
-}
-body:not(.settings-window) #companion-settings[data-tab='support'] {
-  --frame-color: #ff7cb4;
-  background: radial-gradient(ellipse at 50% 30%, #50203d80, transparent 65%), #08131cf7;
-  box-shadow:
-    0 0 32px #ee3d8c1a,
-    inset 0 0 44px #30e0df09;
-}
-.support-art {
-  position: relative;
-  display: grid;
-  place-items: center;
-  height: 148px;
-  margin: 8px 0 12px;
-  overflow: hidden;
-  background: radial-gradient(ellipse, #fc47951c, transparent 65%);
-}
-.support-art::before,
-.support-art::after {
-  content: '';
-  position: absolute;
-  width: 90px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #8ef5ed88);
-  left: calc(50% - 155px);
-  top: 65px;
-}
-.support-art::after {
-  left: calc(50% + 65px);
-  transform: rotate(180deg);
-}
-.support-art span {
-  position: absolute;
-  bottom: 0;
-  color: #91c9cf;
-  font: 9px/1.4 var(--font-ui, sans-serif);
-  letter-spacing: 2px;
-}
-.support-art .support-heart {
-  position: relative;
-  top: -9px;
-  line-height: 1;
-  transform-origin: center;
-  animation: support-heartbeat 4s ease-in-out infinite;
-  filter: drop-shadow(0 0 14px #ff488c55);
-}
-.support-orbit {
-  position: absolute;
-  top: 10px;
-  width: 110px;
-  height: 110px;
-  border: 1px dashed #8ef5ed55;
-  border-radius: 50%;
-  animation: support-orbit 26s linear infinite;
-}
-.support-orbit::after {
-  content: '';
-  position: absolute;
-  inset: 8px;
-  border: 2px solid transparent;
-  border-top-color: #ff71ad99;
-  border-bottom-color: #ff71ad55;
-  border-radius: 50%;
-  transform: rotate(40deg);
-}
-.support-art i {
-  position: absolute;
-  left: 24%;
-  top: 90px;
-  width: 3px;
-  height: 3px;
-  background: #ff8cbc;
-  box-shadow: 0 0 8px #ff5b9d;
-  animation: support-spark 5s ease-in-out infinite;
-}
-.support-art i:nth-of-type(2) {
-  left: 73%;
-  animation-delay: -1.7s;
-}
-.support-art i:nth-of-type(3) {
-  left: 35%;
-  animation-delay: -3.1s;
-}
-.support-art i:nth-of-type(4) {
-  left: 62%;
-  animation-delay: -4.2s;
-}
-.support-content h3 {
-  color: var(--settings-title, #ffd9e9);
-  text-shadow: 0 0 16px color-mix(in srgb, var(--settings-title, #ff549a) 33%, transparent);
-  letter-spacing: 1px;
-}
-.support-links {
-  display: grid;
-  max-inline-size: 370px;
-  margin-inline: auto;
-  --support-link-gap: 7px;
-  gap: var(--support-link-gap);
-}
-.support-links > div {
-  display: grid;
-  gap: var(--support-link-gap);
-}
-.support-donations {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
-  grid-auto-rows: 1fr;
-}
-.support-content .support-donation-card .support-links {
-  inline-size: min(100%, 360px);
-  justify-content: stretch;
-}
-.support-social {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-.support-links button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 0;
-  min-height: 36px;
-  padding: 5px clamp(7px, 1.5vw, 12px);
-  color: var(--cyan, #8ef5ed);
-  background: var(--theme-panel, #0c2028);
-  border-color: var(--theme-border, #40747b);
-}
-.support-links button:is(:hover, :focus-visible) {
-  border-color: currentColor;
-  box-shadow: 0 0 13px color-mix(in srgb, currentColor 22%, transparent);
-}
-.support-links .support-donations :is(.brand-boosty, .brand-lava) {
-  place-self: stretch;
-  min-height: 40px;
-  padding-inline: 8px;
-  color: #ffb3d0;
-  border-color: #ff71adac;
-  background: #42182c;
-}
-.support-donations :is(.brand-boosty, .brand-lava) > span:last-child {
-  min-inline-size: 0;
-  overflow-wrap: anywhere;
-}
-.support-content .support-donation-browser {
-  max-inline-size: 100%;
-  margin-block-start: 6px;
-  padding: 4px 6px;
-  border: 0;
-  color: var(--cyan, #8ef5ed);
-  background: transparent;
-  font-size: 11px;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  overflow-wrap: anywhere;
-}
-.support-content .support-donation-browser:focus-visible {
-  outline: 1px solid currentColor;
-  outline-offset: 2px;
-}
-.support-links .brand-icon {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 16px;
-  height: 16px;
-}
-.brand-discord .brand-icon {
-  mask: url('/brand/discord.svg') center / contain no-repeat;
-  background-color: #5865f2;
-}
-.brand-github .brand-icon {
-  mask: url('/brand/github.svg') center / contain no-repeat;
-  background-color: #f0f6fc;
-}
-.brand-tiktok .brand-icon {
-  color: #fff;
-  filter: drop-shadow(-1px -0.5px #25f4ee) drop-shadow(1px 0.5px #fe2c55);
-}
-.brand-youtube .brand-icon {
-  color: #f33;
-}
-.support-links .brand-website {
-  --site-brand-green: #00f452;
-  --site-brand-red: #ff003d;
-  gap: 7px;
-}
-.support-links .brand-website .brand-icon {
-  width: 21px;
-  height: 25px;
-}
-.site-brand-wordmark {
-  color: var(--site-brand-green);
-  font-size: 19px;
-  font-style: italic;
-  font-weight: 900;
-  letter-spacing: -0.055em;
-  white-space: nowrap;
-}
-.site-brand-wordmark span:last-child {
-  color: var(--site-brand-red);
-}
-.support-donations .brand-icon {
-  width: 19px;
-  height: 19px;
-  background-size: 240% 100%;
-  animation: support-brand-shimmer 3.8s ease-in-out infinite alternate;
-}
-.brand-boosty .brand-icon {
-  mask: url('/brand/boosty.svg') center / contain no-repeat;
-  background-image: linear-gradient(
-    120deg,
-    #f15f2c 12%,
-    #ff854f 34%,
-    #fff1a8 50%,
-    #ffa45b 71%,
-    #f15f2c 86%
-  );
-}
-.brand-lava .brand-icon {
-  mask: url('/brand/lava.svg') center / contain no-repeat;
-  background-image: linear-gradient(
-    120deg,
-    #fc65db 12%,
-    #ff785e 34%,
-    #fff0aa 50%,
-    #ff9460 65%,
-    #fc65db 85%
-  );
-}
-@keyframes support-brand-shimmer {
-  from {
-    background-position: 95% 50%;
-  }
-  to {
-    background-position: 5% 50%;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
-  .support-donations .brand-icon {
-    animation: none;
-    background-position: 50% 50%;
-  }
-}
-.support-links .brand-icon svg {
-  width: 100%;
-  height: 100%;
-}
-@media (max-width: 540px) {
-  .support-links {
-    --support-link-gap: 6px;
-  }
-  .support-links .support-donations :is(.brand-boosty, .brand-lava) {
-    gap: 4px;
-    padding-inline: 4px;
-  }
-  .support-donations .brand-icon {
-    width: 15px;
-    height: 15px;
-  }
-  .support-social {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .support-links .support-social button {
-    gap: 4px;
-    padding-inline: 6px;
-    font-size: 10px;
-  }
-  .support-links .support-social .brand-icon {
-    width: 13px;
-    height: 13px;
-  }
-}
-@keyframes support-heartbeat {
-  0%,
-  35%,
-  60%,
-  100% {
-    transform: scale(1);
-  }
-  43% {
-    transform: scale(1.13);
-  }
-  51% {
-    transform: scale(1.04);
-  }
-}
-@keyframes support-orbit {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes support-spark {
-  0%,
-  100% {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  35% {
-    opacity: 0.8;
-  }
-  75% {
-    opacity: 0;
-    transform: translateY(-60px);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .support-art *,
   #input-microphone .mic-reticle {
     animation: none !important;
   }
@@ -2558,9 +2224,6 @@ body:not(.settings-window) #companion-settings[data-tab='support'] {
     animation: none;
   }
 }
-.support-content .settings-actions {
-  justify-content: center;
-}
 .beta-badge {
   font-size: 9px;
   letter-spacing: 1px;
@@ -2658,7 +2321,6 @@ body:not(.settings-window) #companion-settings[data-tab='support'] {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .support-button,
   #settings-guide-open[data-guide-pending]:enabled,
   body[data-phase='offline'] #inference-label:enabled:not([hidden], [aria-expanded='true']) {
     animation: none;
@@ -2770,11 +2432,6 @@ body:not(.settings-window) #companion-settings[data-tab='support'] {
   color: var(--menu-selection);
   background: var(--menu-selection-surface);
 }
-#handle .window-actions button.support-button {
-  border-color: #fc6ca383;
-  background: #251425bd;
-  color: #ff86b6;
-}
 #handle .window-actions svg,
 #quick-actions svg,
 #capri-guide .guide-close svg {
@@ -2824,13 +2481,6 @@ body[data-timer-skill='false'] #quick-actions #stopwatch-hud {
 #quick-actions [data-skill-button] svg {
   stroke-linejoin: round;
   stroke-linecap: round;
-}
-.support-developer {
-  color: #92cbd1;
-  letter-spacing: 0.6px;
-}
-.support-developer strong {
-  color: #ff95be;
 }
 #confirmation-dialog {
   position: fixed;
@@ -3466,12 +3116,6 @@ button:enabled:focus-visible {
   background: #071820;
   border: 1px solid #65d5cf;
   color: #bafff6;
-}
-#handle .window-actions button.support-button:is(:hover, :focus-visible) {
-  filter: brightness(1.25);
-  outline: 1px solid #ff9ec4;
-  outline-offset: 2px;
-  box-shadow: 0 0 14px #ff5b9f80;
 }
 
 body[data-presence='core'][data-avatar-detach='attached'] #handle #avatar-detach {
@@ -4232,4 +3876,16 @@ body[data-window-resizable] .window-resize {
 [data-resize-edge='se'] {
   grid-area: 3 / 3;
   cursor: nwse-resize;
+}
+
+/* Wayland: Capri cannot place her window, so the compositor moves it from the
+   header. Edge resizing reads a global cursor that Wayland never reports. */
+:root[data-window-placement='compositor'] #handle {
+  -webkit-app-region: drag;
+}
+:root[data-window-placement='compositor'] #handle button {
+  -webkit-app-region: no-drag;
+}
+:root[data-window-placement='compositor'] .window-resize {
+  display: none;
 }

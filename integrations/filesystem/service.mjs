@@ -353,7 +353,7 @@ export class FileService {
       return this.commitReplacement(id, c, fingerprint, source, original, signal, assertCurrent);
     }
     if (c.action === 'trash')
-      throw new Error('Recycle Bin actions require the Capri desktop approval bridge.');
+      throw new Error('Trash actions require the Capri desktop approval bridge.');
     const destination = ['copy', 'move'].includes(c.action)
       ? this.permissions.target(c.destinationScopeId, c.destination, true)
       : null;
@@ -372,7 +372,7 @@ export class FileService {
       (await fs.stat(path.dirname(source.path))).dev !==
         (await fs.stat(path.dirname(destination.path))).dev
     )
-      throw new Error('Moving across drives is not supported yet. Use copy instead.');
+      throw new Error('Moving between filesystems is not supported yet. Use copy instead.');
     if (['write_text', 'create_directory'].includes(c.action)) {
       try {
         await fs.lstat(source.path);

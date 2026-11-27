@@ -155,7 +155,6 @@ import { ChessPageAccess } from './chess/source.mjs';
 import { registerAccessIpc } from './main/access-ipc.mjs';
 import { registerCompanionIpc } from './main/companion-ipc.mjs';
 import { crashReporter } from './main/crash-report.mjs';
-import { DonationWindow } from './main/donation-window.mjs';
 import { UpdateService } from './update-service.mjs';
 import { GitHubAccess, githubTokenUrl, credentialStorage } from './github-access.mjs';
 import { installSpeechComponents } from '../../packages/installer/src/speech-components.mjs';
@@ -308,7 +307,7 @@ import {
   nativeMusicPackets,
 } from './audio-routing.mjs';
 import { AudioEndpoints } from './audio-endpoints.mjs';
-import { platformFeatures } from './platform-features.mjs';
+import { clientPlacesWindows, platformFeatures } from './platform-features.mjs';
 import { SystemAudioCapture } from './system-audio-capture.mjs';
 import { MusicAudioCapture } from './music-audio-capture.mjs';
 import { MusicListeningService } from './music-listening-service.mjs';
@@ -342,6 +341,7 @@ import {
   LANGUAGE_DEFAULTS,
   LANGUAGE_PACKS,
   INTERFACE_LOCALES,
+  restoreLanguages,
   validateLanguages,
   resolveLanguages,
   languageBehaviorChanged,
@@ -818,6 +818,11 @@ async function initializeDesktop() {
     avatarRoamCapture,
     avatarDesktopUpdate = false;
   const avatarRoaming = new AvatarRoaming();
+  // On Wayland the compositor owns window positions; see clientPlacesWindows.
+  const windowPlacement = clientPlacesWindows({
+    ozonePlatform: app.commandLine.getSwitchValue('ozone-platform'),
+    sessionType: process.env.XDG_SESSION_TYPE,
+  });
   let settingsHost;
   let settingsPreview = {};
   const liveCompanionSettings = () => settingsPreview.companion ?? companionPreferences.value;
@@ -1084,8 +1089,10 @@ async function initializeDesktop() {
   const languages = new Preferences(
     path.join(state, 'languages.json'),
     LANGUAGE_DEFAULTS,
-    validateLanguages,
+    restoreLanguages,
   );
+  // New choices are validated strictly; only restoring old files is lenient.
+  languages.validate = validateLanguages;
   const applications = new Preferences(
     path.join(state, 'applications.json'),
     APPLICATION_DEFAULTS,
@@ -4219,6 +4226,7 @@ async function initializeDesktop() {
 
   function canTeleport() {
     return (
+      windowPlacement &&
       catalog.animated &&
       !sessionLocked &&
       !shuttingDown &&
@@ -4849,6 +4857,7 @@ async function initializeDesktop() {
 
   function avatarRoamingAllowed() {
     return (
+      windowPlacement &&
       liveCompanionSettings().avatarRoaming &&
       backendState.phase === 'ready' &&
       avatarIdleAllowed() &&
@@ -8151,13 +8160,6 @@ async function initializeDesktop() {
         maintenance = false;
       }
     };
-    const donations = new DonationWindow({
-      BrowserWindow,
-      session,
-      shell,
-      dialog,
-      text: (text) => uiText(text, languages.value.interface),
-    });
     const companionAccess = registerCompanionIpc(handle, {
       root,
       state,
@@ -8167,7 +8169,6 @@ async function initializeDesktop() {
       onStyleChanged: () => void syncInitiative().catch(() => observer.publish('failed')),
       dialog: localizedDialog(dialog, (text) => uiText(text, languages.value.interface)),
       getWindow: () => (settingsHost?.window?.isVisible() ? settingsHost.window : window),
-      openDonation: () => donations.open(settingsHost?.window),
       emit,
       shell,
       assertIdle,
@@ -8352,7 +8353,12 @@ async function initializeDesktop() {
           ...(rt.remote.authMode === 'chatgpt' ? { authMode: 'chatgpt' } : {}),
           ...(rt.remote.enabled ? { providerHost: new URL(rt.remote.baseUrl).hostname } : {}),
         },
-        windowSettings: { alwaysOnTop: saved.alwaysOnTop !== false, focusMode, avatarOnly },
+        windowSettings: {
+          alwaysOnTop: saved.alwaysOnTop !== false,
+          focusMode,
+          avatarOnly,
+          placement: windowPlacement,
+        },
         callCamera: callCamera.snapshot(),
         settingsVersions: settingsVersions(),
         screenSettings: media.screen.preferences(),
@@ -9407,6 +9413,9 @@ async function initializeDesktop() {
       return true;
     });
     handle('capri:drag-start', (edge) => {
+      // Without placement the compositor moves the window from its header, and
+      // resizing needs a global cursor that Wayland never reports.
+      if (!windowPlacement) return false;
       stopReplyWindowResize();
       if (edge === undefined) pointer.beginWindow();
       else {

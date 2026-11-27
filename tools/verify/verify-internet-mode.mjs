@@ -47,7 +47,7 @@ writeFileSync(
   JSON.stringify({
     schemaVersion: 1,
     settings: {
-      interface: 'ru',
+      interface: 'uk',
       conversation: 'en',
       recognition: 'follow',
       speech: 'en',
@@ -119,12 +119,12 @@ try {
   const globe = page.locator('#internet-toggle');
   await globe.waitFor({ state: 'visible' });
   assert.equal(await globe.getAttribute('aria-pressed'), 'false');
-  assert.equal(await globe.getAttribute('aria-label'), uiText('Internet mode: Off', 'ru'));
+  assert.equal(await globe.getAttribute('aria-label'), uiText('Internet mode: Off', 'uk'));
   assert(
     (await globe.getAttribute('title')).includes(
       uiText(
         'Search the web for the current request only. Chat history, screenshots and files are not sent automatically.',
-        'ru',
+        'uk',
       ),
     ),
   );
@@ -255,7 +255,7 @@ try {
   );
   assert.equal(
     await mini.locator('#internet-toggle').getAttribute('aria-label'),
-    uiText('Internet mode: On', 'ru'),
+    uiText('Internet mode: On', 'uk'),
   );
   await mini.waitForFunction(
     () =>
@@ -299,11 +299,11 @@ try {
   await emit({ type: 'turn.web-search', turnId, phase: 'searching' });
   await page.waitForFunction(
     (text) => document.getElementById('internet-status').textContent === text,
-    uiText('Searching the web…', 'ru'),
+    uiText('Searching the web…', 'uk'),
   );
   await mini.waitForFunction(
     (text) => document.getElementById('composer-status').textContent === text,
-    uiText('Searching the web…', 'ru'),
+    uiText('Searching the web…', 'uk'),
   );
   assert.equal(await globe.isDisabled(), true);
   assert.equal(await mini.locator('#internet-toggle').isDisabled(), true);
@@ -317,7 +317,7 @@ try {
     if (button.getAttribute('aria-expanded') !== 'true') button.click();
   });
   await page.locator('.message-source-heading').waitFor();
-  assert.equal(await page.locator('.message-source-heading').innerText(), uiText('Sources', 'ru'));
+  assert.equal(await page.locator('.message-source-heading').innerText(), uiText('Sources', 'uk'));
   assert.equal(await page.locator('.message-web-sources button').count(), 1);
   assert.equal(await page.locator('.message-web-sources img,.message-web-sources a').count(), 0);
   await page.locator('.message-web-sources button').click();
@@ -331,11 +331,11 @@ try {
     await emit({ type: 'turn.web-search', turnId, phase: 'unavailable', message });
     await page.waitForFunction(
       (text) => document.getElementById('internet-status').textContent === text,
-      uiText(message, 'ru'),
+      uiText(message, 'uk'),
     );
     await mini.waitForFunction(
       (text) => document.getElementById('composer-status').textContent === text,
-      uiText(message, 'ru'),
+      uiText(message, 'uk'),
     );
   }
   await emit({

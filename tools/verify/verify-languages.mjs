@@ -228,24 +228,24 @@ try {
       conversation: 'en',
       speech: 'follow',
       recognition: 'off',
-      interface: 'ru',
+      interface: 'uk',
     }),
   );
   await openSection('voice');
   assert.equal(await page.locator('#language-speech option').count(), 2);
   assert.ok(
     (await page.locator('#language-speech option[value="follow"]').textContent()).endsWith(
-      uiText('Not installed', 'ru'),
+      uiText('Not installed', 'uk'),
     ),
   );
   assert.equal(
     await page.locator('#language-status').textContent(),
-    uiText('Voice is not installed. Use Install below.', 'ru'),
+    uiText('Voice is not installed. Use Install below.', 'uk'),
   );
   assert.equal(await page.locator('#language-install-speech').isVisible(), true);
   assert.equal(
     await page.locator('#language-install-speech').textContent(),
-    uiText('Install', 'ru'),
+    uiText('Install', 'uk'),
   );
   checks.push(
     'Spoken replies offers one-click installation of a missing English voice, with Russian instructions and no folder picker',
@@ -256,7 +256,7 @@ try {
   await page.locator('#confirmation-dialog').waitFor({ state: 'visible' });
   assert.equal(
     await page.locator('#confirmation-title').textContent(),
-    uiText('Selected voice is not installed', 'ru'),
+    uiText('Selected voice is not installed', 'uk'),
   );
   assert.equal(
     (await snapshot()).languages.conversation,

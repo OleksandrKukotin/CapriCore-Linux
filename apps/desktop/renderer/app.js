@@ -311,7 +311,6 @@ const companionPanel = new CompanionPanel({
     wakeFeedback.configure(value, () => api.wakeAudio());
   },
 });
-document.getElementById('support-author').onclick = () => api.openSettings('support');
 document.getElementById('report-bug').onclick = () => api.openSettings('bug');
 const inferencePicker = new InferencePicker({
   button: document.getElementById('inference-label'),
@@ -3710,6 +3709,9 @@ window.addEventListener(
 try {
   const snapshot = await api.bootstrap();
   if (snapshot.portraitFallback) signalFx.crt.disableForSession();
+  // On Wayland the compositor moves the window (see cyberpunk.css).
+  if (snapshot.windowSettings?.placement === false)
+    document.documentElement.dataset.windowPlacement = 'compositor';
   cameraPublisher.setState(snapshot.callCamera);
   await prepareInterfaceLocale(snapshot.languages.interface);
   skillState = snapshot.skills ?? {};
@@ -3745,6 +3747,7 @@ try {
   memoryHUD.configure(snapshot.companion);
   signalFx.configure(snapshot.companion);
   companionPanel.show(snapshot.companion);
+  companionPanel.setWindowPlacement(snapshot.windowSettings?.placement !== false);
   wakeFeedback.configure(snapshot.companion, () => api.wakeAudio());
   backend = snapshot.backend;
   activeTurnId = snapshot.activeTurnId;

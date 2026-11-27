@@ -199,7 +199,7 @@ export function registerActionToolSkills(
       trashFile:
         trash ??
         (() => {
-          throw new Error('Recycle Bin is unavailable.');
+          throw new Error('The trash is unavailable.');
         }),
     });
   if (workflows)

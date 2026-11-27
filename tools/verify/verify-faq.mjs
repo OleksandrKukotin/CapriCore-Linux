@@ -169,8 +169,8 @@ try {
   if ((await firstItem.getAttribute('open')) === null) await firstQuestion.click();
   const firstId = await firstItem.getAttribute('data-faq-id');
   for (const [locale, direction, script] of [
-    ['ru', 'ltr', /\p{Script=Cyrillic}{3}/u],
-    ['ar', 'rtl', /\p{Script=Arabic}{3}/u],
+    ['uk', 'ltr', /\p{Script=Cyrillic}{3}/u],
+    ['pl', 'ltr', /[ąćęłńóśźż]/u],
   ]) {
     await setLanguage(locale);
     await page.waitForFunction(

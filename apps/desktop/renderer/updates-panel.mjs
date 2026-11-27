@@ -34,15 +34,11 @@ export class UpdatesPanel {
           <p class="settings-help" id="updates-preserve">Your history, memory, models and personal settings are kept. Capri restarts only when you choose to install.</p>
           <p class="settings-help" id="updates-source" hidden>This is a development checkout. The downloaded installer creates or updates a separate managed installation.</p>
           <p class="settings-help" id="updates-full" hidden>The full installer will open; select your current installation folder to keep your data.</p>
-          <p class="settings-help">Updates come from CapriChooms/CapriCore on GitHub and are checked with SHA-256 before installation.</p>
+          <p class="settings-help" id="updates-checkout" hidden>This is a source checkout. Update it with git pull, then restart Capri.</p>
+          <p class="settings-help">Updates come from the CapriCore-Linux releases on GitHub.</p>
         </section>
         <section class="settings-card">
           <label class="update-channel"><input id="updates-experimental" type="checkbox">Include experimental updates</label>
-          <p class="settings-help">Experimental builds in the private repository are available to Lava.top subscribers with GitHub access.</p>
-          <div class="settings-actions">
-            <button type="button" id="updates-lava" data-untranslated>Lava.top</button>
-            <button type="button" id="updates-boosty" data-untranslated>Boosty</button>
-          </div>
           <p class="settings-help">Experimental versions may contain unfinished features and bugs. Stable updates are selected by default.</p>
         </section>
         <section class="settings-card">
@@ -56,27 +52,9 @@ export class UpdatesPanel {
             <button id="updates-release-page" type="button" hidden>Open on GitHub</button>
           </div>
         </section>
-        <section class="settings-card github-access-card">
-          <h3 data-untranslated>GitHub</h3><p class="settings-help">Public updates do not require a GitHub account or token.</p><p id="updates-access-status" class="settings-help" role="status"></p>
-          <details id="updates-access-details"><summary><span>Connect GitHub for private updates</span> <code data-untranslated>CapriChooms/Capri</code></summary>
-            <label for="updates-token">GitHub access token</label><input id="updates-token" type="password" maxlength="255" autocomplete="new-password" spellcheck="false" dir="ltr" data-untranslated placeholder="ghp_… / github_pat_…">
-            <div class="settings-actions"><button type="button" id="updates-connect">Save and check access</button><button type="button" id="updates-forget">Remove saved access</button></div>
-            <details class="settings-help"><summary>Create read-only token</summary>
-              <ol><li>Open GitHub and create a fine-grained token.</li><li>Select CapriChooms as resource owner, only the Capri repository, and Contents: Read-only.</li><li>Copy the token below. If GitHub shows Pending, the organization owner must approve it first.</li></ol>
-              <button type="button" id="updates-token-page">Create read-only token</button>
-              <p>Accept the organization invitation or ask Overyx for membership with Read access. GitHub fine-grained tokens do not support outside collaborators on organization repositories. Existing GitHub CLI or classic tokens also work; classic token scopes are broader, so organization membership with a read-only token is preferred.</p>
-              <div class="settings-actions"><button type="button" id="updates-classic-token-page"><span>GitHub access token</span><code data-untranslated> (classic · repo)</code></button></div>
-            </details>
-            <p class="settings-help">The token is encrypted for your Windows account and stays on this PC. Capri uses it only to read releases and download files. Never send your token in a bug report.</p>
-          </details>
-        </section>
       </div>`;
     document.getElementById('companion').append(this.panel);
     this.get = (id) => this.panel.querySelector('#updates-' + id);
-    this.get('lava').onclick = () =>
-      api.communityLink('lava').catch((error) => onError(error.message));
-    this.get('boosty').onclick = () =>
-      api.communityLink('boosty').catch((error) => onError(error.message));
     let history = [];
     const selectedVersion = () => history.find(({ id }) => id === this.get('version').value);
     const showVersion = () => {
@@ -103,11 +81,7 @@ export class UpdatesPanel {
         );
         this.get('version').disabled = !history.length;
         this.get('history-status').textContent = this.ui.text(
-          result.previewUnavailable
-            ? 'Private preview versions are unavailable. Connect GitHub to see them.'
-            : history.length
-              ? ''
-              : 'No releases found.',
+          history.length ? '' : 'No releases found.',
         );
         showVersion();
       } catch (error) {
@@ -126,40 +100,6 @@ export class UpdatesPanel {
     this.get('release-page').onclick = () =>
       api.openUpdateVersion(selectedVersion()?.id).catch((error) => onError(error.message));
     this.get('close').onclick = () => this.open(false);
-    this.get('token-page').onclick = () =>
-      api.openGitHubTokenPage().catch((error) => onError(error.message));
-    this.get('classic-token-page').onclick = () =>
-      api.openGitHubTokenPage('classic').catch((error) => onError(error.message));
-    this.get('connect').onclick = async () => {
-      this.accessBusy = true;
-      this.syncAccessControls();
-      this.get('access-status').textContent = this.ui.text('Checking GitHub access…');
-      try {
-        this.showAccess(await api.connectGitHub(this.get('token').value));
-        this.get('access-details').open = false;
-        this.show(await api.checkUpdates(this.settings()));
-      } catch (error) {
-        this.get('access-status').textContent = this.ui.text(error.message);
-        this.get('access-status').scrollIntoView({ block: 'nearest' });
-      } finally {
-        this.get('token').value = '';
-        this.accessBusy = false;
-        this.syncAccessControls();
-      }
-    };
-    this.get('forget').onclick = async () => {
-      this.accessBusy = true;
-      this.syncAccessControls();
-      try {
-        this.showAccess(await api.removeGitHub());
-        this.get('token').value = '';
-      } catch (error) {
-        onError(error.message);
-      } finally {
-        this.accessBusy = false;
-        this.syncAccessControls();
-      }
-    };
     const changeSetting = async () => {
       if (this.deferDrafts) {
         this.show(this.value);
@@ -221,10 +161,14 @@ export class UpdatesPanel {
       ? [value.release?.tag, value.release?.repository].filter(Boolean).join(' · ')
       : '';
     this.get('error').textContent = currentChannel && value.error ? this.ui.text(value.error) : '';
-    if (value.needsAccess) this.get('access-details').open = true;
     this.get('check').disabled = busy;
+    // A source checkout updates with git pull; Capri never replaces its files.
     this.get('download').hidden =
-      !currentChannel || !value.release || busy || value.phase === 'ready';
+      value.mode === 'checkout' ||
+      !currentChannel ||
+      !value.release ||
+      busy ||
+      value.phase === 'ready';
     this.get('download').disabled = busy;
     this.get('cancel').hidden = !['checking', 'downloading'].includes(value.phase);
     this.get('cancel').disabled = false;
@@ -236,6 +180,7 @@ export class UpdatesPanel {
         : 'Open installer',
     );
     this.get('source').hidden = value.mode !== 'installer';
+    this.get('checkout').hidden = value.mode !== 'checkout';
     this.get('full').hidden = value.mode !== 'managed' || !value.installerRequired;
     this.get('preserve').hidden = value.mode !== 'managed';
     const progress = this.get('progress');
@@ -251,46 +196,15 @@ export class UpdatesPanel {
   async open(open) {
     if ((await this.onOpen(open)) === false) return false;
     this.panel.hidden = !open;
-    if (!open) this.get('token').value = '';
     if (open) {
       this.show(await this.api.updateStatus());
-      if (this.api.githubStatus) this.showAccess(await this.api.githubStatus());
       this.ui.apply(this.ui.language);
     }
     return true;
   }
-  showAccess(value) {
-    this.access = value;
-    this.get('access-status').textContent = this.ui.text(
-      value.error ??
-        (value.secureStorage === false
-          ? 'Secure credential storage is unavailable. GitHub access was not saved.'
-          : value.connected
-            ? `${this.ui.text('GitHub access token')}: ${this.ui.text('Ready')}`
-            : ''),
-    );
-    this.get('access-status').hidden = !this.get('access-status').textContent;
-    this.get('forget').hidden = !value.connected && !value.error;
-    this.syncAccessControls();
-  }
   syncAccessControls() {
-    const busy = Boolean(
-      this.accessBusy ||
-        this.access?.checking ||
-        ['checking', 'downloading', 'verifying', 'installing'].includes(this.value?.phase),
-    );
-    for (const id of [
-      'check',
-      'automatic',
-      'experimental',
-      'download',
-      'install',
-      'forget',
-      'token',
-      'token-page',
-      'classic-token-page',
-    ])
+    const busy = ['checking', 'downloading', 'verifying', 'installing'].includes(this.value?.phase);
+    for (const id of ['check', 'automatic', 'experimental', 'download', 'install'])
       this.get(id).disabled = busy;
-    this.get('connect').disabled = busy || this.access?.secureStorage === false;
   }
 }

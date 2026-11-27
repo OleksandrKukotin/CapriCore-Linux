@@ -143,24 +143,27 @@ test('localized Chess reactions use the current style and the verified checker',
     checkers: ['r'],
     advantage: 'b',
   };
-  for (const [style, expected] of [
-    ['neutral', /Ладья белых даёт шах.*Перевес у чёрных/iu],
-    ['romantic', /Ладья белых даёт шах.*Я теперь смотрю/iu],
-    ['business', /Ладья белых даёт шах.*У чёрных перевес/iu],
-    ['wild', /Ладья белых даёт шах.*рука на пульте/iu],
+  for (const [language, style, expected, wrongPiece] of [
+    ['en', 'neutral', /White’s rook gives check.*Black has the edge/u, /bishop/iu],
+    ['en', 'wild', /White’s rook gives check.*hand on the controls/u, /bishop/iu],
+    ['uk', 'neutral', /Білі — Шах\. Тура\. Чорні — перевага\. Я це помітила/u, /слон/iu],
+    ['uk', 'romantic', /Тура.*Мені подобається дивитися, як ти граєш/u, /слон/iu],
+    ['uk', 'business', /Тура.*Тепер важлива відповідь/u, /слон/iu],
+    ['uk', 'wild', /Тура.*На дошці аж іскрить/u, /слон/iu],
   ]) {
     const lines = [];
     const reactions = new ChessReactions({
       preferences: () => preferences,
       allowed: () => true,
-      language: () => 'ru',
+      language: () => language,
       style: () => style,
       random: () => 0,
       deliver: (text) => lines.push(text),
     });
     reactions.submit([move]);
-    assert.match(lines[0], expected, style);
-    assert.doesNotMatch(lines[0], /слон/iu);
+    // The checking rook is named, never the bishop that moved.
+    assert.match(lines[0], expected, `${language} ${style}`);
+    assert.doesNotMatch(lines[0], wrongPiece);
   }
 });
 

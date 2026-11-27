@@ -178,11 +178,11 @@ try {
   await page.screenshot({ path: path.join(folder, 'update-en.png') });
   const languages = await page.evaluate(async () => (await window.capri.bootstrap()).languages);
   await page.evaluate(
-    (value) => window.capri.setLanguages({ ...value, interface: 'ru' }),
+    (value) => window.capri.setLanguages({ ...value, interface: 'uk' }),
     languages,
   );
-  await page.waitForFunction(() => document.documentElement.lang === 'ru');
-  assert.match(await banner.textContent(), /Доступно новое обновление v99\.0\.0/);
+  await page.waitForFunction(() => document.documentElement.lang === 'uk');
+  assert.match(await banner.textContent(), /Доступне нове оновлення: v99\.0\.0/);
   await page.screenshot({ path: path.join(folder, 'update-ru.png') });
   checks.push('available release: one localized, accessible desktop card');
 
@@ -209,22 +209,15 @@ try {
     }
   }
   await assertCardFits();
-  await page.screenshot({ path: path.join(folder, 'update-ru-compact.png') });
+  await page.screenshot({ path: path.join(folder, 'update-uk-compact.png') });
   await page.evaluate(
-    (value) => window.capri.setLanguages({ ...value, interface: 'ar' }),
+    (value) => window.capri.setLanguages({ ...value, interface: 'uk' }),
     languages,
   );
-  await page.waitForFunction(() => document.documentElement.dir === 'rtl');
-  await assertCardFits();
-  await page.screenshot({ path: path.join(folder, 'update-ar-compact.png') });
-  await page.evaluate(
-    (value) => window.capri.setLanguages({ ...value, interface: 'ru' }),
-    languages,
-  );
-  await page.waitForFunction(() => document.documentElement.lang === 'ru');
-  checks.push('compact layout, RTL and reduced motion keep all actions within the window');
+  await page.waitForFunction(() => document.documentElement.lang === 'uk');
+  checks.push('compact layout and reduced motion keep all actions within the window');
 
-  await banner.getByRole('button', { name: 'Напомнить позже', exact: true }).click();
+  await banner.getByRole('button', { name: 'Нагадати пізніше', exact: true }).click();
   await banner.waitFor({ state: 'hidden' });
   assert.equal((await page.evaluate(() => window.capri.updateStatus())).notification, null);
   assert.deepEqual(await requests(), { checks: 1, downloads: 0 });
@@ -239,7 +232,7 @@ try {
   });
   await page
     .locator('#update-notification')
-    .getByRole('button', { name: 'Обновить', exact: true })
+    .getByRole('button', { name: 'Оновити', exact: true })
     .click();
   await page.waitForFunction(async () => (await window.capri.updateStatus()).phase === 'ready');
   const settings = await settingsOpened;
@@ -298,7 +291,7 @@ try {
   assert.deepEqual(notices, { toasts: 1, tray: true, visible: [false] });
   assert.match(
     await application.evaluate(() => globalThis.updateFixtureToast.content),
-    /Доступно новое обновление v99\.0\.0/,
+    /Доступне нове оновлення: v99\.0\.0/,
   );
   const preferencesWindow = application.waitForEvent('window', {
     predicate: (candidate) => candidate !== page,
@@ -318,7 +311,7 @@ try {
   assert.equal(await automatic.isChecked(), true);
   assert.match(
     await preferences.locator('label:has(#updates-automatic)').textContent(),
-    /Автоматически проверять наличие обновлений/,
+    /Автоматично перевіряти наявність оновлень/,
   );
   await automatic.uncheck();
   // An automatic status event must not restore an unsaved checkbox.
