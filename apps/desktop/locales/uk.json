@@ -78,6 +78,7 @@
     "A fresh description joins your next chat message; capture metadata stays in diagnostics; stale views are marked. Images stay temporary. Background vision may affect the next response time.": "Нова описова інформація додається до вашого наступного повідомлення чату; метадані захоплення зберігаються в діагностиці; застарілі перегляди позначаються. Зображення залишаються тимчасовими. Фоновий візуальний аналіз може впливати на час наступної відповіді.",
     "A generated owned clip fixture is required in verification": "Для перевірки потрібен згенерований власний відеоряд",
     "A new version is available.": "Доступна нова версія.",
+    "This is a source checkout. Update it with git pull, then restart Capri.": "Це копія вихідного коду. Оновіть її командою git pull, а потім перезапустіть Capri.",
     "A private recovery copy will also be kept. Folders are not supported.": "Приватна копія для відновлення також буде збережена. Папки не підтримуються.",
     "A reply is already in progress.": "Відповідь вже обробляється.",
     "A screen update was skipped. Retrying later.": "Оновлення екрану пропущено. Спроба повториться пізніше.",

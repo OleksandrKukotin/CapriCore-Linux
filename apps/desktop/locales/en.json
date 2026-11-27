@@ -76,6 +76,7 @@
     "A fresh description joins your next chat message; capture metadata stays in diagnostics; stale views are marked. Images stay temporary. Background vision may affect the next response time.": "A fresh description joins your next chat message; capture metadata stays in diagnostics; stale views are marked. Images stay temporary. Background vision may affect the next response time.",
     "A generated owned clip fixture is required in verification": "A generated owned clip fixture is required in verification",
     "A new version is available.": "A new version is available.",
+    "This is a source checkout. Update it with git pull, then restart Capri.": "This is a source checkout. Update it with git pull, then restart Capri.",
     "A private recovery copy will also be kept. Folders are not supported.": "A private recovery copy will also be kept. Folders are not supported.",
     "A reply is already in progress.": "A reply is already in progress.",
     "A screen update was skipped. Retrying later.": "A screen update was skipped. Retrying later.",

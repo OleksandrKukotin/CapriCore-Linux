@@ -5,7 +5,6 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { createHash, randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
 import { _electron as electron } from 'playwright-core';
 import { root, runtime, initialize, environment } from '../../packages/runtime/src/index.mjs';
@@ -34,7 +33,6 @@ const env = {
 delete env.ELECTRON_RUN_AS_NODE;
 let application;
 const fixtureToken = 'ghp_' + 'f'.repeat(40);
-const fixtureInstaller = randomBytes(20000);
 try {
   application = await electron.launch({
     executablePath: createRequire(import.meta.url)('electron'),
@@ -47,7 +45,7 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   await page.waitForFunction(() => document.body.dataset.phase === 'ready');
   await application.evaluate(
-    async ({ BrowserWindow, shell }, { digest, token, fixture }) => {
+    async ({ BrowserWindow, shell }, { token }) => {
       const window = BrowserWindow.getAllWindows().find(
         (item) => item.webContents.getURL() === 'capri://desktop/index.html',
       );
@@ -56,8 +54,9 @@ try {
       shell.openExternal = async (url) => {
         globalThis.fixtureReleasePage = url;
       };
-      const bytes = Buffer.from(fixture, 'base64');
       const original = globalThis.fetch;
+      // Release-list requests in order, so each check can assert what was sent.
+      globalThis.fixtureListAuthorizations = [];
       globalThis.fetch = async (url, options) => {
         const address = String(url);
         const authorization = new Headers(options.headers).get('authorization');
@@ -65,25 +64,10 @@ try {
           throw Error('Unexpected fixture credential');
         if (
           address.startsWith(
-            'https://api.github.com/repos/OleksandrKukotin/CapriCore-Linux/releases/assets/',
+            'https://api.github.com/repos/OleksandrKukotin/CapriCore-Linux/releases?',
           )
-        ) {
-          let at = 0;
-          return new Response(
-            new ReadableStream({
-              async pull(controller) {
-                await new Promise((resolve) => setTimeout(resolve, 70));
-                if (at >= bytes.length) {
-                  controller.close();
-                  return;
-                }
-                controller.enqueue(bytes.subarray(at, at + 1000));
-                at += 1000;
-              },
-            }),
-            { headers: { 'content-length': String(bytes.length) } },
-          );
-        }
+        )
+          globalThis.fixtureListAuthorizations.push(authorization);
         if (
           address.startsWith(
             'https://api.github.com/repos/OleksandrKukotin/CapriCore-Linux/releases?',
@@ -103,26 +87,14 @@ try {
                 prerelease: true,
                 draft: false,
                 body: 'Preview release notes',
-                assets: [
-                  {
-                    id: 123,
-                    name: 'CapriSetup-99.0.0.exe',
-                    state: 'uploaded',
-                    size: bytes.length,
-                    digest: 'sha256:' + digest,
-                  },
-                ],
+                assets: [],
               },
             ]),
           );
         return original(url, options);
       };
     },
-    {
-      digest: createHash('sha256').update(fixtureInstaller).digest('hex'),
-      token: fixtureToken,
-      fixture: fixtureInstaller.toString('base64'),
-    },
+    { token: fixtureToken },
   );
   await page.evaluate(() => window.capri.openSettings('updates'));
   const settings = application
@@ -131,6 +103,8 @@ try {
   assert(settings, 'Settings window was not opened.');
   settings.on('pageerror', (error) => errors.push(error.message));
   await settings.locator('#updates-panel').waitFor({ state: 'visible' });
+  const listAuthorizations = () =>
+    application.evaluate(() => globalThis.fixtureListAuthorizations.splice(0));
   await settings.locator('#updates-versions').click();
   await settings.waitForFunction(() => !document.getElementById('updates-versions').disabled);
   assert.equal(await settings.locator('#settings-notice').textContent(), '');
@@ -146,8 +120,35 @@ try {
     async () => (await window.capri.updateStatus()).phase === 'current',
   );
   assert.equal((await settings.evaluate(() => window.capri.githubStatus())).connected, false);
+  const anonymous = await listAuthorizations();
+  assert(anonymous.length > 0, 'No release list was requested.');
+  assert.deepEqual(new Set(anonymous), new Set([null]), 'A token was sent before one was saved.');
+  // Linux without a keyring service falls back to Electron's basic_text backend,
+  // which Capri rightly refuses as secure storage. Only then, replace safeStorage
+  // in this verification process with a reversible fixture that reports a real
+  // backend; with a keyring, the OS backend is exercised unchanged.
+  const fixtureStorage = await application.evaluate(async ({ safeStorage }) => {
+    const available = await safeStorage.isAsyncEncryptionAvailable();
+    if (
+      available &&
+      !(process.platform === 'linux' && safeStorage.getSelectedStorageBackend() === 'basic_text')
+    )
+      return false;
+    const prefix = Buffer.from('capri-verification-storage:');
+    Object.assign(safeStorage, {
+      isAsyncEncryptionAvailable: async () => true,
+      getSelectedStorageBackend: () => 'gnome_libsecret',
+      encryptStringAsync: async (value) => Buffer.concat([prefix, Buffer.from(value)]),
+      decryptStringAsync: async (value) => {
+        if (!value.subarray(0, prefix.length).equals(prefix))
+          throw Error('Not a fixture ciphertext');
+        return { result: value.subarray(prefix.length).toString(), shouldReEncrypt: false };
+      },
+    });
+    return true;
+  });
   // Auth IPC is deliberately disabled in verification. Seed only this isolated
-  // profile with a synthetic Windows-encrypted credential.
+  // profile with an encrypted synthetic credential.
   const ciphertext = await application.evaluate(
     async ({ safeStorage }, token) =>
       (await safeStorage.encryptStringAsync(token)).toString('base64'),
@@ -164,6 +165,13 @@ try {
     async () => (await window.capri.updateStatus()).phase === 'current',
   );
   assert.equal((await settings.evaluate(() => window.capri.githubStatus())).connected, true);
+  const saved = await listAuthorizations();
+  assert(saved.length > 0, 'No release list was requested after saving a token.');
+  assert.deepEqual(
+    new Set(saved),
+    new Set(['Bearer ' + fixtureToken]),
+    'The saved token was not sent with the update check.',
+  );
   await settings.locator('#updates-experimental').check();
   assert.equal((await settings.evaluate(() => window.capri.updateStatus())).experimental, false);
   await settings.locator('#updates-versions').click();
@@ -172,18 +180,17 @@ try {
     .selectOption('OleksandrKukotin/CapriCore-Linux@v99.0.0');
   assert.equal(await settings.locator('#updates-changelog').textContent(), 'Preview release notes');
   await settings.locator('#updates-select').click();
-  await settings.locator('#updates-download').waitFor({ state: 'visible' });
-  assert.equal((await settings.evaluate(() => window.capri.updateStatus())).release.tag, 'v99.0.0');
+  await settings.waitForFunction(
+    async () => (await window.capri.updateStatus()).release?.tag === 'v99.0.0',
+  );
+  // A source checkout updates with git pull: no download, no installer.
+  assert.equal((await settings.evaluate(() => window.capri.updateStatus())).mode, 'checkout');
+  assert.equal(await settings.locator('#updates-checkout').isVisible(), true);
+  assert.equal(await settings.locator('#updates-download').isVisible(), false);
+  assert.equal(await settings.locator('#updates-install').isVisible(), false);
   assert.equal(await settings.locator('#settings-notice').textContent(), '');
   await saveSettings(settings);
   await settings.waitForFunction(async () => (await window.capri.updateStatus()).experimental);
-  await settings.locator('#updates-download').click();
-  await settings.locator('#updates-progress').waitFor({ state: 'visible' });
-  await settings.screenshot({ path: path.join(folder, 'downloading.png') });
-  await settings.locator('#updates-install').waitFor({ state: 'visible' });
-  assert.equal((await settings.evaluate(() => window.capri.updateStatus())).phase, 'ready');
-  assert.equal(await settings.locator('#updates-release').textContent(), 'v99.0.0');
-  assert.equal(await settings.locator('#updates-install').textContent(), 'Open installer');
   assert.equal(
     await settings.evaluate(() =>
       window.capri.installUpdate().then(
@@ -193,34 +200,39 @@ try {
     ),
     false,
   );
-  await settings.screenshot({ path: path.join(folder, 'ready-en.png') });
+  await settings.screenshot({ path: path.join(folder, 'available-en.png') });
   await settings.locator('[data-section="languages"]').click();
-  await settings.locator('#language-interface').selectOption('ru');
+  await settings.locator('#language-interface').selectOption('uk');
   await saveSettings(settings);
-  await settings.waitForFunction(() => document.documentElement.lang === 'ru');
+  await settings.waitForFunction(() => document.documentElement.lang === 'uk');
   await settings.locator('[data-section="updates"]').click();
-  await settings.waitForFunction(() =>
-    document.getElementById('updates-status').textContent.includes('готово'),
+  await settings.waitForFunction(
+    () =>
+      document.getElementById('updates-status').textContent.includes('Доступна нова версія') &&
+      document.getElementById('updates-checkout').textContent.includes('git pull'),
   );
-  await settings.screenshot({ path: path.join(folder, 'ready-ru.png') });
+  assert.notEqual(
+    await settings.locator('#updates-checkout').textContent(),
+    'This is a source checkout. Update it with git pull, then restart Capri.',
+  );
+  await settings.screenshot({ path: path.join(folder, 'available-uk.png') });
   assert.equal(await settings.locator('#updates-experimental').isChecked(), true);
   assert.deepEqual(errors, []);
   console.log(
     JSON.stringify({
       passed: true,
       checks: [
-        'public update checks without a GitHub token',
+        'public update checks send no GitHub token',
         'release history and changelog without a GitHub token',
         'selecting an update and opening its GitHub release page from Settings',
-        'optional Windows-encrypted GitHub credential remains supported',
+        'a saved GitHub credential is sent with update checks',
         'stable and experimental channel selection',
-        'verified download over real IPC',
-        'progress display',
-        'safe development-checkout mode',
-        'Russian interface',
+        'a source checkout offers git pull, with no download or installer',
+        'Ukrainian interface',
         'persistent experimental setting',
-        'installer execution disabled in verification',
+        'installer execution refused for a checkout',
       ],
+      secureStorage: fixtureStorage ? 'verification fixture (no OS keyring)' : 'operating system',
       screenshots: folder,
       ownerDataAccessed: false,
     }),

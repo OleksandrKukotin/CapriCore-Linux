@@ -78,6 +78,7 @@
     "A fresh description joins your next chat message; capture metadata stays in diagnostics; stale views are marked. Images stay temporary. Background vision may affect the next response time.": "Świeży opis jest dołączany do Twojej następnej wiadomości; metadane przechwytywania pozostają w diagnostyce, a nieaktualne widoki są oznaczane. Obrazy są przechowywane tymczasowo. Analiza obrazu w tle może wpłynąć na czas następnej odpowiedzi.",
     "A generated owned clip fixture is required in verification": "Do weryfikacji wymagany jest wygenerowany element montażu klipu",
     "A new version is available.": "Dostępna jest nowa wersja.",
+    "This is a source checkout. Update it with git pull, then restart Capri.": "To jest kopia kodu źródłowego. Zaktualizuj ją poleceniem git pull, a następnie uruchom ponownie Capri.",
     "A private recovery copy will also be kept. Folders are not supported.": "Prywatna kopia odzyskiwania również zostanie zachowana. Foldery nie są obsługiwane.",
     "A reply is already in progress.": "Odpowiedź jest już w toku.",
     "A screen update was skipped. Retrying later.": "Aktualizacja ekranu została pominięta. Ponowna próba później.",
