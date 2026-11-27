@@ -97,11 +97,17 @@ const RETIRED_INTERFACE_LOCALES = new Set([
   'sw',
   'af',
 ]);
-/** Validates saved settings, moving a retired interface language to English. */
+// Conversation languages CapriCore-Linux no longer supports.
+const RETIRED_CONVERSATION_LANGUAGES = new Set(['ru']);
+/** Validates saved settings, moving retired interface and conversation languages to English. */
 export function restoreLanguages(value) {
-  return validateLanguages(
-    value && RETIRED_INTERFACE_LOCALES.has(value.interface) ? { ...value, interface: 'en' } : value,
-  );
+  if (!value) return validateLanguages(value);
+  const next = { ...value };
+  if (RETIRED_INTERFACE_LOCALES.has(next.interface)) next.interface = 'en';
+  if (RETIRED_CONVERSATION_LANGUAGES.has(next.conversation)) next.conversation = 'en';
+  if (RETIRED_CONVERSATION_LANGUAGES.has(next.recognition)) next.recognition = 'follow';
+  if (RETIRED_CONVERSATION_LANGUAGES.has(next.speech)) next.speech = 'follow';
+  return validateLanguages(next);
 }
 export function validateLanguages(value) {
   if (

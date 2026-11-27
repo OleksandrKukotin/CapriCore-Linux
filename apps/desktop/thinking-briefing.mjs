@@ -83,7 +83,7 @@ export function thinkingBriefing({ url, model, params = {}, fetchImpl = fetch, t
       // Skip it without a retry or canned substitute; the actual answer still proceeds.
       if (
         briefing &&
-        /^(?:this (?:task|question|request)|the user (?:asks|wants|requests)|(?:эта|данная) задача|(?:этот|данный) (?:вопрос|запрос)|пользователь (?:просит|хочет|спрашивает))(?=$|[^\p{L}\p{N}_])/iu.test(
+        /^(?:this (?:task|question|request)|the user (?:asks|wants|requests))(?=$|[^\p{L}\p{N}_])/iu.test(
           briefing.text,
         )
       )

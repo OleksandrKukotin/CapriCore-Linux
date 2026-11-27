@@ -28,13 +28,7 @@ ROCM = {
     'torchaudio': ('torchaudio-2.9.1+rocm7.2.1-cp312-cp312-win_amd64.whl', 514708,
                    '62835605995c7812a3224733abf08e222afddb7a487c493521e613ca46e578ab'),
 }
-CUDA = {
-    'torch': ('torch-2.7.1+cu128-cp311-cp311-win_amd64.whl', 3273066072,
-              '138c66dcd0ed2f07aafba3ed8b7958e2bed893694990e0b4b55b6b2b4a336aa6'),
-    'torchaudio': ('torchaudio-2.7.1+cu128-cp311-cp311-win_amd64.whl', 4660477,
-                   '37a42de8c0f601dc0bc7dcccc4049644ef5adcf45920dd5813c339121e5b5a8c'),
-}
-PACKAGES = {'cuda': CUDA, 'rocm': ROCM}
+PACKAGES = {'rocm': ROCM}
 
 
 class GpuDeviceError(RuntimeError):
@@ -101,12 +95,11 @@ def verify_runtime(root, backend, *, check_device=True):
         raise ValueError('Acceleration verification requires its own Python environment.')
     import torch
     from qwen_tts import Qwen3TTSModel  # noqa: F401
-    from ruaccent import RUAccent  # noqa: F401
 
-    tag = 'rocm7.2.1' if backend == 'rocm' else 'cu128'
-    expected = f'2.9.1+{tag}' if backend == 'rocm' else f'2.7.1+{tag}'
+    tag = 'rocm7.2.1'
+    expected = f'2.9.1+{tag}'
     hip = getattr(torch.version, 'hip', None)
-    matching = bool(hip and hip.startswith('7.2')) if backend == 'rocm' else torch.version.cuda == '12.8' and not hip
+    matching = bool(hip and hip.startswith('7.2'))
     if not matching or any(version(package) != expected for package in ('torch', 'torchaudio')):
         raise RuntimeError('The pinned GPU packages are incomplete.')
     if not check_device:

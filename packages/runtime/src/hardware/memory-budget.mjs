@@ -45,7 +45,6 @@ export function estimateMemoryBudget(selection, hardware) {
     add(estimates[english ? 'recognitionEnglish' : 'recognitionMultilingual']);
   if (selection.router) add(estimates.router);
   if (selection.voiceMode === 'qwen') add(estimates.voiceQwenCpu);
-  else if (selection.voiceMode === 'qwen-ru') add(estimates.voiceQwenRussianCpu);
   else if (selection.voiceMode && selection.voiceMode !== 'off') {
     const voice = estimates[english ? 'voiceEnglish' : 'voiceMultilingual'];
     if (!gpu) add({ ram: voice.cpuRam, vram: [0, 0] });

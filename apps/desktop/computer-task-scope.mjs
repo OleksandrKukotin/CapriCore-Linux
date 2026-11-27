@@ -22,16 +22,16 @@ const words = (value) =>
     .match(/[\p{L}\p{N}+#]+/gu) ?? [];
 const quoted = /"[^"\n]*"|«[^»\n]*»|“[^”\n]*”/gu;
 const transition =
-  /(?:^|[^\p{L}\p{N}])(?:open|launch|start|switch to|go back to|activate|открой|запусти|переключись на|вернись в|ouvre|ouvrez|lance|lancez|reviens dans|abre|inicia|wechsel zu|öffne|starte)\s+(?:the\s+|le client\s+|приложение\s+|клиент\s+)?/giu;
+  /(?:^|[^\p{L}\p{N}])(?:open|launch|start|switch to|go back to|activate|ouvre|ouvrez|lance|lancez|reviens dans|abre|inicia|wechsel zu|öffne|starte)\s+(?:the\s+|le client\s+)?/giu;
 const desktopNavigation =
-  /\b(?:switch|taskbar|alt\s*\+\s*tab)\b|переключ|панел\p{L}* задач|barre des tâches|barra de tareas/iu;
+  /\b(?:switch|taskbar|alt\s*\+\s*tab)\b|barre des tâches|barra de tareas/iu;
 export const taskbarApplication = (target) =>
   target?.surface === 'taskbar' && !target.notificationArea
     ? (target.untrustedLabel ?? '')
         .trim()
-        .replace(/^(?:application|приложение)\s+/iu, '')
-        .replace(/\s*[-–—]\s*(?:\d+\s+.*|запущенных окон:\s*\d+.*)$/iu, '')
-        .replace(/\s+(?:pinned|закреплено)$/iu, '')
+        .replace(/^(?:application)\s+/iu, '')
+        .replace(/\s*[-–—]\s*(?:\d+\s+.*)$/iu, '')
+        .replace(/\s+(?:pinned)$/iu, '')
     : '';
 
 export function ownerNamesApplication(goal, name) {
@@ -42,31 +42,29 @@ export function ownerNamesApplication(goal, name) {
 export function ownerRequestsWeb(goal, opening) {
   const source = goal.replace(quoted, ' [quoted] ');
   if (
-    /\b(?:do not|don['’]t|never)\s+(?:search|open|use|visit)[^.!?]{0,60}\b(?:web|browser|google)\b|не\s+(?:гугли|ищи\s+в\s+интернете|открывай\s+браузер)|ne\s+(?:cherche|recherche)\s+pas/iu.test(
+    /\b(?:do not|don['’]t|never)\s+(?:search|open|use|visit)[^.!?]{0,60}\b(?:web|browser|google)\b|ne\s+(?:cherche|recherche)\s+pas/iu.test(
       source,
     )
   )
     return false;
   if (
-    /https?:\/\/|\b(?:www\.|website|address bar|current tab|search the web|on the web|look up online|in (?:a|the|my) browser)\b|адресн\p{L}* строк|в интернет|(?:^|\s)сайт\p{L}*|\b(?:dans (?:le|un) navigateur|en ligne|site web|en (?:el|un) navegador|sitio web)\b/iu.test(
+    /https?:\/\/|\b(?:www\.|website|address bar|current tab|search the web|on the web|look up online|in (?:a|the|my) browser)\b|\b(?:dans (?:le|un) navigateur|en ligne|site web|en (?:el|un) navegador|sitio web)\b/iu.test(
       source,
     ) ||
-    /\b(?:open|visit|go to)\s+["“]https?:\/\/|открой\s+["«]https?:\/\//iu.test(goal)
+    /\b(?:open|visit|go to)\s+["“]https?:\/\//iu.test(goal)
   )
     return true;
-  if (/\bgoogle\s+(?!chrome\b)\S|погугли|sur google|en google/iu.test(source)) return true;
+  if (/\bgoogle\s+(?!chrome\b)\S|sur google|en google/iu.test(source)) return true;
   if (
-    /^(?:google chrome|chrome|(?:microsoft )?edge|firefox|opera(?: gx)?|brave|vivaldi|browser|браузер|хром)$/iu.test(
+    /^(?:google chrome|chrome|(?:microsoft )?edge|firefox|opera(?: gx)?|brave|vivaldi|browser)$/iu.test(
       opening?.name ?? '',
     ) &&
-    /\b(?:search|go to|visit|type|page|tab)\b|(?:поиск|перейди|введи|вкладк)|\b(?:cherche|recherche|onglet)\b/iu.test(
-      source,
-    )
+    /\b(?:search|go to|visit|type|page|tab)\b|\b(?:cherche|recherche|onglet)\b/iu.test(source)
   )
     return true;
   if (/^(?:youtube|netflix)$/iu.test(opening?.name ?? '')) return true;
   if (opening) return false;
-  return /\b(?:search|look up|find (?:where|how|the official)|chrome|edge|firefox|youtube|netflix)\b|^\s*in\s+[^,]{1,180}\btab\s*,|\bfind\b[^.!?]{0,180}\b(?:where|how)\b[^.!?]{0,100}\b(?:download|buy|get|order)\b|(?:^|\s)(?:поищи|найди где|найди как|найди официальный)|\b(?:cherche|recherche|busca)\b/iu.test(
+  return /\b(?:search|look up|find (?:where|how|the official)|chrome|edge|firefox|youtube|netflix)\b|^\s*in\s+[^,]{1,180}\btab\s*,|\bfind\b[^.!?]{0,180}\b(?:where|how)\b[^.!?]{0,100}\b(?:download|buy|get|order)\b|\b(?:cherche|recherche|busca)\b/iu.test(
     source,
   );
 }
@@ -95,7 +93,7 @@ export class ComputerTaskScope {
     });
     return [...text.matchAll(transition)].some((match) => {
       const before = text.slice(0, match.index + 1).trimEnd();
-      if (/(?:\bdo not|\bdon['’]t|\bnever|(?:^|\s)не)$/iu.test(before)) return false;
+      if (/(?:\bdo not|\bdon['’]t|\bnever)$/iu.test(before)) return false;
       return `${words(text.slice(match.index + match[0].length)).join(' ')} `.startsWith(
         `${label} `,
       );
@@ -117,7 +115,7 @@ export class ComputerTaskScope {
   expectWindowClose(step, selected) {
     if (!this.window?.startedAtTicks) return;
     const text = this.goal.replace(quoted, ' ');
-    if (!/\b(?:close|quit|exit|ferme|quitte)\b|закрой|выйди из/iu.test(text)) return;
+    if (!/\b(?:close|quit|exit|ferme|quitte)\b/iu.test(text)) return;
     const shortcut =
       step.action === 'press_keys' &&
       step.keys?.length === 2 &&
@@ -126,9 +124,7 @@ export class ComputerTaskScope {
     const control =
       step.action === 'click' &&
       !selected?.surface &&
-      /^(?:close(?: window)?|закрыть(?: окно)?|fermer(?: la fenêtre)?)$/iu.test(
-        selected?.untrustedLabel ?? '',
-      );
+      /^(?:close(?: window)?|fermer(?: la fenêtre)?)$/iu.test(selected?.untrustedLabel ?? '');
     if (shortcut || control) this.window.closing = true;
   }
 
@@ -222,11 +218,11 @@ const labelKey = (value) =>
       .replace(/\p{M}/gu, ''),
   ).join(' ');
 const sectionAliases = [
-  ['library', 'bibliotheque', 'библиотека', 'библиотеку'],
-  ['settings', 'preferences', 'parametres', 'настройки'],
-  ['downloads', 'telechargements', 'загрузки'],
-  ['history', 'historique', 'история', 'историю'],
-  ['inbox', 'входящие'],
+  ['library', 'bibliotheque', 'бібліотека'],
+  ['settings', 'preferences', 'parametres', 'налаштування'],
+  ['downloads', 'telechargements', 'завантаження'],
+  ['history', 'historique', 'історія'],
+  ['inbox', 'вхідні'],
 ];
 
 /** A native selected control or exact title can prove a requested UI section is open. */

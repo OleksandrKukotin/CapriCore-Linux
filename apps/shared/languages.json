@@ -586,14 +586,6 @@
     "interface": false
   },
   {
-    "id": "ru",
-    "name": "Russian",
-    "label": "Русский",
-    "recognizer": "parakeet-v3",
-    "speech": true,
-    "interface": false
-  },
-  {
     "id": "sa",
     "name": "Sanskrit",
     "label": "Sanskrit",

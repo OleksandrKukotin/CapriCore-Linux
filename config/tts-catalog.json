@@ -20,27 +20,13 @@
       "name": "Capri · Qwen3-TTS 0.6B (BETA)",
       "repository": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
       "backend": "qwen3-tts",
-      "languages": ["en", "zh", "ja", "ko", "de", "fr", "ru", "pt", "pt-BR", "es", "it"],
+      "languages": ["en", "zh", "ja", "ko", "de", "fr", "pt", "pt-BR", "es", "it"],
       "voiceIdentity": "capri-reference",
       "training": null,
       "devices": ["cpu", "cuda", "rocm"],
       "installLanguage": "en",
       "downloadBytes": 2516100892,
       "minimumFreeBytes": 8589934592,
-      "experimental": true
-    },
-    {
-      "id": "qwen3-tts-1.7b-capri-ru",
-      "name": "Capri · Qwen3-TTS 1.7B · RU LoRA (BETA)",
-      "repository": "siriusfreak/qwen3-tts-12hz-1.7b-ru-stress-cf",
-      "backend": "qwen3-tts",
-      "languages": ["ru"],
-      "voiceIdentity": "trained-capri-adapter",
-      "training": null,
-      "devices": ["cpu"],
-      "installLanguage": "ru",
-      "downloadBytes": 4931278698,
-      "minimumFreeBytes": 10737418240,
       "experimental": true
     },
     {
@@ -90,7 +76,6 @@
         "no",
         "pl",
         "pt",
-        "ru",
         "es",
         "sw",
         "sv",
@@ -99,7 +84,7 @@
       "voiceIdentity": "capri-reference",
       "training": null,
       "devices": ["cpu", "cuda", "rocm"],
-      "installLanguage": "ru"
+      "installLanguage": "fr"
     }
   ]
 }

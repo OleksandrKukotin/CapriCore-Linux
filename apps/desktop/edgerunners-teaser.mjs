@@ -9,16 +9,16 @@ export const edgerunnersPages = Object.freeze({
   netflix: 'https://www.netflix.com/title/81054853',
 });
 
-const title = String.raw`(?:cyberpunk|cyberpung|киберпанк)\s*[:–-]?\s+(?:edge\s*runners|adrinas|бегущие по краю)\s*(?:2|two|два)`;
+const title = String.raw`(?:cyberpunk|cyberpung)\s*[:–-]?\s+(?:edge\s*runners|adrinas)\s*(?:2|two)`;
 const officialSite = String.raw`(?:the\s+)?official\s+(?:${title}\s+(?:web\s*site|site)|(?:web\s*site|site)\s+(?:of|for)\s+${title})`;
 const request = new RegExp(
   [
-    String.raw`^(?:(?:hey\s+)?capri|капри)?[\s,:]*(?:(?:can you|could you|можешь|please|пожалуйста|i want you to|use my computer to)\s+)*`,
-    String.raw`(?:открой|открыть|запусти|open|launch)\s+(?:google\s+)?(?:chrome|хром)\s*(?:,|and|then|и|->|→)\s*`,
-    String.raw`(?:search for|find|найди|найти)\s+(?:${officialSite}|официальный\s+сайт\s+${title})\s*[.!?,;]*\s*`,
-    String.raw`(?:after that|and then|then|затем|потом|->|→)\s*(?:watch (?:it|the show) on|open(?: it on)?|посмотри(?: его)? на|посмотреть(?: его)? на|открой)\s+netflix\s*(?:[,;.]|and|и)\s*`,
-    String.raw`(?:(?:scroll down(?: a bit)?|прокрути(?: немного)? вниз|пролистай(?: немного)? вниз)\s*(?:[,;.]|and|и)\s*)?`,
-    String.raw`(?:play (?:the )?teaser|включи (?:первый )?тизер|запусти (?:первый )?тизер)\s*(?:please|пожалуйста)?[.!?]*$`,
+    String.raw`^(?:(?:hey\s+)?capri)?[\s,:]*(?:(?:can you|could you|please|i want you to|use my computer to)\s+)*`,
+    String.raw`(?:open|launch)\s+(?:google\s+)?(?:chrome)\s*(?:,|and|then|->|→)\s*`,
+    String.raw`(?:search for|find)\s+(?:${officialSite})\s*[.!?,;]*\s*`,
+    String.raw`(?:after that|and then|then|->|→)\s*(?:watch (?:it|the show) on|open(?: it on)?)\s+netflix\s*(?:[,;.]|and)\s*`,
+    String.raw`(?:(?:scroll down(?: a bit)?)\s*(?:[,;.]|and)\s*)?`,
+    String.raw`(?:play (?:the )?teaser)\s*(?:please)?[.!?]*$`,
   ].join(''),
   'iu',
 );
@@ -37,9 +37,8 @@ const pageControls = (view) =>
     (target) => target.pageContent === true && !target.surface && !target.editable,
   );
 const teaserLabel =
-  /^(?:(?:\d+m \d+s )?(?:teaser |тизер )?)?(?:(?:play(?: video)?|воспроизвести) )?(?:(?:season 2|сезон 2) )?(?:teaser|тизер) (?:cyberpunk edgerunners|киберпанк бегущие по краю) 2(?: \d+m \d+s)?$/u;
-const pauseLabel =
-  /^(?:pause(?: video)?|пауза|приостановить(?: воспроизведение)?|pausar|pausa|pause playback)$/u;
+  /^(?:(?:\d+m \d+s )?(?:teaser )?)?(?:(?:play(?: video)?) )?(?:(?:season 2) )?(?:teaser) (?:cyberpunk edgerunners) 2(?: \d+m \d+s)?$/u;
+const pauseLabel = /^(?:pause(?: video)?|pausar|pausa|pause playback)$/u;
 
 function namedWatchPage(view, windowId) {
   if (view.window?.windowId !== windowId) return false;
@@ -59,31 +58,16 @@ function namedWatchPage(view, windowId) {
   }
 }
 
-export function edgerunnersReply({ stage, status }, language) {
-  const russian = language === 'ru';
+export function edgerunnersReply({ stage, status }) {
   if (status === 'playing')
-    return russian
-      ? 'Открыла официальный сайт и запустила первый тизер второго сезона на Netflix.'
-      : 'I opened the official site and started the first Season 2 teaser on Netflix.';
-  if (status === 'window_changed')
-    return russian
-      ? 'Окно Chrome сменилось. Я остановила цепочку.'
-      : 'The Chrome window changed, so I stopped the task.';
+    return 'I opened the official site and started the first Season 2 teaser on Netflix.';
+  if (status === 'window_changed') return 'The Chrome window changed, so I stopped the task.';
   if (stage === 'official')
-    return russian
-      ? 'Не удалось подтвердить загрузку официального сайта Edgerunners 2.'
-      : 'I could not verify that the official Edgerunners 2 site loaded.';
+    return 'I could not verify that the official Edgerunners 2 site loaded.';
   if (stage === 'netflix')
-    return russian
-      ? 'Официальный сайт открыла. Не удалось подтвердить загрузку страницы сериала на Netflix.'
-      : 'I opened the official site, but could not verify that the Netflix title page loaded.';
-  if (stage === 'playback')
-    return russian
-      ? 'Открыла тизер, но не смогла подтвердить воспроизведение.'
-      : 'I opened the teaser but could not verify playback.';
-  return russian
-    ? 'Страница сериала на Netflix открылась. Не удалось подтвердить кнопку первого тизера второго сезона.'
-    : 'The Netflix title page loaded. I could not verify the first Season 2 teaser control.';
+    return 'I opened the official site, but could not verify that the Netflix title page loaded.';
+  if (stage === 'playback') return 'I opened the teaser but could not verify playback.';
+  return 'The Netflix title page loaded. I could not verify the first Season 2 teaser control.';
 }
 
 /** Run the recognized owner workflow using current window/control observations.
@@ -111,12 +95,9 @@ export async function runEdgerunnersTeaser({ navigate, observe, input, signal })
     }
     return { status };
   };
-  const official = await load(edgerunnersPages.official, /(?:edgerunners|бегущие по краю) 2/u);
+  const official = await load(edgerunnersPages.official, /(?:edgerunners) 2/u);
   if (official.status !== 'ready') return { stage: 'official', status: official.status };
-  const netflix = await load(
-    edgerunnersPages.netflix,
-    /(?:cyberpunk edgerunners|киберпанк бегущие по краю)/u,
-  );
+  const netflix = await load(edgerunnersPages.netflix, /(?:cyberpunk edgerunners)/u);
   if (netflix.status !== 'ready') return { stage: 'netflix', status: netflix.status };
   let view = netflix.view;
   const state = (current) => browserNavigationState(current, netflix.expected);

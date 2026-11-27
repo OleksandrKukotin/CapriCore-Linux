@@ -13,17 +13,17 @@ const quotedData =
   /"([^"\r\n]*)"|“([^”\r\n]*)”|„([^“\r\n]*)“|«([^»\r\n]*)»|「([^」\r\n]*)」|『([^』\r\n]*)』|‘([^’\r\n]*)’|(?<![\p{L}\p{N}])'([^'\r\n]*)'(?![\p{L}\p{N}])/gu;
 const words = {
   send_message:
-    'send|post|write|отправь(?:те)?|отправить|напиши(?:те)?|написать|опубликуй(?:те)?|опубликовать|envoie|envoyez|envoyer|poste|postez|poster|publie|publiez|publier|écris|écrivez|écrire|ecris|ecrire|sende|senden|schick|schicke|schicken|schreib|schreibe|schreiben|veröffentliche|envía|envia|envíe|envíen|enviar|manda|mande|mandar|publica|publique|publicar|escribe|escriba|escribir|envie|escreve|escreva|escrever|invia|inviare|scrivi|scrivere|pubblica|pubblicare|أرسل|ارسل|انشر|اكتب|gönder|yolla|paylaş|yaz',
+    'send|post|write|envoie|envoyez|envoyer|poste|postez|poster|publie|publiez|publier|écris|écrivez|écrire|ecris|ecrire|sende|senden|schick|schicke|schicken|schreib|schreibe|schreiben|veröffentliche|envía|envia|envíe|envíen|enviar|manda|mande|mandar|publica|publique|publicar|escribe|escriba|escribir|envie|escreve|escreva|escrever|invia|inviare|scrivi|scrivere|pubblica|pubblicare|أرسل|ارسل|انشر|اكتب|gönder|yolla|paylaş|yaz',
   join_voice:
-    'join|connect|подключись|подключитесь|подключиться|присоединись|присоединитесь|присоединиться|зайди(?:те)?|войди(?:те)?|rejoins|rejoignez|rejoindre|connecte-toi|connectez-vous|tritt|trete|betritt|verbinde|verbinden|únete|unete|unirse|conéctate|conectate|entra|entre|entrar|ingresa|junta-te|junte-se|conecta-te|conecte-se|unisciti|unire|collegati|connettiti|انضم|اتصل|ادخل|katıl|bağlan|gir',
+    'join|connect|rejoins|rejoignez|rejoindre|connecte-toi|connectez-vous|tritt|trete|betritt|verbinde|verbinden|únete|unete|unirse|conéctate|conectate|entra|entre|entrar|ingresa|junta-te|junte-se|conecta-te|conecte-se|unisciti|unire|collegati|connettiti|انضم|اتصل|ادخل|katıl|bağlan|gir',
   leave_voice:
-    'leave|disconnect|выйди(?:те)?|отключись|отключитесь|отключиться|покинь(?:те)?|quitte|quittez|quitter|déconnecte-toi|déconnectez-vous|verlasse|verlassen|trenne|trenn|trennen|sal|salte|desconéctate|desconectate|abandona|sai|saia|desconecta|desconecte|deixa|deixe|esci|lascia|disconnettiti|غادر|اخرج|افصل|ayrıl|çık|bağlantıyı\\s+kes',
+    'leave|disconnect|quitte|quittez|quitter|déconnecte-toi|déconnectez-vous|verlasse|verlassen|trenne|trenn|trennen|sal|salte|desconéctate|desconectate|abandona|sai|saia|desconecta|desconecte|deixa|deixe|esci|lascia|disconnettiti|غادر|اخرج|افصل|ayrıl|çık|bağlantıyı\\s+kes',
   navigate:
-    'open|navigate|go\\s+to|switch\\s+to|find|открой(?:те)?|перейди(?:те)?|переключись|найди(?:те)?|ouvre|ouvrez|ouvrir|va|allez|navigue|naviguez|öffne|öffnen|gehe|geh|wechsle|wechsel|abre|abrir|abra|navega|navegue|ve|cambia|busca|vai|vá|muda|mude|procura|procure|apri|aprire|passa|cerca|افتح|انتقل|اذهب|ابحث|aç|git|geç',
+    'open|navigate|go\\s+to|switch\\s+to|find|ouvre|ouvrez|ouvrir|va|allez|navigue|naviguez|öffne|öffnen|gehe|geh|wechsle|wechsel|abre|abrir|abra|navega|navegue|ve|cambia|busca|vai|vá|muda|mude|procura|procure|apri|aprire|passa|cerca|افتح|انتقل|اذهب|ابحث|aç|git|geç',
   read_context:
-    'read|summarize|summarise|прочитай(?:те)?|перескажи(?:те)?|суммируй(?:те)?|lis|lisez|lire|résume|résumez|lese|lies|lesen|fasse|lee|leer|resume|resuma|resumir|lê|leia|ler|leggi|leggere|riassumi|اقرأ|لخص|لخّص|oku|özetle',
+    'read|summarize|summarise|lis|lisez|lire|résume|résumez|lese|lies|lesen|fasse|lee|leer|resume|resuma|resumir|lê|leia|ler|leggi|leggere|riassumi|اقرأ|لخص|لخّص|oku|özetle',
   list_channels:
-    'list|show|enumerate|перечисли(?:те)?|покажи(?:те)?|liste|listez|lister|montre|montrez|affiche|affichez|zeige|zeig|auflisten|enumera|lista|muestra|mostrar|mostra|mostre|elenca|اعرض|اسرد|listele|göster',
+    'list|show|enumerate|liste|listez|lister|montre|montrez|affiche|affichez|zeige|zeig|auflisten|enumera|lista|muestra|mostrar|mostra|mostre|elenca|اعرض|اسرد|listele|göster',
 };
 const direct = Object.fromEntries(
   Object.entries(words).map(([action, source]) => [
@@ -65,31 +65,31 @@ const turkish = {
 const chineseLead =
   /^(?:请|請|帮我|幫我|替我|在|到|从|從|发送|發送|发布|發佈|写下|寫下|加入|连接|連接|进入|進入|离开|離開|断开|斷開|退出|打开|打開|切换|切換|前往|阅读|閱讀|读一下|讀一下|总结|總結|列出|显示|顯示)|我(?:想|需要|要)(?:让|讓|请|請)你/u;
 const channel =
-  /(?<!\p{L})(?:channel|channels|канал\p{L}*|salon|salons|canal|canaux|kanal|kanäle|canales|canais|canali|kanalları|kanallar)(?!\p{L})|チャンネル|채널|频道|頻道|القنا[ةت]|قنوات/iu;
+  /(?<!\p{L})(?:channel|channels|salon|salons|canal|canaux|kanal|kanäle|canales|canais|canali|kanalları|kanallar)(?!\p{L})|チャンネル|채널|频道|頻道|القنا[ةت]|قنوات/iu;
 const voice =
-  /(?<!\p{L})(?:voice|call|audio|vocal|vocale|sprach\p{L}*|anruf|voz|голос\p{L}*|звон\p{L}*|созвон\p{L}*|ses|arama)(?!\p{L})|ボイス|音声|通話|음성|통화|语音|語音|صوت/iu;
+  /(?<!\p{L})(?:voice|call|audio|vocal|vocale|sprach\p{L}*|anruf|voz|ses|arama)(?!\p{L})|ボイス|音声|通話|음성|통화|语音|語音|صوت/iu;
 const context =
-  /(?<!\p{L})(?:chat|context|messages?|discussion|чат\p{L}*|сообщени\p{L}*|контекст|обсуждени\p{L}*|contexte|nachrichten|mensajes|mensagens|messaggi)(?!\p{L})|メッセージ|会話|메시지|대화|消息|聊天|رسائل|mesaj/iu;
+  /(?<!\p{L})(?:chat|context|messages?|discussion|contexte|nachrichten|mensajes|mensagens|messaggi)(?!\p{L})|メッセージ|会話|메시지|대화|消息|聊天|رسائل|mesaj/iu;
 const appPrefix =
-  /^(?:(?:in|on|dans|sur|auf|en|no|na|nel|su|в|во|في)\s+(?:(?:my|the|мо[её]м|mon|le|mi|el|meu|o|mio|il|meinem|dem)\s+)?(?:discord|дискорд(?:а|е|ом|у)?|ديسكورد)[,:،\s]*|discord['’](?:da|de|ta|te)[,:\s]*|(?:discord|дискорд(?:а|е|ом|у)?)[,:]\s*)/iu;
+  /^(?:(?:in|on|dans|sur|auf|en|no|na|nel|su|في)\s+(?:(?:my|the|mon|le|mi|el|meu|o|mio|il|meinem|dem)\s+)?(?:discord|ديسكورد)[,:،\s]*|discord['’](?:da|de|ta|te)[,:\s]*|(?:discord)[,:]\s*)/iu;
 const politePrefix =
-  /^(?:(?:can|could|would)\s+you\s+(?:please\s+)?|(?:можешь|можете)\s+(?:пожалуйста\s+)?|(?:peux-tu|pourrais-tu|pouvez-vous)\s+|(?:kannst|könntest)\s+du\s+|(?:puedes|podrías)\s+|(?:pode|podes|poderia)\s+|(?:puoi|potresti)\s+)/iu;
+  /^(?:(?:can|could|would)\s+you\s+(?:please\s+)?|(?:peux-tu|pourrais-tu|pouvez-vous)\s+|(?:kannst|könntest)\s+du\s+|(?:puedes|podrías)\s+|(?:pode|podes|poderia)\s+|(?:puoi|potresti)\s+)/iu;
 const requestPrefix =
-  /^(?:i\s+(?:want|need|would\s+like)\s+you\s+to\s+|я\s+(?:хочу|прошу)(?:,?\s*чтобы\s+ты)?\s+|je\s+(?:veux|voudrais)\s+que\s+tu\s+|ich\s+möchte,?\s+dass\s+du\s+|quiero\s+que\s+|quero\s+que\s+|voglio\s+che\s+|أريد\s+منك\s+أن\s+)/iu;
+  /^(?:i\s+(?:want|need|would\s+like)\s+you\s+to\s+|je\s+(?:veux|voudrais)\s+que\s+tu\s+|ich\s+möchte,?\s+dass\s+du\s+|quiero\s+que\s+|quero\s+que\s+|voglio\s+che\s+|أريد\s+منك\s+أن\s+)/iu;
 const courtesyPrefix =
-  /^(?:(?:(?:hey\s+)?capri|капри)[,\s:]+|(?:please|пожалуйста|s'il te plaît|s’il te plaît|bitte|por favor|per favore|lütfen)[,\s:]+|من\s+فضلك[,\s:،]+)/iu;
+  /^(?:(?:(?:hey\s+)?capri)[,\s:]+|(?:please|s'il te plaît|s’il te plaît|bitte|por favor|per favore|lütfen)[,\s:]+|من\s+فضلك[,\s:،]+)/iu;
 const accessPrefix =
-  /^(?:(?:use|using|with)\s+full\s+(?:computer|pc|desktop)\s+(?:access|control)(?:\s+(?:to|and))?[,\s:]*|(?:используй|используя|через)\s+полн\p{L}*\s+(?:доступ|управление)\p{L}*\s+(?:к\s+)?(?:моему\s+)?(?:компьютер\p{L}*|пк)(?:\s+и)?[,\s:]*)/iu;
+  /^(?:(?:use|using|with)\s+full\s+(?:computer|pc|desktop)\s+(?:access|control)(?:\s+(?:to|and))?[,\s:]*)/iu;
 const meta =
-  /^(?:how|what|why|explain|describe|translate|teach|tell\s+me|show\s+me\s+how|do\s+you\s+know|are\s+you\s+able|как|что|почему|объясни|переведи|научи|умеешь|ты\s+умеешь|можешь\s+ли|можно\s+ли|comment|pourquoi|explique|traduis|sais-tu|wie|warum|erkläre|übersetze|cómo|como\s+(?:puedo|fazer)|qué|explica|traduce|com[eo]\s+(?:si|posso)|spiega|traduci|nasıl|açıkla|çevir|كيف|اشرح|ترجم)(?!\p{L})/iu;
+  /^(?:how|what|why|explain|describe|translate|teach|tell\s+me|show\s+me\s+how|do\s+you\s+know|are\s+you\s+able|comment|pourquoi|explique|traduis|sais-tu|wie|warum|erkläre|übersetze|cómo|como\s+(?:puedo|fazer)|qué|explica|traduce|com[eo]\s+(?:si|posso)|spiega|traduci|nasıl|açıkla|çevir|كيف|اشرح|ترجم)(?!\p{L})/iu;
 const negation =
-  /(?<!\p{L})(?:do\s+not|don't|don’t|never|не|нельзя|nicht|kein\p{L}*|não|nao|non|nunca|jamais)(?!\p{L})|(?:^|[.!?;,]\s*|\bpero\s+)no\s+|(?<!\p{L})ne\s+[^.!?]{0,100}\s+pas(?!\p{L})|しないで|送らないで|入らないで|参加しない|하지\s*마|보내지\s*마|들어가지\s*마|不要|别|別|(?<!\p{L})لا\s+|gönderme|katılma|bağlanma|ayrılma/iu;
+  /(?<!\p{L})(?:do\s+not|don't|don’t|never|nicht|kein\p{L}*|não|nao|non|nunca|jamais)(?!\p{L})|(?:^|[.!?;,]\s*|\bpero\s+)no\s+|(?<!\p{L})ne\s+[^.!?]{0,100}\s+pas(?!\p{L})|しないで|送らないで|入らないで|参加しない|하지\s*마|보내지\s*마|들어가지\s*마|不要|别|別|(?<!\p{L})لا\s+|gönderme|katılma|bağlanma|ayrılma/iu;
 const draftOnly =
-  /(?<!\p{L})(?:draft|without\s+sending|without\s+submitting|without\s+(?:pressing|hitting|using)\s+(?:the\s+)?(?:enter|return)|do\s+not\s+press|don't\s+press|черновик|черновика|без\s+нажати\p{L}*\s+(?:enter|ввод)|brouillon|sans\s+envoyer|entwurf|ohne\s+(?:zu\s+)?senden|borrador|sin\s+enviar|rascunho|sem\s+enviar|bozza|senza\s+inviare|taslak)(?!\p{L})|下書き|초안|草稿|مسودة/iu;
+  /(?<!\p{L})(?:draft|without\s+sending|without\s+submitting|without\s+(?:pressing|hitting|using)\s+(?:the\s+)?(?:enter|return)|do\s+not\s+press|don't\s+press|brouillon|sans\s+envoyer|entwurf|ohne\s+(?:zu\s+)?senden|borrador|sin\s+enviar|rascunho|sem\s+enviar|bozza|senza\s+inviare|taslak)(?!\p{L})|下書き|초안|草稿|مسودة/iu;
 const hypothetical =
-  /(?:^|[,;.!?\n]\s*)(?:for\s+example|as\s+an\s+example|e\.g\.|imagine|suppose|hypothetically|if|when\s+(?:i|we)\s+ask|например|к\s+примеру|представь|допустим|если|когда\s+я\s+попрошу|par\s+exemple|si\s+je|zum\s+beispiel|falls|wenn\s+ich|por\s+ejemplo|si\s+te\s+pido)(?!\p{L})|(?<!\p{L})(?:if\s+(?:i|we)\s+(?:ask|tell|request)|when\s+(?:i|we)\s+ask|если\s+я\s+попрошу)(?!\p{L})/iu;
+  /(?:^|[,;.!?\n]\s*)(?:for\s+example|as\s+an\s+example|e\.g\.|imagine|suppose|hypothetically|if|when\s+(?:i|we)\s+ask|par\s+exemple|si\s+je|zum\s+beispiel|falls|wenn\s+ich|por\s+ejemplo|si\s+te\s+pido)(?!\p{L})|(?<!\p{L})(?:if\s+(?:i|we)\s+(?:ask|tell|request)|when\s+(?:i|we)\s+ask)(?!\p{L})/iu;
 const synthesis =
-  /(?<!\p{L})(?:reply|respond|response|answer|greeting|friendly|appropriate|something|anything|whatever|guide|instructions?|tutorial|ответ\p{L}*|приветств\p{L}*|что-нибудь|инструкци\p{L}*|répond\p{L}*|réponse|antwort\p{L}*|respuesta|resposta|risposta|répondre|yanıt|cevap)(?!\p{L})|返信|返事|답장|回复|回覆|(?<!\p{L})رد(?:ًا)?(?!\p{L})/iu;
+  /(?<!\p{L})(?:reply|respond|response|answer|greeting|friendly|appropriate|something|anything|whatever|guide|instructions?|tutorial|répond\p{L}*|réponse|antwort\p{L}*|respuesta|resposta|risposta|répondre|yanıt|cevap)(?!\p{L})|返信|返事|답장|回复|回覆|(?<!\p{L})رد(?:ًا)?(?!\p{L})/iu;
 
 function commandForms(text) {
   let command = text.trim(),
@@ -129,13 +129,13 @@ function clauseData(raw) {
 }
 
 const clauseBoundary =
-  /[,،;；.!?。！？\n]|\s+(?:and(?:\s+then)?|then|и|затем|потом|et|puis|ensuite|und|dann|danach|y|luego|después|e|depois|poi|ve|sonra)\s+|そして|それから|그리고|그런\s+다음|然后|然後|接着/giu;
+  /[,،;；.!?。！？\n]|\s+(?:and(?:\s+then)?|then|et|puis|ensuite|und|dann|danach|y|luego|después|e|depois|poi|ve|sonra)\s+|そして|それから|그리고|그런\s+다음|然后|然後|接着/giu;
 const foreignApp =
-  /(?<!\p{L})(?:notepad|блокнот\p{L}*|chrome|edge|firefox|browser|браузер\p{L}*|word|excel|telegram|whatsapp|slack|teams|zoom|obsidian|vscode|terminal|терминал\p{L}*)(?!\p{L})|メモ帳|ノートパッド|메모장|记事本|記事本/iu;
+  /(?<!\p{L})(?:notepad|chrome|edge|firefox|browser|word|excel|telegram|whatsapp|slack|teams|zoom|obsidian|vscode|terminal)(?!\p{L})|メモ帳|ノートパッド|메모장|记事本|記事本/iu;
 const location =
-  /(?<!\p{L})(?:in|into|on|to|dans|sur|auf|im|zu|zum|en|al|em|no|na|ao|su|nel|в|во|на|في|إلى)\s+(?:(?:the|my|this|that|a|an|current|selected|latest|last|le|la|les|mon|mi|el|los|o|os|il|i|dem|den|die|der|мой|этот|текущий)\s+)*([\p{L}\p{N}#_-]+)/giu;
+  /(?<!\p{L})(?:in|into|on|to|dans|sur|auf|im|zu|zum|en|al|em|no|na|ao|su|nel|في|إلى)\s+(?:(?:the|my|this|that|a|an|current|selected|latest|last|le|la|les|mon|mi|el|los|o|os|il|i|dem|den|die|der)\s+)*([\p{L}\p{N}#_-]+)/giu;
 const localDestination =
-  /^(?:discord|дискорд\p{L}*|channel\p{L}*|server\p{L}*|chat\p{L}*|text|voice|call|audio|vocal|vocale|канал\p{L}*|сервер\p{L}*|чат\p{L}*|текстов\p{L}*|голос\p{L}*|звон\p{L}*|salon\p{L}*|canal\p{L}*|serveur\p{L}*|sprach\p{L}*|kanal\p{L}*|kanäle|canais|canali|message\p{L}*|everyone|ديسكورد|القناة|القنوات)$/iu;
+  /^(?:discord|channel\p{L}*|server\p{L}*|chat\p{L}*|text|voice|call|audio|vocal|vocale|salon\p{L}*|canal\p{L}*|serveur\p{L}*|sprach\p{L}*|kanal\p{L}*|kanäle|canais|canali|message\p{L}*|everyone|ديسكورد|القناة|القنوات)$/iu;
 
 function anotherDestination(clause, request) {
   if (foreignApp.test(clause.command)) return true;
@@ -144,7 +144,7 @@ function anotherDestination(clause, request) {
     if (
       request.action === 'send_current_message' &&
       discordCurrentMessageParts(clause.raw) &&
-      /^(?:right|left|current|selected|active|open|screen|dm|conversation|справа|слева|прав\p{L}*|лев\p{L}*|текущ\p{L}*|выбранн\p{L}*|открыт\p{L}*|этот|этом|droite|gauche|actuel\p{L}*|courant\p{L}*|sélectionn\p{L}*|rechts|links|aktuell\p{L}*|ausgewählt\p{L}*|derecha|izquierda|actual|direita|esquerda|atual|destra|sinistra|corrente|questo|questa|sağ\p{L}*|sol\p{L}*|mevcut|seçili)$/iu.test(
+      /^(?:right|left|current|selected|active|open|screen|dm|conversation|droite|gauche|actuel\p{L}*|courant\p{L}*|sélectionn\p{L}*|rechts|links|aktuell\p{L}*|ausgewählt\p{L}*|derecha|izquierda|actual|direita|esquerda|atual|destra|sinistra|corrente|questo|questa|sağ\p{L}*|sol\p{L}*|mevcut|seçili)$/iu.test(
         destination,
       )
     )
@@ -161,15 +161,15 @@ function anotherDestination(clause, request) {
 }
 
 const destinationLabels = {
-  server: String.raw`(?<!\p{L})(?:server|сервер\p{L}*|serveur|servidor|sunucu\p{L}*|الخادم|خادم|السيرفر|سيرفر)(?!\p{L})|サーバー|サーバ|서버|服务器|伺服器`,
-  channel: String.raw`(?<!\p{L})(?:channel|канал\p{L}*|salon|canal|canale|kanal\p{L}*|sprachkanal|textkanal|القناة|قناة)(?!\p{L})|チャンネル|채널|频道|頻道`,
+  server: String.raw`(?<!\p{L})(?:server|serveur|servidor|sunucu\p{L}*|الخادم|خادم|السيرفر|سيرفر)(?!\p{L})|サーバー|サーバ|서버|服务器|伺服器`,
+  channel: String.raw`(?<!\p{L})(?:channel|salon|canal|canale|kanal\p{L}*|sprachkanal|textkanal|القناة|قناة)(?!\p{L})|チャンネル|채널|频道|頻道`,
 };
 const namePrefix =
-  /^\s*[:=]?\s*#?\s*(?:(?:de\s+(?:voz|texto)|vocal|textuel|vocale|voice|text|голосов\p{L}*|текстов\p{L}*|الصوتية|النصية)\s+)*/iu;
+  /^\s*[:=]?\s*#?\s*(?:(?:de\s+(?:voz|texto)|vocal|textuel|vocale|voice|text|الصوتية|النصية)\s+)*/iu;
 const nameStop =
-  /\s+(?:in|on|at|of|from|to|into|en|del|de\s+(?:la|los)|sur|dans|auf|im|на|в|во|из|на|في|إلى|server|serveur|servidor|сервер\p{L}*)(?!\p{L})|[,،:;.!?。！？]/iu;
+  /\s+(?:in|on|at|of|from|to|into|en|del|de\s+(?:la|los)|sur|dans|auf|im|في|إلى|server|serveur|servidor)(?!\p{L})|[,،:;.!?。！？]/iu;
 const noName =
-  /^(?:in|on|at|of|from|to|into|en|del|sur|dans|auf|im|на|в|во|из|في|إلى)(?!\p{L})|^(?:(?:the|a|an|current|selected|active|same|this|that|available|actuel|courant|actual|atual|corrente|текущ\p{L}*|этот|этом|выбранн\p{L}*|الحالي\p{L}*|المحدد\p{L}*)\s*)+$/iu;
+  /^(?:in|on|at|of|from|to|into|en|del|sur|dans|auf|im|في|إلى)(?!\p{L})|^(?:(?:the|a|an|current|selected|active|same|this|that|available|actuel|courant|actual|atual|corrente|الحالي\p{L}*|المحدد\p{L}*)\s*)+$/iu;
 const nfcName = (value, kind) =>
   value
     .normalize('NFC')
@@ -222,14 +222,14 @@ function explicitDestinations(clause) {
   return names;
 }
 
-const currentWord = String.raw`(?:(?<!\p{L})(?:current|selected|active|same|this|that|текущ\p{L}*|выбранн\p{L}*|этот|этом|этого|actuel\p{L}*|courant\p{L}*|sélectionn\p{L}*|ce|cet|actual|este|esta|atual|corrente|questo|questa|aktuell\p{L}*|ausgewählt\p{L}*|diesen|gleichen|mevcut|geçerli|seçili|bu|الحالي\p{L}*|المحدد\p{L}*|هذه|هذا)(?!\p{L})|現在|今|選択中|この|현재|지금|선택한|현재의|이|当前|當前|这个|這個|已选|已選)`;
+const currentWord = String.raw`(?:(?<!\p{L})(?:current|selected|active|same|this|that|actuel\p{L}*|courant\p{L}*|sélectionn\p{L}*|ce|cet|actual|este|esta|atual|corrente|questo|questa|aktuell\p{L}*|ausgewählt\p{L}*|diesen|gleichen|mevcut|geçerli|seçili|bu|الحالي\p{L}*|المحدد\p{L}*|هذه|هذا)(?!\p{L})|現在|今|選択中|この|현재|지금|선택한|현재의|이|当前|當前|这个|這個|已选|已選)`;
 function currentDestination(clause, kind, operation) {
   const target =
     kind === 'server'
       ? destinationLabels.server
-      : `(?:${destinationLabels.channel})|calls?|звон\\p{L}*|созвон\\p{L}*|通話|통화` +
+      : `(?:${destinationLabels.channel})|calls?|通話|통화` +
         (operation === 'read_context'
-          ? '|messages?|chat|context|conversation|сообщени\\p{L}*|чат\\p{L}*|メッセージ|메시지|消息|聊天|رسائل'
+          ? '|messages?|chat|context|conversation|メッセージ|메시지|消息|聊天|رسائل'
           : '');
   return new RegExp(
     `(?:${currentWord})[^,;.!?。！？]{0,35}(?:${target})|(?:${target})[^,;.!?。！？]{0,35}(?:${currentWord})`,
@@ -267,7 +267,7 @@ function destinationProblem(clause, request, view) {
       return 'Use the exact currently observed Discord channel and server; do not navigate to an arbitrary destination.';
     const wantsVoice = voice.test(clause.command);
     const wantsText =
-      /(?<!\p{L})(?:text|textuel|textkanal|texto|testuale|текстов\p{L}*)(?!\p{L})|テキスト|텍스트|文本|文字/iu.test(
+      /(?<!\p{L})(?:text|textuel|textkanal|texto|testuale)(?!\p{L})|テキスト|텍스트|文本|文字/iu.test(
         clause.command,
       );
     if (
@@ -327,11 +327,7 @@ function messageLiterals(clause) {
         literal.end,
         clause.literals[index + 1]?.start ?? clause.raw.length,
       );
-      if (
-        /(?:server|channel|сервер\p{L}*|канал\p{L}*|serveur|salon|canal|kanal|canais|canali)\s*#?\s*$/iu.test(
-          before,
-        )
-      )
+      if (/(?:server|channel|serveur|salon|canal|kanal|canais|canali)\s*#?\s*$/iu.test(before))
         return false;
       return (
         polite.send_message.test(before) ||
@@ -339,7 +335,7 @@ function messageLiterals(clause) {
         scripts.send_message.test(before + after) ||
         turkish.send_message.test(after) ||
         chinese.send_message.test(before) ||
-        /(?:message|text|сообщение|текст)\s*:?[\s]*$/iu.test(before) ||
+        /(?:message|text)\s*:?[\s]*$/iu.test(before) ||
         /:\s*$/u.test(before)
       );
     })
@@ -376,7 +372,7 @@ export function discordSingleOperationGoal(goal) {
     if (
       clauses.length === 2 &&
       message(clauses[1]) &&
-      /^(?:open|launch|start|открой(?:те)?|запусти(?:те)?|ouvre|ouvrez|öffne|abre|apri)\s+(?:discord|дискорд(?:а|е|ом|у)?)[.!?\s]*$/iu.test(
+      /^(?:open|launch|start|ouvre|ouvrez|öffne|abre|apri)\s+(?:discord)[.!?\s]*$/iu.test(
         clauses[0].command,
       )
     )
@@ -384,7 +380,7 @@ export function discordSingleOperationGoal(goal) {
   }
   const command = goal.replace(quotedData, ' ').normalize('NFKC');
   if (
-    /[&;；]|(?<!\p{L})(?:and|then|also|additionally|и|потом|затем|также|ensuite|puis|et|luego|después|y|depois|e|poi|dann|danach|und|ve|sonra|ثم)(?!\p{L})|そして|それから|次に|그리고|그런\s+다음|然后|然後|接着|並且|并且|(?:^|\s)و(?=\p{L})/iu.test(
+    /[&;；]|(?<!\p{L})(?:and|then|also|additionally|ensuite|puis|et|luego|después|y|depois|e|poi|dann|danach|und|ve|sonra|ثم)(?!\p{L})|そして|それから|次に|그리고|그런\s+다음|然后|然後|接着|並且|并且|(?:^|\s)و(?=\p{L})/iu.test(
       command,
     )
   )
@@ -395,7 +391,7 @@ export function discordSingleOperationGoal(goal) {
     .filter(
       (part) =>
         Object.keys(words).some((action) => requested(part, action)) ||
-        /^(?:turn|enable|disable|press|click|type|share|copy|paste|delete|create|save|export|включи|выключи|нажми|создай|удали|сохрани|экспортируй)(?!\p{L})/iu.test(
+        /^(?:turn|enable|disable|press|click|type|share|copy|paste|delete|create|save|export)(?!\p{L})/iu.test(
           part.command,
         ),
     );
@@ -406,7 +402,7 @@ export function discordSingleOperationGoal(goal) {
 export function discordLaunchBeforeBrowser(goal) {
   const { command } = commandForms(goal.normalize('NFKC'));
   const next =
-    /^(?:open|launch|start|открой|запусти)\s+(?:discord|дискорд)(?:\s+(?:without\s+sending\s+(?:any\s+)?messages(?:\s+or\s+joining\s+(?:a\s+)?call)?|без\s+отправки\s+сообщений(?:\s+и\s+подключения\s+к\s+звонку)?))?(?:[.;,]\s*|\s+(?:and\s+)?)(?:(?:then|затем|потом)\s+)(?:switch\s+to|open|launch|start|переключись\s+на|открой|запусти)\s+(?:google\s+chrome|chrome|microsoft\s+edge|edge|firefox|brave|vivaldi|opera|хром)(?![\p{L}\p{N}])/iu.exec(
+    /^(?:open|launch|start)\s+(?:discord)(?:\s+(?:without\s+sending\s+(?:any\s+)?messages(?:\s+or\s+joining\s+(?:a\s+)?call)?))?(?:[.;,]\s*|\s+(?:and\s+)?)(?:(?:then)\s+)(?:switch\s+to|open|launch|start)\s+(?:google\s+chrome|chrome|microsoft\s+edge|edge|firefox|brave|vivaldi|opera)(?![\p{L}\p{N}])/iu.exec(
       command,
     );
   if (!next) return null;
@@ -458,8 +454,7 @@ export function discordRequestProblem(goal, request, view) {
         clause,
         action.action === 'send_current_message' ? 'send_message' : action.action,
       ) ||
-        (action.action === 'send_current_message' &&
-          /^(?:type|набери(?:те)?|введи(?:те)?)(?!\p{L})/iu.test(clause.command))),
+        (action.action === 'send_current_message' && /^(?:type)(?!\p{L})/iu.test(clause.command))),
   );
   if (!candidates.length)
     return `The owner did not explicitly request the Discord ${action.action} operation. Ask instead of changing the task.`;
@@ -498,7 +493,7 @@ export function discordRequestProblem(goal, request, view) {
     clause.isPolite &&
     !namedChannel &&
     !literals.includes(action.text) &&
-    /\b(?:channels|calls|servers|messages|salons|canaux|canales|canais|canali)\b|канал(?:ы|ов)|сообщения|nachrichten/iu.test(
+    /\b(?:channels|calls|servers|messages|salons|canaux|canales|canais|canali)\b|nachrichten/iu.test(
       clause.command,
     )
   )
@@ -518,9 +513,7 @@ export function discordRequestProblem(goal, request, view) {
     if (
       !literal &&
       (synthesis.test(clause.command) ||
-        /^(?:a\s+|the\s+)?(?:message|reply|response|this|that|it|сообщение|ответ|это)$/iu.test(
-          action.text.trim(),
-        ))
+        /^(?:a\s+|the\s+)?(?:message|reply|response|this|that|it)$/iu.test(action.text.trim()))
     )
       return 'Ask for the exact message to send; do not synthesize a Discord reply.';
   } else if (
@@ -531,13 +524,13 @@ export function discordRequestProblem(goal, request, view) {
     return 'The owner must explicitly request joining a voice call or channel in Discord.';
   } else if (action.action === 'leave_voice') {
     const disconnect =
-      /(?<!\p{L})(?:disconnect|отключ\p{L}*|déconnect\p{L}*|trenn\p{L}*|descon[ée]ct\p{L}*|disconnett\p{L}*|افصل|bağlantıyı\s+kes)(?!\p{L})|切断して|연결을\s*끊어|断开|斷開/iu.test(
+      /(?<!\p{L})(?:disconnect|déconnect\p{L}*|trenn\p{L}*|descon[ée]ct\p{L}*|disconnett\p{L}*|افصل|bağlantıyı\s+kes)(?!\p{L})|切断して|연결을\s*끊어|断开|斷開/iu.test(
         clause.command,
       );
     if (
       !voice.test(clause.command) &&
       (!disconnect ||
-        /\b(?:account|profile|integration)\b|аккаунт|уч[её]тн|compte|konto|cuenta|conta|hesap/iu.test(
+        /\b(?:account|profile|integration)\b|compte|konto|cuenta|conta|hesap/iu.test(
           clause.command,
         ))
     )

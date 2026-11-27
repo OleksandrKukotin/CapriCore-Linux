@@ -92,10 +92,10 @@ try {
     if (supplied) console.log((await chat(supplied)).choices[0].message.content);
     else {
       const terminal = createInterface({ input: stdin, output: stdout });
-      console.log('Capri — общий локальный диалог. Для выхода: /exit');
+      console.log('Capri — shared local conversation. Type /exit to leave.');
       try {
         while (true) {
-          const text = (await terminal.question('\nВы: ')).trim();
+          const text = (await terminal.question('\nYou: ')).trim();
           if (text === '/exit') break;
           if (text) console.log(`\nCapri: ${(await chat(text)).choices[0].message.content}`);
         }
@@ -106,8 +106,8 @@ try {
   } else if (command === 'image') {
     const image = readFileSync(process.argv[3]);
     console.log(
-      (await chat(process.argv.slice(4).join(' ') || 'Опиши это изображение.', { image }))
-        .choices[0].message.content,
+      (await chat(process.argv.slice(4).join(' ') || 'Describe this image.', { image })).choices[0]
+        .message.content,
     );
   } else if (command === 'cli') {
     initialize(rt);

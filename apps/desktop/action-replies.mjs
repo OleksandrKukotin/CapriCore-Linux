@@ -150,7 +150,7 @@ export class ActionReplyFilter {
     return output;
   }
   generic(text) {
-    return /^(?:(?:and|so|а|ну|и)\s+)?(?:what(?:['’]s| is)\s+(?:next|on your mind)|what (?:else|would you like to do next)|anything else|чт[оё]\s+(?:дальше|ещ[её]|у тебя на уме)|что (?:хочешь|будем) делать дальше|чем ещ[её] (?:помочь|могу помочь)|как(?:ие)?\s+(?:дальше планы|планы))[^.!?。！？]*[?？]?\s*$/iu.test(
+    return /^(?:(?:and|so)\s+)?(?:what(?:['’]s| is)\s+(?:next|on your mind)|what (?:else|would you like to do next)|anything else)[^.!?。！？]*[?？]?\s*$/iu.test(
       text.trim(),
     );
   }

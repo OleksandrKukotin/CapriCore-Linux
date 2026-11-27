@@ -18,7 +18,6 @@ from .inference import check_cancelled, SpeechGenerationLimit
 from .model import CapriVoice, DecoderMemoryBudget
 from .text import validate_speech_language
 from .catalog import selected_voice
-from .qwen_provision import RUSSIAN_QWEN_ID
 from .reference_memory import prepare_reference
 
 
@@ -162,7 +161,6 @@ class VoicePool:
         qwen = selected['backend'] == 'qwen3-tts'
         component = selected.get('component', 'tts')
         kind = ('turbo' if selected['backend'] == 'chatterbox-turbo' else
-                'qwen3-tts-ru-lora' if selected.get('id') == RUSSIAN_QWEN_ID else
                 'qwen3-tts' if qwen else selected.get('component', 'multilingual-v3'))
         if kind != self.kind:
             # Verify optional weights before releasing a working English backend.
@@ -175,7 +173,7 @@ class VoicePool:
             gc.collect()
             torch.cuda.empty_cache()
             self.voice = (CapriVoice(self.config) if kind == 'turbo' else
-                          QwenVoice(self.config, model_id=selected.get('id')) if qwen else MultilingualVoice(self.config, component))
+                          QwenVoice(self.config) if qwen else MultilingualVoice(self.config, component))
             self.kind = kind
         self.language = language
         check_cancelled(cancelled)

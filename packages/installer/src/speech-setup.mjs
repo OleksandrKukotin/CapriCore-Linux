@@ -255,16 +255,9 @@ export function speechSetup({
     await multilingualVoice(language);
   }
 
-  async function qwen({
-    russian = false,
-    cuda = false,
-    rocm = false,
-    dependenciesOnly = false,
-  } = {}) {
-    if (cuda && !russian) throw new Error('NVIDIA acceleration requires the Russian Qwen voice.');
-    if (cuda && rocm) throw new Error('Select one acceleration package at a time.');
+  async function qwen({ rocm = false, dependenciesOnly = false } = {}) {
     // integrations/voice_runtime/qwen_gpu_setup.py still pins win_amd64 wheels.
-    if (cuda || rocm) throw platformUnavailable('Accelerated Qwen voice');
+    if (rocm) throw platformUnavailable('Accelerated Qwen voice');
     stage('python');
     const { rt, python } = await venv('qwen-tts-venv');
     stage('dependencies');
@@ -283,14 +276,10 @@ export function speechSetup({
     stage('verify');
     await run(python, [
       '-c',
-      'from qwen_tts import Qwen3TTSModel; from ruaccent import RUAccent; import torch; assert not torch.version.cuda',
+      'from qwen_tts import Qwen3TTSModel; import torch; assert not torch.version.cuda',
     ]);
     if (dependenciesOnly) return;
-    await run(python, [
-      '-m',
-      'integrations.voice_runtime.qwen_provision',
-      ...(russian ? ['--russian'] : []),
-    ]);
+    await run(python, ['-m', 'integrations.voice_runtime.qwen_provision']);
     stage('ready');
   }
 

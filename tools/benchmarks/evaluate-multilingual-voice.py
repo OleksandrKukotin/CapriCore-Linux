@@ -72,9 +72,9 @@ save();print('Trained English baseline saved.',flush=True)
 
 from chatterbox.models.tokenizers import tokenizer as native_tokenizer
 class UnusedChineseConverter:
-    """EN/RU evaluation must not initialize or download an unused Chinese segmenter."""
+    """English evaluation must not initialize or download an unused Chinese segmenter."""
     def __init__(self,*args,**kwargs):pass
-    def __call__(self,text):raise ValueError('This evaluation supports English and Russian only')
+    def __call__(self,text):raise ValueError('This evaluation supports English only')
 native_tokenizer.ChineseCangjieConverter=UnusedChineseConverter
 from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 started=time.perf_counter()
@@ -86,8 +86,8 @@ def bounded(*args,**kwargs):
     kwargs['max_new_tokens']=min(kwargs.get('max_new_tokens',180),180)
     result=native(*args,**kwargs);token_counts.append(result.shape[-1]);return result
 engine.t3.inference=bounded
-print('Candidate loaded on CPU; generating English/Russian review samples.',flush=True)
-for language in ('en','ru'):
+print('Candidate loaded on CPU; generating English review samples.',flush=True)
+for language in ('en',):
     item=cases['languages'][language][0]
     torch.manual_seed(417);np.random.seed(417)
     started=time.perf_counter()

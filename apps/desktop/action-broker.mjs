@@ -294,24 +294,8 @@ export class ActionApprovals {
       .toLowerCase()
       .replace(/[.!?]+$/g, '')
       .trim();
-    if (['no', 'cancel', 'нет', 'отмена', 'не надо'].includes(normalized))
-      return this.respond(this.pending.id, false, 'voice');
-    if (
-      [
-        'yes',
-        'yes please',
-        'go ahead',
-        'allow',
-        'confirm',
-        'approve',
-        'да',
-        'давай',
-        'разрешаю',
-        'подтверждаю',
-        'подтвердить',
-        'включи',
-      ].includes(normalized)
-    ) {
+    if (['no', 'cancel'].includes(normalized)) return this.respond(this.pending.id, false, 'voice');
+    if (['yes', 'yes please', 'go ahead', 'allow', 'confirm', 'approve'].includes(normalized)) {
       if (!this.pending.voice)
         return {
           ok: false,

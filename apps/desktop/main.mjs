@@ -548,7 +548,6 @@ async function initializeDesktop() {
   const inferenceApi = new InferenceApi({
     root: verification ? verificationFolder : root,
     storage: credentialStorage(safeStorage),
-    proxySession: () => session.fromPartition('capri-inference-proxy', { cache: false }),
     chatgpt,
     ...(verification ? { config: apiSettings() } : {}),
   });
@@ -1794,10 +1793,7 @@ async function initializeDesktop() {
           id: randomUUID(),
           turnId: input.id,
           role: 'assistant',
-          text:
-            languages.value.conversation === 'ru'
-              ? 'Ушла спать. Разбуди меня следующим сообщением.'
-              : 'Going to sleep. Your next message will wake me.',
+          text: 'Going to sleep. Your next message will wake me.',
           status: 'complete',
           createdAt,
         };
@@ -4762,7 +4758,6 @@ async function initializeDesktop() {
     if (currentChatTask || chat.active) throw new Error('A reply is already in progress.');
     initiative.activity();
     avatarRoaming.postpone(liveCompanionSettings(), 90000);
-    const ru = languages.value.conversation === 'ru';
     const wave = movement.action === 'wave';
     const performance = movement.action === 'performance';
     const work = performance
@@ -4783,12 +4778,8 @@ async function initializeDesktop() {
           : !desktopPerformances.includes(movement.performance) &&
               movement.performance !== 'hang-next' &&
               !surfaceWatch()
-            ? ru
-              ? 'Включи наблюдение за экраном, чтобы я могла найти окно или строку поиска для этой сценки.'
-              : 'Turn on screen observation so I can find a window or search field for this performance.'
-            : ru
-              ? 'Не получилось занять подходящую позу для этой анимации.'
-              : 'I couldn’t get into position for that animation.'
+            ? 'Turn on screen observation so I can find a window or search field for this performance.'
+            : 'I couldn’t get into position for that animation.'
         : wave
           ? uiText(
               success ? 'Done.' : 'The local core is unavailable. Reconnect to try again.',
@@ -4796,19 +4787,11 @@ async function initializeDesktop() {
             )
           : movement.action === 'return'
             ? success
-              ? ru
-                ? 'Я снова в рамке.'
-                : 'I’m back in my frame.'
-              : ru
-                ? 'Не получилось вернуться.'
-                : 'I couldn’t get back to my frame.'
+              ? 'I’m back in my frame.'
+              : 'I couldn’t get back to my frame.'
             : success
-              ? ru
-                ? 'Я на краю окна.'
-                : 'I’m perched on the window.'
-              : ru
-                ? 'Не нашла подходящего открытого окна.'
-                : 'I couldn’t find an open window to perch on.';
+              ? 'I’m perched on the window.'
+              : 'I couldn’t find an open window to perch on.';
       const stamp = { turnId: input.id, status: 'complete', createdAt: new Date().toISOString() };
       const user = { ...stamp, id: randomUUID(), role: 'user', text: input.text };
       const assistant = { ...stamp, id: randomUUID(), role: 'assistant', text };

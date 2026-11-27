@@ -22,10 +22,10 @@ export function isSleepCommand(text) {
     .toLowerCase()
     .replace(/[’‘]/g, "'")
     .replace(/^[\s,!.?]+|[\s,!.?]+$/g, '')
-    .replace(/^(?:(?:hey|эй)\s*[,!]?[\s]*)?(?:capri|капри)\s*[,!:.-]?\s*/u, '')
-    .replace(/^(?:please|пожалуйста)[, ]+|[, ]+(?:please|пожалуйста)$/g, '')
+    .replace(/^(?:hey\s*[,!]?[\s]*)?capri\s*[,!:.-]?\s*/u, '')
+    .replace(/^please[, ]+|[, ]+please$/g, '')
     .replace(/\s+/g, ' ');
-  return /^(?:sleep|go to sleep|you can (?:go to )?sleep|(?:it'?s |it is )?time to (?:go to )?sleep|take a nap|get some rest|иди спать|иди поспи|ложись спать|(?:тебе )?пора спать|можешь (?:идти спать|поспать|отдохнуть)|отдыхай)$/u.test(
+  return /^(?:sleep|go to sleep|you can (?:go to )?sleep|(?:it'?s |it is )?time to (?:go to )?sleep|take a nap|get some rest)$/u.test(
     value,
   );
 }

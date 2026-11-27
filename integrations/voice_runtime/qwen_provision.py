@@ -8,20 +8,13 @@ from pathlib import Path
 from integrations.model_download import download_verified, _regular_path, emit_installer_transfer
 
 ROOT = Path(__file__).resolve().parents[2]
-RUSSIAN_QWEN_ID = 'qwen3-tts-1.7b-capri-ru'
 
 
-def specification(root=ROOT, russian=False):
-    name = 'qwen-ru-voice.json' if russian else 'qwen-tts-upstream.json'
-    spec = json.loads((root / 'config' / name).read_text(encoding='utf-8-sig'))
+def specification(root=ROOT):
+    spec = json.loads((root / 'config' / 'qwen-tts-upstream.json').read_text(encoding='utf-8-sig'))
     if spec.get('schemaVersion') != 1:
         raise ValueError('Invalid pinned Qwen speech specification')
-    model = 'siriusfreak/qwen3-tts-12hz-1.7b-ru-stress-cf' if russian else 'Qwen/Qwen3-TTS-12Hz-0.6B-Base'
-    directory = RUSSIAN_QWEN_ID if russian else 'qwen3-tts-0.6b-base'
-    validate_spec(spec, f'data/speech/{directory}', model)
-    if russian:
-        validate_spec(spec['accent'], 'data/speech/ruaccent-turbo31', 'ruaccent/accentuator')
-        validate_spec(spec['pack'], 'data/speech/bundled-voice/russian')
+    validate_spec(spec, 'data/speech/qwen3-tts-0.6b-base', 'Qwen/Qwen3-TTS-12Hz-0.6B-Base')
     return spec
 
 
@@ -54,16 +47,13 @@ def verify_files(root, spec):
     return folder
 
 
-def verified_qwen(root=ROOT, russian=False):
-    return verify_files(root, specification(root, russian))
+def verified_qwen(root=ROOT):
+    return verify_files(root, specification(root))
 
 
-def provision(root=ROOT, download=download_verified, emit=print, russian=False):
-    spec = specification(root, russian)
-    groups = (spec, spec['accent']) if russian else (spec,)
-    if russian:
-        verify_files(root, spec['pack'])
-    files = [(group, item) for group in groups for item in group['files']]
+def provision(root=ROOT, download=download_verified, emit=print):
+    spec = specification(root)
+    files = [(spec, item) for item in spec['files']]
     total = sum(item['bytes'] for _, item in files)
     done = 0
     for group, item in files:
@@ -91,6 +81,5 @@ def provision(root=ROOT, download=download_verified, emit=print, russian=False):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--russian', action='store_true')
-    provision(russian=parser.parse_args().russian)
+    argparse.ArgumentParser(description=__doc__).parse_args()
+    provision()

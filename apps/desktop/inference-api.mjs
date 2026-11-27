@@ -208,9 +208,6 @@ async function providerRejectsImages(response, signal) {
     return false;
   }
 }
-const PROXYAPI_ORIGIN = 'https://api.proxyapi.ru';
-const PROXYAPI_CONNECT_TIMEOUT =
-  'API connection to ProxyAPI timed out before HTTPS. Check your VPN or proxy route.';
 const PROVIDER_ERRORS = {
   401: 'API provider returned HTTP 401. Check that the key belongs to this provider.',
   402: 'API provider returned HTTP 402. Check the account balance or key budget.',
@@ -224,7 +221,6 @@ export const providerRejectionMessage = (status) =>
 function publicApiError(error, failure) {
   if (error instanceof ChatGPTPlanError) return error.message;
   if (error.code === 'MODEL_IMAGES_UNSUPPORTED') return IMAGES_UNSUPPORTED;
-  if (error.message === PROXYAPI_CONNECT_TIMEOUT) return PROXYAPI_CONNECT_TIMEOUT;
   for (const message of [
     'API key is missing.',
     'Saved API access could not be read. Save your API key again.',
@@ -448,30 +444,6 @@ function lemonadeNpuRequest({ messages, stop, stream, max_tokens, temperature },
     ...(Number.isFinite(temperature) ? { temperature } : {}),
     ...(sequences.length ? { stop: sequences } : {}),
   };
-}
-
-async function postProxyApi(session, fetchDirect, url, options) {
-  const { signal } = options;
-  signal.throwIfAborted();
-  let abort;
-  const cancelled = new Promise((_, reject) => {
-    abort = () => reject(signal.reason);
-    signal.addEventListener('abort', abort, { once: true });
-  });
-  let route;
-  try {
-    route = await Promise.race([session.resolveProxy(url), cancelled]);
-  } finally {
-    signal.removeEventListener('abort', abort);
-  }
-  signal.throwIfAborted();
-  if (route === 'DIRECT') return fetchDirect(url, options);
-  return session.fetch(url, {
-    ...options,
-    credentials: 'omit',
-    cache: 'no-store',
-    bypassCustomProtocolHandlers: true,
-  });
 }
 
 function postLoopback(url, { headers, body, signal }) {
@@ -752,15 +724,8 @@ function streamingRedactor(key) {
 
 /** The real credential never enters OpenClaw, child environments, configuration, or diagnostics. */
 export class InferenceApi {
-  constructor({
-    root,
-    storage,
-    config = readApiSettings(root),
-    fetchImpl = fetch,
-    proxySession,
-    chatgpt,
-  }) {
-    Object.assign(this, { root, storage, config, fetchImpl, proxySession, chatgpt });
+  constructor({ root, storage, config = readApiSettings(root), fetchImpl = fetch, chatgpt }) {
+    Object.assign(this, { root, storage, config, fetchImpl, chatgpt });
     this.file = path.join(root, 'data/secrets/inference-api.json');
     this.profilesFile = path.join(root, 'data/secrets/inference-api-profiles.json');
     this.settingsFile = path.join(root, 'data/desktop/inference-api.json');
@@ -1140,7 +1105,6 @@ export class InferenceApi {
     const remote = !isLocalApiEndpoint(new URL(config.baseUrl));
     if (!key && requiresKey(config)) throw new Error('API key is missing.');
     const endpoint = new URL(config.baseUrl);
-    const proxyApi = endpoint.origin === PROXYAPI_ORIGIN;
     const prepared = config.tools === false ? withoutTools(payload) : payload;
     const request = isLemonadeNpuEndpoint(endpoint, config.model)
       ? lemonadeNpuRequest(prepared, config.vision)
@@ -1185,26 +1149,15 @@ export class InferenceApi {
           model: config.model,
         }),
       };
-      response = !remote
-        ? await postLoopback(url, options)
-        : proxyApi && this.proxySession
-          ? await postProxyApi(this.proxySession(), this.fetchImpl, url, options)
-          : await this.fetchImpl(url, options);
+      response = !remote ? await postLoopback(url, options) : await this.fetchImpl(url, options);
     } catch (error) {
       const networkCode = failureNetworkCode(error);
-      const proxyTimeout =
-        proxyApi &&
-        !signal.aborted &&
-        (networkCode === 'UND_ERR_CONNECT_TIMEOUT' ||
-          error.message === 'net::ERR_CONNECTION_TIMED_OUT');
       const failure = Object.assign(
         new Error(
           signal.aborted
             ? 'API request cancelled or timed out.'
-            : proxyTimeout
-              ? PROXYAPI_CONNECT_TIMEOUT
-              : 'API connection failed. Check the provider URL and network.' +
-                (networkCode ? ' (' + networkCode + ')' : ''),
+            : 'API connection failed. Check the provider URL and network.' +
+              (networkCode ? ' (' + networkCode + ')' : ''),
         ),
         {
           code: signal.aborted

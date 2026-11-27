@@ -1,27 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Native omnibox observations, not a model's completion claim, establish navigation.
 export const requiresFullscreen = (goal) =>
-  /\bfull[ -]?screen\b|на\s+весь\s+экран|полноэкран/iu.test(
+  /\bfull[ -]?screen\b/iu.test(
     String(goal).replace(
-      /\b(?:do not|don't|never|without)\b[^.!?\n]{0,50}\bfull[ -]?screen\b|не\s+[^.!?\n]{0,40}(?:полноэкран[\p{L}]*|на\s+весь\s+экран)/giu,
+      /\b(?:do not|don't|never|without)\b[^.!?\n]{0,50}\bfull[ -]?screen\b/giu,
       '',
     ),
   );
 export const storeSearchFieldRequested = (goal) =>
-  /\b(?:search (?:the )?(?:steam )?store|(?:steam )?store(?:'s)? search (?:bar|box|field|input))\b|поиск[\p{L}]*\s+по\s+магазин[\p{L}]*/iu.test(
+  /\b(?:search (?:the )?(?:steam )?store|(?:steam )?store(?:'s)? search (?:bar|box|field|input))\b/iu.test(
     goal,
   );
 export function requiresPageSearch(goal) {
   const value = String(goal).replace(
-    /\b(?:do not|don't|never|not|without)\b[^.!?\n]{0,60}\baddress\s+bar\b|не\s+[^.!?\n]{0,50}адресн[\p{L}]*\s+строк[\p{L}]*/giu,
+    /\b(?:do not|don't|never|not|without)\b[^.!?\n]{0,60}\baddress\s+bar\b/giu,
     '',
   );
   return (
-    (storeSearchFieldRequested(value) ||
-      /\bsearch\s+(?:bar|box|field|input)\b|(?:строк[\p{L}]*|пол[\p{L}]*)\s+поиска/iu.test(
-        value,
-      )) &&
-    !/\baddress\s+bar\b|адресн[\p{L}]*\s+строк/iu.test(value)
+    (storeSearchFieldRequested(value) || /\bsearch\s+(?:bar|box|field|input)\b/iu.test(value)) &&
+    !/\baddress\s+bar\b/iu.test(value)
   );
 }
 
@@ -37,7 +34,7 @@ export function observedSteamStoreProduct(view) {
     )
       return null;
     return (
-      /^(.*?)\s+(?:on|в)\s+Steam(?:\s+[-–—]\s+.+)?$/iu
+      /^(.*?)\s+(?:on)\s+Steam(?:\s+[-–—]\s+.+)?$/iu
         .exec(view.window?.untrustedTitle ?? '')?.[1]
         ?.trim() || null
     );
@@ -53,14 +50,10 @@ export function browserNavigationObstacle(view) {
   if (view.window?.modal === true) return 'modal';
   const controls = view.targets ?? [];
   const cookieChoice =
-    /^(?:accept all|reject all|reject optional cookies|only necessary|necessary cookies only|i agree|принять все|отклонить все|только необходимые|tout accepter|tout refuser|alle akzeptieren|alle ablehnen|aceptar todo|rechazar todo|aceitar tudo|rejeitar tudo)$/iu;
+    /^(?:accept all|reject all|reject optional cookies|only necessary|necessary cookies only|i agree|tout accepter|tout refuser|alle akzeptieren|alle ablehnen|aceptar todo|rechazar todo|aceitar tudo|rejeitar tudo)$/iu;
   if (
     controls.some((target) => cookieChoice.test((target.untrustedLabel ?? '').trim())) &&
-    controls.some((target) =>
-      /cookie|cookies|consent|файл[\p{L}]* cookie|конфиденциальност/iu.test(
-        target.untrustedLabel ?? '',
-      ),
-    )
+    controls.some((target) => /cookie|cookies|consent/iu.test(target.untrustedLabel ?? ''))
   )
     return 'cookie_consent';
   return null;
@@ -153,7 +146,7 @@ export function browserNavigationState(view, navigation) {
       [...requested.searchParams].every(([key, value]) => actual.searchParams.get(key) === value) &&
       loaded &&
       view.window.untrustedTitle &&
-      !/^(?:https?:|new tab\b|новая вкладка(?:\s|$))/iu.test(view.window.untrustedTitle)
+      !/^(?:https?:|new tab\b)/iu.test(view.window.untrustedTitle)
     )
       return 'ready';
   } catch {}
@@ -232,7 +225,7 @@ export function browserSearchState(view, search) {
       return 'loading';
     const filters = view.targets.some(
       (target) =>
-        /^(?:filters?|search filters?|фильтры|фильтр поиска|filtres?|filter|filtros?)$/iu.test(
+        /^(?:filters?|search filters?|filtres?|filter|filtros?)$/iu.test(
           (target.untrustedLabel ?? '').trim(),
         ) && !target.editable,
     );
@@ -257,7 +250,7 @@ export const browserSearchUrl = (text, site = 'google') =>
 
 /** A single home-page request. Leave in-site actions and tab selections to the task executor. */
 export function youtubeHomeDestination(command) {
-  return /^(?:open|visit|go\s+to|открой|перейди\s+на|abre|ouvre|ouvrez)\s+(?:youtube|ютуб|(?:www\.)?youtube\.com)[.!?]*$/iu.test(
+  return /^(?:open|visit|go\s+to|abre|ouvre|ouvrez)\s+(?:youtube|(?:www\.)?youtube\.com)[.!?]*$/iu.test(
     command.trim(),
   )
     ? 'https://www.youtube.com/'
@@ -299,13 +292,11 @@ export function explicitBrowserDestination(goal) {
 export function quotedYouTubeSearch(goal) {
   if (
     requiresPageSearch(goal) ||
-    /\b(?:do not|don't|never)\s+(?:search|open|visit|use)\b[^.!?;]{0,50}\byoutube\b|не\s+(?:открывай|ищи|используй)\s+(?:ютуб|youtube)/iu.test(
-      goal,
-    )
+    /\b(?:do not|don't|never)\s+(?:search|open|visit|use)\b[^.!?;]{0,50}\byoutube\b/iu.test(goal)
   )
     return null;
   const match =
-    /(?:\b(?:go\s+to|visit|open)\s+(?:www\.)?youtube\b|(?:открой|перейди\s+на)\s+(?:ютуб|youtube))\s*[,;:]?\s*(?:(?:and|then|и|затем)\s+)?(?:search\s+for|find|найди|поищи)\s+["“«]([^"”»\r\n]{1,200})["”»]/iu.exec(
+    /(?:\b(?:go\s+to|visit|open)\s+(?:www\.)?youtube\b)\s*[,;:]?\s*(?:(?:and|then)\s+)?(?:search\s+for|find)\s+["“«]([^"”»\r\n]{1,200})["”»]/iu.exec(
       goal,
     );
   return match?.[1]?.trim() || null;
@@ -325,29 +316,22 @@ export function youtubeWatchRequirement(goal) {
   if (!query) return null;
   const suffix = goal.slice(goal.indexOf(query) + query.length + 1);
   const followUp = /^(?:"[^"\n]*"|“[^”\n]*”|«[^»\n]*»|[^.!?\n"“«])*/u.exec(suffix)?.[0] ?? '';
-  if (
-    /\b(?:do not|don['’]t|never)\s+(?:open|play|watch|click)\b|не\s+(?:открывай|включай|смотри)/iu.test(
-      followUp,
-    )
-  )
-    return null;
+  if (/\b(?:do not|don['’]t|never)\s+(?:open|play|watch|click)\b/iu.test(followUp)) return null;
   const match =
-    /(?:\b(?:open|play|watch|click)\s+|(?:открой|включи|посмотри)\s+)(?:the\s+)?(?:video\s+(?:titled|named)\s+)?["“«]([^"”»\r\n]{1,200})["”»]/iu.exec(
+    /(?:\b(?:open|play|watch|click)\s+)(?:the\s+)?(?:video\s+(?:titled|named)\s+)?["“«]([^"”»\r\n]{1,200})["”»]/iu.exec(
       followUp,
     );
   if (match) return { exactTitle: videoTitleKey(match[1]) };
-  if (!/\b(?:open|play|watch|click)\b|открой|включи|посмотри/iu.test(followUp)) return null;
-  const teaser = /\bteaser\b|тизер/iu.test(followUp);
-  const trailer = /\btrailer\b|трейлер/iu.test(followUp);
+  if (!/\b(?:open|play|watch|click)\b/iu.test(followUp)) return null;
+  const teaser = /\bteaser\b/iu.test(followUp);
+  const trailer = /\btrailer\b/iu.test(followUp);
   if (teaser || trailer) {
     const topic = videoTitleKey(query)
       .split(' ')
       .filter(
         (word) =>
           word.length > 2 &&
-          !/^(?:the|for|official|teaser|trailer|video|netflix|youtube|официальн\p{L}*|тизер|трейлер)$/u.test(
-            word,
-          ),
+          !/^(?:the|for|official|teaser|trailer|video|netflix|youtube)$/u.test(word),
       );
     return { teaser, trailer, topic, netflix: /\bofficial\s+netflix\b/iu.test(followUp) };
   }

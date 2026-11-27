@@ -14,18 +14,18 @@ const quoteText = (match) => match?.slice(1).find((part) => part !== undefined);
 const currentQuoted =
   /"([^"\r\n]*)"|“([^”\r\n]*)”|«([^»\r\n]*)»|「([^」\r\n]*)」|『([^』\r\n]*)』|‘([^’\r\n]*)’|(?<![\p{L}\p{N}])'([^'\r\n]*)'(?![\p{L}\p{N}])/gu;
 const currentVerbs =
-  /(?<!\p{L})(?:send|post|write|type|отправь(?:те)?|напиши(?:те)?|набери(?:те)?|введи(?:те)?|envoie|envoyez|écris|écrivez|ecris|escribe|escriba|envía|envia|sende|schreib|schreibe|escreva|envie|scrivi|invia|gönder|yaz|اكتب|أرسل|ارسل)(?!\p{L})/giu;
+  /(?<!\p{L})(?:send|post|write|type|envoie|envoyez|écris|écrivez|ecris|escribe|escriba|envía|envia|sende|schreib|schreibe|escreva|envie|scrivi|invia|gönder|yaz|اكتب|أرسل|ارسل)(?!\p{L})/giu;
 const currentChat =
-  /(?<!\p{L})(?:chat|conversation|dm|direct\s+messages?|message\s+(?:pane|panel)|чат\p{L}*|переписк\p{L}*|сообщени\p{L}*|личн\p{L}*|conversation|salon|discussion|nachrichten|mensajes|mensagens|messaggi|mesaj\p{L}*|رسائل)(?!\p{L})|チャット|メッセージ|채팅|메시지|聊天|对话|對話/iu;
+  /(?<!\p{L})(?:chat|conversation|dm|direct\s+messages?|message\s+(?:pane|panel)|conversation|salon|discussion|nachrichten|mensajes|mensagens|messaggi|mesaj\p{L}*|رسائل)(?!\p{L})|チャット|メッセージ|채팅|메시지|聊天|对话|對話/iu;
 const currentSide = {
   right:
-    /(?<!\p{L})(?:right(?:[ -]hand)?|справа|прав(?:ый|ом|ую|ой|ого|ому|ые|ых)|droite|rechts|recht(?:e|en|er|es|em)|derech[ao]|direit[ao]|destra|sağ(?:daki|da|a|dan)?|يمين)(?!\p{L})|右|오른쪽/iu,
-  left: /(?<!\p{L})(?:left(?:[ -]hand)?|слева|лев(?:ый|ом|ую|ой|ого|ому|ые|ых)|gauche|links|link(?:e|en|er|es|em)|izquierd[ao]|esquerd[ao]|sinistra|sol(?:daki|da|a|dan)?|يسار)(?!\p{L})|左|왼쪽/iu,
+    /(?<!\p{L})(?:right(?:[ -]hand)?|droite|rechts|recht(?:e|en|er|es|em)|derech[ao]|direit[ao]|destra|sağ(?:daki|da|a|dan)?|يمين)(?!\p{L})|右|오른쪽/iu,
+  left: /(?<!\p{L})(?:left(?:[ -]hand)?|gauche|links|link(?:e|en|er|es|em)|izquierd[ao]|esquerd[ao]|sinistra|sol(?:daki|da|a|dan)?|يسار)(?!\p{L})|左|왼쪽/iu,
   current:
-    /(?<!\p{L})(?:current|selected|active|open|this|that|текущ\p{L}*|выбранн\p{L}*|открыт\p{L}*|этот|этом|actuel\p{L}*|courant\p{L}*|sélectionn\p{L}*|actual|este|esta|atual|corrente|questo|questa|aktuell\p{L}*|ausgewählt\p{L}*|mevcut|seçili|الحالي\p{L}*|المحدد\p{L}*)(?!\p{L})|現在|この|현재|선택한|当前|當前|这个|這個/iu,
+    /(?<!\p{L})(?:current|selected|active|open|this|that|actuel\p{L}*|courant\p{L}*|sélectionn\p{L}*|actual|este|esta|atual|corrente|questo|questa|aktuell\p{L}*|ausgewählt\p{L}*|mevcut|seçili|الحالي\p{L}*|المحدد\p{L}*)(?!\p{L})|現在|この|현재|선택한|当前|當前|这个|這個/iu,
 };
 const currentLocation =
-  /\s+(?:in|into|on|to|в|во|на|dans|sur|en|al|em|no|na|nel|su|im|auf|an|في|إلى)\s+/giu;
+  /\s+(?:in|into|on|to|dans|sur|en|al|em|no|na|nel|su|im|auf|an|في|إلى)\s+/giu;
 const exactMessage = (text) =>
   typeof text === 'string' &&
   text.trim().length > 0 &&
@@ -54,10 +54,9 @@ export function discordCurrentMessageParts(value) {
   const verbs = [...masked.matchAll(currentVerbs)];
   if (verbs.length !== 1) return null;
   const verbEnd = verbs[0].index + verbs[0][0].length;
-  const prefix =
-    /^(?:\s+(?:(?:the|a|this|following)\s+)?(?:message|text|сообщение|текст)\s*:?)?\s*/iu.exec(
-      value.slice(verbEnd),
-    )[0];
+  const prefix = /^(?:\s+(?:(?:the|a|this|following)\s+)?(?:message|text)\s*:?)?\s*/iu.exec(
+    value.slice(verbEnd),
+  )[0];
   const start = verbEnd + prefix.length;
   const literal = literals.find((entry) => entry.start === start);
   if (literal && exactMessage(literal.text)) {
@@ -80,7 +79,7 @@ export function discordCurrentMessageParts(value) {
   const text = value.slice(start, cuts[0].index).trim();
   if (
     !exactMessage(text) ||
-    /^(?:something|anything|a\s+(?:reply|response)|что-нибудь|что-то|quelque\s+chose|algo|etwas)(?!\p{L})/iu.test(
+    /^(?:something|anything|a\s+(?:reply|response)|quelque\s+chose|algo|etwas)(?!\p{L})/iu.test(
       text,
     )
   )
@@ -92,34 +91,26 @@ const boundedName = (value) =>
   name(value).length > 0 &&
   name(value).length <= 100 &&
   !/[\x00-\x1f]/u.test(value);
-const voiceSuffix = /\s*\((?:voice channel|голосовой канал)\)\s*$/iu;
-const textSuffix = /\s*\((?:text channel|текстовый канал)\)\s*$/iu;
-const serverGroup = /^(?:servers(?: sidebar)?|server list|серверы|список серверов)$/iu;
-const channelGroup =
-  /^(?:channels(?: sidebar| list)?|channel list|каналы|список каналов|панель каналов)$/iu;
+const voiceSuffix = /\s*\((?:voice channel)\)\s*$/iu;
+const textSuffix = /\s*\((?:text channel)\)\s*$/iu;
+const serverGroup = /^(?:servers(?: sidebar)?|server list)$/iu;
+const channelGroup = /^(?:channels(?: sidebar| list)?|channel list)$/iu;
 const channelContentGroup =
-  /^(?:channel content|channel chat|chat input|message composer|message input|чат канала|поле сообщения|ввод сообщения|редактор сообщения)$/iu;
+  /^(?:channel content|channel chat|chat input|message composer|message input)$/iu;
 const messageGroup =
-  /^(?:messages(?: in .*)?|message list|chat messages|message content|activity|сообщения(?: в .*)?|список сообщений|содержимое сообщения|активность)$/iu;
+  /^(?:messages(?: in .*)?|message list|chat messages|message content|activity)$/iu;
 const voiceGroup =
-  /^(?:voice controls|voice status|voice connection|voice panel|user status and settings|голосовое подключение|управление голосом|статус подключения|панель голосовой связи)$/iu;
+  /^(?:voice controls|voice status|voice connection|voice panel|user status and settings)$/iu;
 const actualUserGroup = /^user status and settings$/iu;
-const userGroup =
-  /^(?:user area|user controls|user status and settings|область пользователя|панель пользователя)$/iu;
+const userGroup = /^(?:user area|user controls|user status and settings)$/iu;
 const channelSuffix = /\s*\(channel\)\s*$/iu;
-const connectedLabel =
-  /^(?:voice connected|connected to voice|голосовая связь подключена|голосовое подключение установлено|подключено к голосовому каналу)$/iu;
-const disconnectedLabel =
-  /^(?:not connected|voice disconnected|не подключено|голосовая связь отключена)$/iu;
-const disconnectLabel =
-  /^(?:disconnect(?: from voice)?|leave voice(?: channel)?|отключиться(?: от голосового канала)?|покинуть голосовой канал)$/iu;
-const joinLabel =
-  /^(?:join voice(?: channel)?|connect(?: to voice)?|присоединиться к голосовому каналу|подключиться(?: к голосовому каналу)?)$/iu;
-const settingsLabel = /^(?:user settings|настройки пользователя)$/iu;
-const quickGroup =
-  /^(?:quick switcher|quick switch|быстрое переключение|быстрый переключатель|переключатель каналов)$/iu;
-const quickFieldLabel =
-  /^(?:where would you like to go\??|куда (?:вы )?(?:хотите|хотел[аи] бы) перейти\??)$/iu;
+const connectedLabel = /^(?:voice connected|connected to voice)$/iu;
+const disconnectedLabel = /^(?:not connected|voice disconnected)$/iu;
+const disconnectLabel = /^(?:disconnect(?: from voice)?|leave voice(?: channel)?)$/iu;
+const joinLabel = /^(?:join voice(?: channel)?|connect(?: to voice)?)$/iu;
+const settingsLabel = /^(?:user settings)$/iu;
+const quickGroup = /^(?:quick switcher|quick switch)$/iu;
+const quickFieldLabel = /^(?:where would you like to go\??)$/iu;
 const click = (target, summary) => ({ action: 'click', targetId: target.targetId, summary });
 const ask = (summary) => ({ action: 'ask_user', summary });
 const messageMatches = (target, text) =>
@@ -149,58 +140,43 @@ export function discordTaskRequest(value) {
   const goal = value.trim();
   // Normalize routing words and names, but never transform the message body.
   const commands = goal.replace(new RegExp(quoted, 'gu'), '').normalize('NFKC');
-  if (!/\bdiscord\b|дискорд/iu.test(commands)) return null;
+  if (!/\bdiscord\b/iu.test(commands)) return null;
   const current = discordCurrentMessageParts(goal);
   if (
-    /\b(?:draft|without\s+sending|do not\s+(?:send|submit|press\s+enter)|don't\s+(?:send|submit|press\s+enter))\b|черновик|не\s+(?:отправляй|отправлять|нажимай\s+(?:enter|ввод))/iu.test(
+    /\b(?:draft|without\s+sending|do not\s+(?:send|submit|press\s+enter)|don't\s+(?:send|submit|press\s+enter))\b/iu.test(
       commands,
     )
   )
     return null;
   const intent = commands
     .trim()
-    .replace(/^(?:(?:hey\s+)?capri|капри)[,\s:]+/iu, '')
-    .replace(/^(?:please|пожалуйста)[,\s]+/iu, '')
+    .replace(/^(?:(?:hey\s+)?capri)[,\s:]+/iu, '')
+    .replace(/^(?:please)[,\s]+/iu, '')
     .replace(/^(?:can|could|would)\s+you\s+(?:please\s+)?/iu, '')
-    .replace(
-      /^(?:i\s+(?:want|need|would\s+like)\s+you\s+to|я\s+(?:хочу|прошу)(?:,\s*чтобы\s+ты)?)\s+/iu,
-      '',
-    )
-    .replace(/^(?:in|on)\s+(?:(?:my|the)\s+)?discord[,\s:]+/iu, '')
-    .replace(/^в\s+(?:мо[её]м\s+)?дискорд[еа]?[,\s:]+/iu, '');
-  if (/^(?:open|launch|start|открой|запусти)\s+(?:discord|дискорд)[.!?\s]*$/iu.test(intent))
-    return null;
+    .replace(/^(?:i\s+(?:want|need|would\s+like)\s+you\s+to)\s+/iu, '')
+    .replace(/^(?:in|on)\s+(?:(?:my|the)\s+)?discord[,\s:]+/iu, '');
+  if (/^(?:open|launch|start)\s+(?:discord)[.!?\s]*$/iu.test(intent)) return null;
   if (
-    !/^(?:join|send|post|write|leave|disconnect|read|summarize|list|show|open|navigate|go\s+to|find)\b|^(?:зайди|войди|подключись|присоединись|выйди|отключись|покинь|прочитай|перескажи|суммируй|открой|перейди|найди|напиши|отправь|опубликуй|покажи|перечисли)(?=\s)/iu.test(
+    !/^(?:join|send|post|write|leave|disconnect|read|summarize|list|show|open|navigate|go\s+to|find)\b/iu.test(
       intent,
     )
   )
     return null;
-  if (/^(?:how|what)\b|^(?:как|что)(?=\s)|^(?:ты\s+)?(?:умеешь|можешь)\s+ли/iu.test(commands))
+  if (/^(?:how|what)\b/iu.test(commands)) return null;
+  if (/(?:\b(?:do not|don't|never)\s+(?:join|send|post|write|leave|open))/iu.test(commands))
     return null;
-  if (
-    /(?:\b(?:do not|don't|never)\s+(?:join|send|post|write|leave|open)|не\s+(?:заходи|вступай|отправляй|пиши|покидай|открывай))/iu.test(
-      commands,
-    )
-  )
-    return null;
-  if (/\bbot\b|бот[а-яё]*/iu.test(commands)) return null;
-  const send =
-    Boolean(current) ||
-    /\b(?:send|post|write)\b|(?:^|\s)(?:напиши|отправь|опубликуй)(?=\s)/iu.test(commands);
-  const leave = /\b(?:leave|disconnect)\b|(?:выйди|отключись|покинь)/iu.test(commands);
-  const join = /\bjoin\b|(?:зайди|войди|подключись|присоединись)/iu.test(commands);
-  const read = /\b(?:read|summarize)\b|(?:прочитай|перескажи|суммируй)/iu.test(commands);
-  const list =
-    /\b(?:list|show)\b[^.!?]{0,100}\bchannels\b|(?:покажи|перечисли)[^.!?]{0,100}канал/iu.test(
-      commands,
-    );
-  const navigate = /\b(?:open|navigate|go to|find)\b|(?:открой|перейди|найди)/iu.test(commands);
+  if (/\bbot\b/iu.test(commands)) return null;
+  const send = Boolean(current) || /\b(?:send|post|write)\b/iu.test(commands);
+  const leave = /\b(?:leave|disconnect)\b/iu.test(commands);
+  const join = /\bjoin\b/iu.test(commands);
+  const read = /\b(?:read|summarize)\b/iu.test(commands);
+  const list = /\b(?:list|show)\b[^.!?]{0,100}\bchannels\b/iu.test(commands);
+  const navigate = /\b(?:open|navigate|go to|find)\b/iu.test(commands);
   if (![send, leave, join, read, navigate, list].some(Boolean)) return null;
   if ([send, join, read, list].filter(Boolean).length > 1)
     return { action: 'clarify', reason: 'Specify one Discord operation at a time.' };
   if (
-    /(?:\b(?:screen.?share|share\s+(?:my\s+|the\s+)?screen|camera|video call|invite|delete|ban|kick|mute)\b|демонстрац|камер|видеозвон|пригласи|удали|забань|кикни|заглуши)/iu.test(
+    /(?:\b(?:screen.?share|share\s+(?:my\s+|the\s+)?screen|camera|video call|invite|delete|ban|kick|mute)\b)/iu.test(
       commands,
     )
   )
@@ -218,17 +194,12 @@ export function discordTaskRequest(value) {
       text: current.text,
       side: current.side,
     });
-  const serverMatch = new RegExp(String.raw`(?:\bserver\b|сервер(?:е|а)?)\s*${quoted}`, 'iu').exec(
-    goal,
-  );
-  const channelMatch = new RegExp(
-    String.raw`(?:\bchannel\b|канал(?:е|а)?)\s*#?\s*${quoted}`,
-    'iu',
-  ).exec(goal);
+  const serverMatch = new RegExp(String.raw`(?:\bserver\b)\s*${quoted}`, 'iu').exec(goal);
+  const channelMatch = new RegExp(String.raw`(?:\bchannel\b)\s*#?\s*${quoted}`, 'iu').exec(goal);
   const hashChannel = /(?:^|\s)#([\p{L}\p{N}_-]{1,100})(?=\s|[,.!?;]|$)/u.exec(commands);
   const server = quoteText(serverMatch),
     channel = quoteText(channelMatch) ?? hashChannel?.[1];
-  const channelType = /\bvoice\b|голосов/iu.test(commands) || join ? 'voice' : 'text';
+  const channelType = /\bvoice\b/iu.test(commands) || join ? 'voice' : 'text';
   if (list && server) return validateDiscordRequest({ action: 'list_channels', server });
   if (!server || !channel)
     return {
@@ -237,7 +208,7 @@ export function discordTaskRequest(value) {
     };
   if (send) {
     const message = new RegExp(
-      String.raw`(?:\b(?:send|post|write)\b|напиши|отправь|опубликуй)\s+(?:(?:the|a)\s+)?(?:(?:message|сообщение)\s*:?\s*)?${quoted}`,
+      String.raw`(?:\b(?:send|post|write)\b)\s+(?:(?:the|a)\s+)?(?:(?:message)\s*:?\s*)?${quoted}`,
       'iu',
     ).exec(goal);
     const text = quoteText(message);
@@ -572,10 +543,7 @@ export class DiscordGuiTask {
         submitted: true,
         deliveryConfirmed: false,
         evidence: request.text,
-        summary:
-          this.language === 'ru'
-            ? 'Отправила сообщение в указанный открытый чат Discord.'
-            : 'Message submitted in the requested visible Discord chat.',
+        summary: 'Message submitted in the requested visible Discord chat.',
       };
     }
     if (
@@ -610,10 +578,7 @@ export class DiscordGuiTask {
                 ? 'User status and settings'
                 : (observation.targets.find((target) => settingsLabel.test(target.label))?.label ??
                   'User Settings')),
-            summary:
-              this.language === 'ru'
-                ? 'Вышла из голосового канала Discord.'
-                : 'Left the Discord voice channel.',
+            summary: 'Left the Discord voice channel.',
           }
         : null;
     }
@@ -623,10 +588,7 @@ export class DiscordGuiTask {
         ? {
             verified: true,
             evidence,
-            summary:
-              this.language === 'ru'
-                ? `Подключилась к голосовому каналу «${request.channel}» на сервере «${request.server}».`
-                : `Joined voice channel “${request.channel}” on “${request.server}”.`,
+            summary: `Joined voice channel “${request.channel}” on “${request.server}”.`,
           }
         : null;
     }
@@ -639,10 +601,7 @@ export class DiscordGuiTask {
       return {
         verified: true,
         evidence: view.window.untrustedTitle,
-        summary:
-          this.language === 'ru'
-            ? 'Прочитала видимые каналы указанного сервера Discord.'
-            : 'Read the visible channels in the requested Discord server.',
+        summary: 'Read the visible channels in the requested Discord server.',
         untrustedVisibleChannels: channels,
         contextScope: 'visible_only',
       };
@@ -670,19 +629,13 @@ export class DiscordGuiTask {
         submitted: true,
         deliveryConfirmed: false,
         evidence: request.text,
-        summary:
-          this.language === 'ru'
-            ? 'Передала сообщение в указанный канал Discord.'
-            : 'Message submitted in the specified Discord channel.',
+        summary: 'Message submitted in the specified Discord channel.',
       };
     }
     return {
       verified: true,
       evidence: view.window.untrustedTitle,
-      summary:
-        this.language === 'ru'
-          ? `Открыла канал «${request.channel}» на сервере «${request.server}».`
-          : `Opened “${request.channel}” on “${request.server}”.`,
+      summary: `Opened “${request.channel}” on “${request.server}”.`,
       ...(request.action === 'read_context'
         ? {
             untrustedVisibleContext: observation.targets
@@ -715,11 +668,8 @@ export class DiscordGuiTask {
               channelSuffix.test(entry) &&
               same(entry.replace(channelSuffix, ''), this.request.channel)),
         ) &&
-        /^(?:message\s+#|сообщение\s+#|написать\s+в\s+#)/iu.test(target.label) &&
-        same(
-          target.label.replace(/^(?:message\s+#|сообщение\s+#|написать\s+в\s+#)/iu, ''),
-          this.request.channel,
-        ),
+        /^(?:message\s+#)/iu.test(target.label) &&
+        same(target.label.replace(/^(?:message\s+#)/iu, ''), this.request.channel),
     );
   }
   currentSelection(view) {
@@ -779,7 +729,7 @@ export class DiscordGuiTask {
         !paneId(target) &&
         target.ancestors.some((ancestor) => {
           const labelled = ancestor
-            .replace(/^(?:messages in|сообщения в)\s+/iu, '')
+            .replace(/^(?:messages in)\s+/iu, '')
             .replace(/\s*\((?:channel|text channel|voice channel|direct message|dm)\)$/iu, '');
           return labelled !== ancestor && key(labelled) === this.currentBinding.context;
         })
@@ -895,7 +845,7 @@ export class DiscordGuiTask {
       if (purpose === 'server')
         return (
           same(parts[0], request.server) &&
-          (parts.length === 1 || parts.slice(1).some((part) => /^(?:server|сервер)$/iu.test(part)))
+          (parts.length === 1 || parts.slice(1).some((part) => /^(?:server)$/iu.test(part)))
         );
       return (
         same(parts[0], request.channel) &&
@@ -903,8 +853,8 @@ export class DiscordGuiTask {
         (target.kind === request.channelType ||
           parts.some((part) =>
             request.channelType === 'voice'
-              ? /^(?:voice channel|голосовой канал)$/iu.test(part)
-              : /^(?:text channel|текстовый канал)$/iu.test(part),
+              ? /^(?:voice channel)$/iu.test(part)
+              : /^(?:text channel)$/iu.test(part),
           ))
       );
     });

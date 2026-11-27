@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { canClickTarget } from './computer-click-target.mjs';
 
-const libraryLabel =
-  /^(?:library|(?:my|the) library|steam library|(?:ma |la )?biblioth[eè]que|библиотек\p{L}*|мо[яю] библиотек\p{L}*)$/iu;
-const librarySearchLabel = /^(?:search (?:the )?library|library search|поиск по библиотеке)$/iu;
+const libraryLabel = /^(?:library|(?:my|the) library|steam library|(?:ma |la )?biblioth[eè]que)$/iu;
+const librarySearchLabel = /^(?:search (?:the )?library|library search)$/iu;
 const playLabel =
-  /^(?:Play|Launch|Играть|Запустить|Jouer|Spielen|Jugar|Jogar|Gioca|Graj|プレイ|开始游戏|開始遊戲|플레이)$/iu;
+  /^(?:Play|Launch|Грати|Запустити|Jouer|Spielen|Jugar|Jogar|Gioca|Graj|プレイ|开始游戏|開始遊戲|플레이)$/iu;
 export const isSteamPlayLabel = (value) => playLabel.test(value?.trim() ?? '');
 
 export const isSteamClient = (executable) =>
@@ -20,11 +19,7 @@ const normalized = (value) =>
 
 function gameName(value) {
   const name = value.replace(/^["«“]|["»”]$/gu, '').trim();
-  if (
-    /^(?:cyberpunk|киберпанк)(?:\s+(?:2077|twenty seventy[- ]seven|две тысячи семьдесят семь))?$/iu.test(
-      name,
-    )
-  )
+  if (/^(?:cyberpunk)(?:\s+(?:2077|twenty seventy[- ]seven))?$/iu.test(name))
     return 'Cyberpunk 2077';
   return name;
 }
@@ -34,14 +29,11 @@ export function explicitSteamGame(goal) {
   const text = goal
     .normalize('NFKC')
     .trim()
-    .replace(/^(?:(?:hey\s+)?capri|капри)[,\s:]+/iu, '')
-    .replace(/^(?:please|can you|could you|можешь|пожалуйста)[,\s]+/iu, '')
-    .replace(
-      /^(?:use (?:full )?computer access[,.: ]+|используй полное управление компьютером[,.: ]+)/iu,
-      '',
-    )
+    .replace(/^(?:(?:hey\s+)?capri)[,\s:]+/iu, '')
+    .replace(/^(?:please|can you|could you)[,\s]+/iu, '')
+    .replace(/^(?:use (?:full )?computer access[,.: ]+)/iu, '')
     .replace(/[.!?]\s+(?:i['’]ll be glad|i['’]d appreciate it|thanks|thank you)[.!?]*$/iu, '')
-    .replace(/(?:\s*,\s*|\s+)(?:for me|please|пж|плиз|пожалуйста)(?=[.!?]*$)/iu, '')
+    .replace(/(?:\s*,\s*|\s+)(?:for me|please)(?=[.!?]*$)/iu, '')
     .replace(
       /(?:,?\s+)(?:and(?:\s+then)?|then)\s+(?:click|press)\s+(?:the\s+)?[“"]?play[”"]?(?:\s+button)?[.!?]*$/iu,
       '',
@@ -52,17 +44,11 @@ export function explicitSteamGame(goal) {
     )?.[1] ??
     /^(?:open|start|launch)\s+(?:the\s+)?steam(?:\s+library)?(?:\s*[,.;]\s*(?:(?:and(?:\s+then)?|then)\s+)?|\s+(?:and(?:\s+then)?|then)\s+)(?:launch|start|play)\s+(?:the game\s+)?("[^"\r\n]{1,90}"|“[^”\r\n]{1,90}”|[^,;.!?\r\n]{1,90})[.!?]*$/iu.exec(
       text,
-    )?.[1] ??
-    /^(?:открой|запусти)\s+(?:игру\s+)?([^,;!?]{1,90}?)\s+(?:в|через|из)\s+(?:steam|стим[ае]?)(?:(?:[,;]\s*|\s+)(?:и|затем|потом)\s+запусти\s+(?:игру|его|её|ее))?[.!?]*$/iu.exec(
-      text,
-    )?.[1] ??
-    /^(?:открой|запусти)\s+(?:приложение\s+)?(?:steam|стим)\s*(?:[,.;]\s*|\s+(?:и|затем|потом)\s+)найди\s+(?:там\s+)?(?:игру\s+)?([^,;!?]{1,90}?)(?:[,;]\s*|\s+)(?:и|затем|потом)\s+запусти\s+(?:игру|его|её|ее)[.!?]*$/iu.exec(
-      text,
     )?.[1];
   if (
     !name ||
     (!/^["«“].*["»”]$/u.test(name) &&
-      /\b(?:and|then|after)\s+(?:open|launch|start|play|find|click|install|close|show|search)\b|(?:^|\s)(?:и|затем|потом)\s+(?:открой|запусти|найди|нажми|установи|закрой|покажи)(?:\s|$)/iu.test(
+      /\b(?:and|then|after)\s+(?:open|launch|start|play|find|click|install|close|show|search)\b/iu.test(
         name,
       ))
   )
@@ -71,7 +57,6 @@ export function explicitSteamGame(goal) {
 }
 
 const conditionalSteamCommands = [
-  /^(?:открой|запусти)\s+(?:steam|стим)\s*[,.;]\s*(?:найди|выбери)\s+(?:там\s+)?(?:игру\s+)?(?<name>[^,.;!?\r\n]{1,90})[,.;]\s*если\s+(?:(?:он[ао]?|игра)\s+)?не\s+(?:скачан|установлен)[ао]?\s*,\s*(?:нажми\s+[«"“]?скачать[»"”]?\s+и\s+)?(?:установи|скачай)(?:\s+(?:игру|её|ее|его))?(?:\s+на\s+(?:диск\s+)?(?<drive>[a-z]):?)?[,.;]\s*(?:иначе|в противном случае|если\s+(?:нет|да|(?:(?:он[ао]?|игра)\s+)?(?:уже\s+)?установлен[ао]?))\s*,?\s*(?:нажми\s+[«"“]?играть[»"”]?|запусти(?:\s+(?:игру|её|ее|его))?)[.!?]*$/iu,
   /^(?:open|launch)\s+steam\s*[,.;]\s*(?:find|select)\s+(?:the game\s+)?(?<name>[^,.;!?\r\n]{1,90})[,.;]\s*if\s+(?:(?:it(?:'s|’s| is)|the game is)\s+)?not\s+(?:downloaded|installed)\s*,\s*(?:install|download)(?:\s+(?:it|the game))?(?:\s+(?:to|on)\s+(?:(?:drive\s+)?(?<drive>[a-z]):?)(?:\s+drive)?)?[,.;]\s*(?:otherwise|if\s+(?:it(?:'s|’s| is)\s+(?:already\s+)?installed|not))\s*,?\s*(?:(?:click|press)\s+(?:the\s+)?["“]?play["”]?(?:\s+button)?|(?:play|launch|start)(?:\s+(?:it|the game))?)[.!?]*$/iu,
 ];
 
@@ -82,13 +67,7 @@ export function steamGameCommand(goal) {
     const match = pattern.exec(goal)?.groups;
     if (!match) continue;
     const name = gameName(match.name);
-    if (
-      !name ||
-      /\b(?:and|then)\s+(?:open|play|launch|install)\b|(?:^|\s)(?:и|затем|потом)\s+(?:открой|запусти|нажми|установи)\s/iu.test(
-        name,
-      )
-    )
-      return null;
+    if (!name || /\b(?:and|then)\s+(?:open|play|launch|install)\b/iu.test(name)) return null;
     return { name, installIfMissing: true, drive: match.drive?.toUpperCase() ?? null };
   }
   return null;
@@ -96,23 +75,23 @@ export function steamGameCommand(goal) {
 
 /** Host checks for the named-game steps a model can otherwise confuse with opening Steam. */
 export function steamGameGoal(goal) {
-  if (!/\bsteam\b|стим/iu.test(goal)) return null;
+  if (!/\bsteam\b/iu.test(goal)) return null;
   const explicit = explicitSteamGame(goal);
   if (explicit) return { name: explicit, play: true };
   const commands = [
     ...goal.matchAll(
-      /(?:^|\s)(?:select|go to|find|выбери|перейди к|найди)\s+(?:the\s+)?([^,.;!?]{1,100}?)(?=\s+(?:and|then|so|go to|затем|и)\s|[,.;!?]|$)/giu,
+      /(?:^|\s)(?:select|go to|find)\s+(?:the\s+)?([^,.;!?]{1,100}?)(?=\s+(?:and|then|so|go to)\s|[,.;!?]|$)/giu,
     ),
   ];
   const game = commands
     .at(-1)?.[1]
-    ?.replace(/^(?:там|there)\s+/iu, '')
+    ?.replace(/^(?:there)\s+/iu, '')
     ?.replace(/\s+(?:game|in (?:my|the) library)$/iu, '')
     .trim();
   if (!game || libraryLabel.test(game) || /^steam$/iu.test(game)) return null;
   const name = gameName(game);
   const play =
-    /(?:\b(?:and|then)\s+(?:(?:uh|um|please)\s+)*(?:(?:click|press)\s+(?:the\s+)?[“"]?(?:play|launch)\b|(?:play|launch|start)\s+it\b)|(?:затем|потом|и)\s+(?:нажми\s+[«"]?(?:играть|запустить)|запусти\s+(?:игру|его|её|ее)))/iu.test(
+    /(?:\b(?:and|then)\s+(?:(?:uh|um|please)\s+)*(?:(?:click|press)\s+(?:the\s+)?[“"]?(?:play|launch)\b|(?:play|launch|start)\s+it\b))/iu.test(
       goal,
     );
   return { name, play };
@@ -215,9 +194,7 @@ export function steamActionAllowed(state, step, view) {
     );
   if (step.action === 'launch')
     return (
-      !state.steamWindow &&
-      !state.playPressed &&
-      /^(?:steam|стим)$/iu.test(step.query?.trim() ?? '')
+      !state.steamWindow && !state.playPressed && /^(?:steam)$/iu.test(step.query?.trim() ?? '')
     );
   if (step.action === 'click')
     return Boolean(

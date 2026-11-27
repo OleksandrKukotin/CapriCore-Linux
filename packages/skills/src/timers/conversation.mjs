@@ -16,11 +16,10 @@ export class TimeConversation {
       .replace(/[?!.]+$/u, '')
       .trim();
     const explicit =
-      /^(?:(?:capri|капри)[, ]+)?(?:how (?:much time has passed|long has it been)|(?:what is |what's )?the (?:elapsed|stopwatch|timer) time|сколько (?:времени )?прошло|сколько на секундомере|какое время на секундомере)$/u.test(
+      /^(?:capri[, ]+)?(?:how (?:much time has passed|long has it been)|(?:what is |what's )?the (?:elapsed|stopwatch|timer) time)$/u.test(
         phrase,
       );
-    const follow =
-      /^(?:and now|what about now|now|а сейчас|и сейчас|а теперь|сейчас|теперь)$/u.test(phrase);
+    const follow = /^(?:and now|what about now|now)$/u.test(phrase);
     if (!explicit && !(follow && this.focus && this.now() - this.focus.at < 120000)) {
       if (!follow) this.focus = null;
       return null;

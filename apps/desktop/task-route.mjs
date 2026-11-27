@@ -11,7 +11,7 @@ import { youtubeMusicRequest } from './youtube-music-request.mjs';
 
 const number = String.raw`-?\d{1,60}(?:\.\d{1,60})?`;
 const root = new RegExp(
-  String.raw`^(?:(?:square root of|квадратный корень(?: из)?)\s+(${number})|(?:sqrt|√)\s*\(\s*(${number})\s*\)|√\s*(${number}))$`,
+  String.raw`^(?:(?:square root of)\s+(${number})|(?:sqrt|√)\s*\(\s*(${number})\s*\)|√\s*(${number}))$`,
   'iu',
 );
 
@@ -20,20 +20,11 @@ export function standaloneCalculation(text) {
   if (text.length > 280) return null;
   const value = text
     .trim()
-    .replace(/^(?:capri|капри)[, ]+\s*/iu, '')
-    .replace(
-      /^(?:(?:please\s+)?use\s+(?:the\s+)?calculator|(?:пожалуйста[, ]+)?используй\s+калькулятор)(?:\s+and\s+|\s+и\s+|[,.:]\s*|\s+)/iu,
-      '',
-    )
-    .replace(
-      /^(?:please\s+|пожалуйста[, ]+)?(?:(?:what is|what's|calculate|compute|find)\s+(?:the\s+)?|(?:вычисли|посчитай|найди|чему равен)\s+)/iu,
-      '',
-    )
+    .replace(/^(?:capri)[, ]+\s*/iu, '')
+    .replace(/^(?:(?:please\s+)?use\s+(?:the\s+)?calculator)(?:\s+and\s+|[,.:]\s*|\s+)/iu, '')
+    .replace(/^(?:please\s+)?(?:(?:what is|what's|calculate|compute|find)\s+(?:the\s+)?)/iu, '')
     .replace(/[.?]+$/u, '')
-    .replace(
-      /\s+(?:(?:via|using|with)\s+(?:the\s+)?calculator|через\s+калькулятор|на\s+калькуляторе|с\s+помощью\s+калькулятора)$/iu,
-      '',
-    )
+    .replace(/\s+(?:(?:via|using|with)\s+(?:the\s+)?calculator)$/iu, '')
     .trim()
     .replace(/\s+/gu, ' ');
   const match = root.exec(value);
@@ -44,13 +35,10 @@ export function standaloneCalculation(text) {
 function computerAccessDiscussion(text) {
   const value = text
     .trim()
-    .replace(/^(?:(?:hey\s+)?capri|капри)[,\s:]+/iu, '')
-    .replace(/^(?:please|пожалуйста)[,\s]+/iu, '');
+    .replace(/^(?:hey\s+)?capri[,\s:]+/iu, '')
+    .replace(/^please[,\s]+/iu, '');
   if (
     /^(?:can|could|do)\s+you\s+(?:actually\s+)?(?:control|operate|use|have\s+access\s+to)\s+(?:(?:my|the|this)\s+)?(?:computer|pc|desktop)(?:\s+(?:right\s+)?now)?[?!.\s]*$/iu.test(
-      value,
-    ) ||
-    /^(?:ты\s+)?(?:можешь|умеешь)\s+(?:управлять|пользоваться)\s+(?:(?:моим|этим|всем)\s+)?(?:компьютером|пк)[?!.\s]*$/iu.test(
       value,
     )
   )
@@ -65,11 +53,11 @@ function computerAccessDiscussion(text) {
       .some((part) => {
         const command = part
           .trim()
-          .replace(/^(?:please|пожалуйста)[,\s]+/iu, '')
-          .replace(/^(?:can|could|would)\s+you\s+(?:please\s+)?|^(?:можешь|можете)\s+/iu, '');
+          .replace(/^(?:please)[,\s]+/iu, '')
+          .replace(/^(?:can|could|would)\s+you\s+(?:please\s+)?/iu, '');
         return (
           computerModeRequest(part) ||
-          /^(?:enable|disable|activate|deactivate|turn\s+(?:on|off)|open|launch|start|find|search|type|write|click|press|move|create|copy|delete|play|calculate|включи|выключи|отключи|открой|запусти|найди|введи|напиши|нажми|перемести|создай|скопируй|удали|посчитай)(?=\s)/iu.test(
+          /^(?:enable|disable|activate|deactivate|turn\s+(?:on|off)|open|launch|start|find|search|type|write|click|press|move|create|copy|delete|play|calculate)(?=\s)/iu.test(
             command,
           )
         );
@@ -85,9 +73,6 @@ function computerAccessDiscussion(text) {
     ) ||
     /^(?:i\s+(?:(?:never|only|just)\s+(?:asked|wanted|said|questioned)|(?:did\s+not|didn['’]t)\s+ask)|you\s+(?:keep|always|continue)|no\s+matter\s+what\s+i\s+say|stop\s+(?:saying|telling|claiming|repeating|bringing\s+up))/iu.test(
       value,
-    ) ||
-    /^(?:почему\s|зачем\s|что\s+(?:такое|значит|означает|делает)|как\s+(?:работает|устроен|действует)|есть\s+ли\s|у\s+тебя\s|(?:можешь|можете)\s+(?:пожалуйста\s+)?(?:объяснить|рассказать)|объясни\s|расскажи\s|я\s+(?:не\s+просил[аи]?|никогда\s+не\s+просил[аи]?|(?:только|лишь)\s+спросил[аи]?)|ты\s+(?:опять|снова|постоянно|вс[её]\s+время|говоришь|повторяешь)|перестань\s+(?:говорить|повторять|писать))/iu.test(
-      value,
     )
   );
 }
@@ -101,10 +86,8 @@ export function toolDomain(text, state, routing) {
   if (companionDialogueQuestion(value)) return 'conversation';
   if (youtubeMusicRequest(value, state)) return 'conversation';
   if (
-    /\bspotify\b|спотиф/iu.test(value) &&
-    /\b(?:click|press|drag|cursor|mouse|keyboard|button|search\s+bar|type|write)\b|нажми|кликни|перетащи|курсор|мыш[ьи]|клавиш|кнопк|введи|напиши/iu.test(
-      value,
-    )
+    /\bspotify\b/iu.test(value) &&
+    /\b(?:click|press|drag|cursor|mouse|keyboard|button|search\s+bar|type|write)\b/iu.test(value)
   )
     return 'desktop';
   if (dedicatedMusicRequest(value))
@@ -114,35 +97,26 @@ export function toolDomain(text, state, routing) {
         : 'conversation'
       : null;
   if (
-    /\bspotify\b|спотиф/iu.test(value) &&
-    /^(?:do\s+you\s+have\s+access|can\s+you\s+(?:use|control)|у\s+тебя\s+есть\s+доступ|ты\s+можешь\s+управлять)/iu.test(
-      value.trim(),
-    )
+    /\bspotify\b/iu.test(value) &&
+    /^(?:do\s+you\s+have\s+access|can\s+you\s+(?:use|control))/iu.test(value.trim())
   )
     return 'conversation';
-  const temporal =
-    /\b(?:timer|stopwatch|remind|reminder|alarm|schedule)\b|таймер|секундомер|напомни|будильник/iu.test(
-      value,
-    );
+  const temporal = /\b(?:timer|stopwatch|remind|reminder|alarm|schedule)\b/iu.test(value);
   const mathematics =
-    /(?:\d\s*[-+*/^%]\s*\d)|\b(?:sqrt|square|squared|cube|cubed|root|logarithm|logarithmic|sine|cosine|tangent|factorial|plus|minus|divided by|multiplied by|calculate)\b|корень|корня|квадрат|возвед|логарифм|синус|косинус|плюс|минус/iu.test(
+    /(?:\d\s*[-+*/^%]\s*\d)|\b(?:sqrt|square|squared|cube|cubed|root|logarithm|logarithmic|sine|cosine|tangent|factorial|plus|minus|divided by|multiplied by|calculate)\b/iu.test(
       value,
     );
   const nonMath =
-    /\b(?:file|folder|directory|path|root access|root directory|square one|root for|root of the problem)\b|папк|файл|директор/iu.test(
+    /\b(?:file|folder|directory|path|root access|root directory|square one|root for|root of the problem)\b/iu.test(
       value,
     );
   const browserTask =
-    /\b(?:chrome|edge|browser|search bar|address bar)\b|хром|браузер|адресн(?:ую|ой|ая) строк/iu.test(
-      value,
-    ) &&
-    /\b(?:open|launch|start|type|write|enter|search|find|look up)\b|откро|откры|запуст|напиш|введи|найди|поищи/iu.test(
-      value,
-    );
+    /\b(?:chrome|edge|browser|search bar|address bar)\b/iu.test(value) &&
+    /\b(?:open|launch|start|type|write|enter|search|find|look up)\b/iu.test(value);
   if (
     browserTask &&
     state.spotify?.enabled &&
-    /\b(?:play|pause|resume|skip)\b.*\b(?:music|song|spotify)\b|включи.*музык/iu.test(value)
+    /\b(?:play|pause|resume|skip)\b.*\b(?:music|song|spotify)\b/iu.test(value)
   )
     return null;
   if (!temporal && !nonMath && browserTask && state.fullComputerAccess) return 'desktop';

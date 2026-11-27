@@ -7,17 +7,15 @@ import { steamGameCommand } from './steam-task-state.mjs';
 
 // Fast paths for common requests. Ambiguous and other-language requests can use
 // the desktop intent classifier without starting an ordinary chat turn.
-const russianMode = String.raw`(?:режим\s+)?полн(?:ого|ое|ый|ом|ым)\s+(?:управлени[ея]|доступ[а]?)\s+(?:ко?\s+)?(?:(?:всему|моим|моему|моего|всего)\s+)*(?:компьютер(?:ом|у|а)?|пк)`;
 const englishMode = String.raw`(?:full\s+(?:computer|pc|desktop)\s+(?:control|access)|full\s+(?:control|access)\s+(?:of|to|over)\s+(?:(?:my|the|this|entire|whole)\s+)*(?:computer|pc|desktop)|computer\s+control)(?:\s+mode)?`;
-const mode = String.raw`(?:${russianMode}|${englishMode})`;
-const prefix = /^(?:(?:hi|hey|hello|привет)[,\s]+)?(?:capr[ie]|капри)[,.!\s:]+/iu;
+const mode = englishMode;
+const prefix = /^(?:(?:hi|hey|hello)[,\s]+)?(?:capr[ie])[,.!\s:]+/iu;
 const accessStatusQuestions = [
   new RegExp(
     String.raw`^(?:(?:do you (?:currently )?have|have you got) (?:${englishMode})|is (?:the )?${englishMode}(?: (?:enabled|active|on))?)[.?]*$`,
     'iu',
   ),
   /^(?:(?:voc[eê] |tu )?(?:tem|tens|est[aá] com)|(?:me (?:diz|diga)|pode me dizer) se (?:voc[eê] )?tem) acesso (?:total|completo) (?:ao(?: meu| seu)?|à(?: minha| sua)?) (?:computador|pc|m[aá]quina)[.?]*$/iu,
-  /^(?:у тебя (?:сейчас )?есть полный доступ|есть ли у тебя (?:сейчас )?полный доступ) к (?:(?:моему|этому) )?(?:компьютеру|пк)[.?]*$/iu,
 ];
 
 export function computerAccessStatusQuestion(text) {
@@ -25,26 +23,19 @@ export function computerAccessStatusQuestion(text) {
   return accessStatusQuestions.some((pattern) => pattern.test(request));
 }
 
-const polite =
-  /^(?:(?:please|пожалуйста)[,\s]+|(?:can|could|would)\s+you\s+(?:please\s+)?|(?:можешь|можете)\s+(?:пожалуйста\s+)?)/iu;
+const polite = /^(?:(?:please)[,\s]+|(?:can|could|would)\s+you\s+(?:please\s+)?)/iu;
 const enable = new RegExp(
-  String.raw`^(?:enable|activate|turn\s+on|switch\s+to|use|включи(?:ть)?|активируй|используй|задействуй|перейди\s+в)\s+(?:the\s+)?${mode}(?=$|[\s,.:;!?])`,
+  String.raw`^(?:enable|activate|turn\s+on|switch\s+to|use)\s+(?:the\s+)?${mode}(?=$|[\s,.:;!?])`,
   'iu',
 );
 const disable = new RegExp(
-  String.raw`^(?:disable|deactivate|turn\s+off|revoke|отключи(?:ть)?|выключи(?:ть)?|отзови)\s+(?:the\s+)?${mode}(?=$|[\s,.:;!?])`,
+  String.raw`^(?:disable|deactivate|turn\s+off|revoke)\s+(?:the\s+)?${mode}(?=$|[\s,.:;!?])`,
   'iu',
 );
-const using = new RegExp(
-  String.raw`^(?:using|with|in|через|используя|в(?:\s+режиме)?)\s+${mode}(?=$|[\s,.:;!?])`,
-  'iu',
-);
-const trailing = new RegExp(
-  String.raw`\s+(?:using|with|через|используя|в(?:\s+режиме)?)\s+${mode}[.!?\s]*$`,
-  'iu',
-);
+const using = new RegExp(String.raw`^(?:using|with|in)\s+${mode}(?=$|[\s,.:;!?])`, 'iu');
+const trailing = new RegExp(String.raw`\s+(?:using|with)\s+${mode}[.!?\s]*$`, 'iu');
 const action =
-  /^(?:open|launch|start|find|search|type|write|click|move|create|copy|delete|play|calculate|открой|запусти|найди|поищи|введи|напиши|нажми|перемести|создай|скопируй|удали|включи|посчитай)(?=\s)/iu;
+  /^(?:open|launch|start|find|search|type|write|click|move|create|copy|delete|play|calculate)(?=\s)/iu;
 const mention = new RegExp(String.raw`(?:^|\s)${mode}(?=$|[\s,.:;!?])`, 'iu');
 const spanishMode = String.raw`(?:control|acceso) (?:total|completo) (?:del?|al?|sobre) (?:(?:el|la|mi|tu) )?(?:ordenador|computadora?|equipo|pc)`;
 const settingId = String.raw`(?:fullComputerAccess?|"fullComputerAccess?"|“fullComputerAccess?”|«fullComputerAccess?»)`;
@@ -54,55 +45,48 @@ const spanishModeChange = new RegExp(
 );
 const accessTask =
   /(?:^|[\s,])(?:use|using|with)\s+(?:uh\s+)?(?:(?:my|your|the)\s+)?computer\s+access(?=\s|[.!?,]|$)/iu;
-const taskCommand =
-  /^(?:open|launch|start|search|find|google|use|открой|открыть|запусти|запустить|найди|найти|поищи|используй)(?=\s)/iu;
+const taskCommand = /^(?:open|launch|start|search|find|google|use)(?=\s)/iu;
 const requestText = (text) =>
   String(text)
     .normalize('NFKC')
     .trim()
     .replace(prefix, '')
-    .replace(/^(?:hi|hey|hello|привет|здравствуй)[,!.]\s+/iu, '')
-    .replace(/^(?:короче|так вот|so|okay)[,:]\s+/iu, '')
+    .replace(/^(?:hi|hey|hello)[,!.]\s+/iu, '')
+    .replace(/^(?:so|okay)[,:]\s+/iu, '')
     .replace(polite, '')
-    .replace(/^(?:i\s+(?:want|need|would\s+like)\s+you\s+to\s+|я\s+(?:хочу|прошу)\s+)/iu, '')
-    .replace(/^(?:uh|um|please|пожалуйста)\s+/iu, '');
+    .replace(/^(?:i\s+(?:want|need|would\s+like)\s+you\s+to\s+)/iu, '')
+    .replace(/^(?:uh|um|please)\s+/iu, '');
 
-const openReference =
-  /^(?:(?:and\s+)?then\s+)?(?:open|launch|start)\s+(?:it|that)[.!?\s]*$|^(?:тогда\s+)?(?:открой|запусти)\s+(?:его|её|ее|это)[.!?\s]*$/iu;
+const openReference = /^(?:(?:and\s+)?then\s+)?(?:open|launch|start)\s+(?:it|that)[.!?\s]*$/iu;
 const computerAppReference = (text) => openReference.test(requestText(text));
 export const rejectsDesktopAction = (text) =>
-  /^(?:do\s+not|don['’]t|never|не)\s+(?:enable|activate|turn\s+on|open|launch|start|use|click|press|включай|включать|включи|активируй|открывай|открыть|открой|запускай|запускайся|используй|нажимай|нажми)(?!\p{L})/iu.test(
+  /^(?:do\s+not|don['’]t|never)\s+(?:enable|activate|turn\s+on|open|launch|start|use|click|press)(?!\p{L})/iu.test(
     requestText(text),
   );
 
 const recoveredMode =
-  /^(?:useful\s+(?:computer|pc|desktop)\s+(?:access|control)|use\s+my\s+(?:computer|pc|desktop)\s+via\s+full\s+access|используй\s+(?:(?:мой|этот)\s+)?(?:компьютер|пк)(?=\s*[,.:;]|\s+и\s))(?=\s|[,.:;!?]|$)/iu;
+  /^(?:useful\s+(?:computer|pc|desktop)\s+(?:access|control)|use\s+my\s+(?:computer|pc|desktop)\s+via\s+full\s+access)(?=\s|[,.:;!?]|$)/iu;
 const personalComputer =
-  /^(?:use\s+(?:my|the|this)\s+(?:computer|pc|desktop)(?:\s+to\s+|\s*[,;:]\s*)|(?:используй|использовать)\s+(?:мой|этот)\s+(?:компьютер|пк)\s*,?\s*чтобы\s+)/iu;
+  /^(?:use\s+(?:my|the|this)\s+(?:computer|pc|desktop)(?:\s+to\s+|\s*[,;:]\s*))/iu;
 const personalComputerCommand = (request) => {
   const match = personalComputer.exec(request);
   if (!match) return null;
   const task = request.slice(match[0].length);
-  return action.test(task) || /^(?:открыть|запустить|найти|ввести|нажать)\s+\S/iu.test(task)
-    ? task
-    : null;
+  return action.test(task) ? task : null;
 };
 const launchPrefix =
-  /^(?:open|launch|start|открой|открыть|запусти|запустить|abre|abrir|inicia|iniciar|lanza|lanzar|ouvre|ouvrez|ouvrir|lance|lancez|lancer|démarre|démarrez|démarrer)\s+/iu;
+  /^(?:open|launch|start|abre|abrir|inicia|iniciar|lanza|lanzar|ouvre|ouvrez|ouvrir|lance|lancez|lancer|démarre|démarrez|démarrer)\s+/iu;
 const chainSeparator =
-  /(?:[,.;:!?]\s*(?:(?:then|потом|затем|puis|ensuite)\s+)?|\s+(?:and\s+(?:then\s+)?|then\s+|потом\s+|затем\s+|и\s+|et\s+(?:(?:puis|ensuite)\s+)?|puis\s+|ensuite\s+))(?=(?:go\s+to|switch\s+to|click|open|launch|search|find|google|type|write|press|show|play|do|close|quit|перейди|переключись|открой|нажми|найди|напиши|введи|запусти|закрой|va|ouvre|ouvrez|lance|lancez|clique|cliquez|cherche|recherche|tape|écris|ferme|quitte)(?:\s|$))/iu;
-const section = String.raw`(?:library|settings|preferences|downloads|history|inbox|biblioth[eè]que|param[eè]tres|pr[eé]f[eé]rences|t[eé]l[eé]chargements|historique|библиотек[ау]|настройки|загрузки|истори[яю]|входящие)`;
+  /(?:[,.;:!?]\s*(?:(?:then|puis|ensuite)\s+)?|\s+(?:and\s+(?:then\s+)?|then\s+|et\s+(?:(?:puis|ensuite)\s+)?|puis\s+|ensuite\s+))(?=(?:go\s+to|switch\s+to|click|open|launch|search|find|google|type|write|press|show|play|do|close|quit|va|ouvre|ouvrez|lance|lancez|clique|cliquez|cherche|recherche|tape|écris|ferme|quitte)(?:\s|$))/iu;
+const section = String.raw`(?:library|settings|preferences|downloads|history|inbox|biblioth[eè]que|param[eè]tres|pr[eé]f[eé]rences|t[eé]l[eé]chargements|historique)`;
 const sectionFirst = new RegExp(
-  String.raw`^(?:(?:the|my|la|les|ma|mes|мою)\s+)?(${section})\s+(?:(?:in|of|dans|de|в)\s+)?(.+)$`,
+  String.raw`^(?:(?:the|my|la|les|ma|mes)\s+)?(${section})\s+(?:(?:in|of|dans|de)\s+)?(.+)$`,
   'iu',
 );
 const sectionLast = new RegExp(String.raw`^(.+?)\s+(${section})$`, 'iu');
 const appName = /^[\p{L}\p{N}][\p{L}\p{N} ._+&'’\-]{0,79}$/u;
 const clientName = (name) =>
-  name.replace(
-    /^(?:l['’](?:application|appli)|le client|the (?:app|application|client)|приложение|клиент)\s+/iu,
-    '',
-  );
+  name.replace(/^(?:l['’](?:application|appli)|le client|the (?:app|application|client))\s+/iu, '');
 
 export function computerTaskCommand(text) {
   const request = requestText(text).replace(
@@ -115,22 +99,19 @@ export function computerTaskCommand(text) {
     : (personalComputerCommand(request) ?? request.replace(recoveredMode, ''));
   return command
     .replace(/^[,.:;\s]+/u, '')
-    .replace(/^(?:and|to|и)\s+/iu, '')
+    .replace(/^(?:and|to)\s+/iu, '')
     .replace(trailing, '');
 }
 
 /** Keep desktop tools available for indirect owner requests, even after a classifier miss. */
 export function computerModelCandidate(text) {
   const unquoted = computerTaskCommand(text).replace(/"[^"\n]*"|“[^”\n]*”|«[^»\n]*»/gu, '');
-  const desktopMention =
-    /\b(?:steam|discord|window|taskbar|browser|desktop|computer|app)\b|стим|дискорд|окн[оае]|панел\p{L}* задач|браузер|компьютер|рабочи\p{L}* стол|приложени/iu;
+  const desktopMention = /\b(?:steam|discord|window|taskbar|browser|desktop|computer|app)\b/iu;
   const ownerRequest =
-    /^(?:i (?:need|want|would like)|open|start|play|show|put|make|use|help|открой|покажи|сделай|нужн[оа]|мне нужн[оа]|я хочу)\s|\b(?:can you|could you|would you|for me|take care of)\b|(?:^|\s)(?:можешь|пожалуйста)(?:\s|$)/iu;
+    /^(?:i (?:need|want|would like)|open|start|play|show|put|make|use|help)\s|\b(?:can you|could you|would you|for me|take care of)\b/iu;
   return (
     !rejectsDesktopAction(text) &&
-    (/^(?:click|drag|minimi[sz]e|maximi[sz]e|bring up|switch to|launch|кликни|нажми|перетащи|сверни|разверни|переключись|запусти)\s/iu.test(
-      unquoted,
-    ) ||
+    (/^(?:click|drag|minimi[sz]e|maximi[sz]e|bring up|switch to|launch)\s/iu.test(unquoted) ||
       (desktopMention.test(unquoted) && ownerRequest.test(unquoted)))
   );
 }
@@ -143,7 +124,7 @@ export function ownerAppLaunch(text) {
   const separator = remainder.search(chainSeparator);
   let name = (separator < 0 ? remainder : remainder.slice(0, separator))
     .replace(/[.!?]+$/u, '')
-    .replace(/(?:\s+please|,?\s+(?:пожалуйста|s['’]il (?:te|vous) plaît))$/iu, '')
+    .replace(/(?:\s+please|,?\s+(?:s['’]il (?:te|vous) plaît))$/iu, '')
     .trim()
     .replace(
       /^(?:"([^"]+)"|«([^»]+)»|“([^”]+)”)$/u,
@@ -154,7 +135,6 @@ export function ownerAppLaunch(text) {
   const destination = before?.[1] ?? after?.[2];
   const literalName = name;
   name = clientName(before?.[2] ?? after?.[1] ?? name);
-  if (/^стим(?:а|е)?$/iu.test(name)) name = 'Steam';
   if (!appName.test(name)) return null;
   if (destination)
     return {
@@ -189,7 +169,7 @@ export function ownerAppLaunchFollowUp(text, previous) {
 
 export const computerTaskFollowUp = (text) =>
   computerAppReference(text) ||
-  /^(?:continue(?:\s+(?:the|that|this)\s+task)?[.!?\s]*$|(?:open|load|show)\s+(?:(?:your|my|the|that|this)\s+)?(?:(?:most\s+)?(?:recent|latest)\s+)?project\b|(?:export|render)\s+(?:it|that|this|the project|the video)\b|продолжи(?:ть)?(?:\s+(?:задачу|это))?[.!?\s]*$|(?:открой|загрузи)\s+(?:(?:мой|этот|последний|текущий)\s+)?проект\b)/iu.test(
+  /^(?:continue(?:\s+(?:the|that|this)\s+task)?[.!?\s]*$|(?:open|load|show)\s+(?:(?:your|my|the|that|this)\s+)?(?:(?:most\s+)?(?:recent|latest)\s+)?project\b|(?:export|render)\s+(?:it|that|this|the project|the video)\b)/iu.test(
     requestText(text),
   );
 
@@ -202,10 +182,10 @@ export function exactClickLabel(text) {
   const access = enable.exec(request) ?? using.exec(request) ?? recoveredMode.exec(request);
   const command = (access ? request.slice(access[0].length) : request)
     .replace(/^[,.:;\s]+/u, '')
-    .replace(/^(?:and|to|и)\s+/iu, '')
+    .replace(/^(?:and|to)\s+/iu, '')
     .replace(trailing, '');
   return (
-    /^(?:click|press|нажми|кликни|clique(?:z)? sur|pulsa|haz clic en)\s+(?:(?:the\s+)?button\s+|(?:на\s+)?кнопку\s+)?(?:"([^"\r\n]{1,100})"|«([^»\r\n]{1,100})»|“([^”\r\n]{1,100})”)[.!?\s]*$/iu
+    /^(?:click|press|clique(?:z)? sur|pulsa|haz clic en)\s+(?:(?:the\s+)?button\s+)?(?:"([^"\r\n]{1,100})"|«([^»\r\n]{1,100})»|“([^”\r\n]{1,100})”)[.!?\s]*$/iu
       .exec(command)
       ?.slice(1)
       .find(Boolean)
@@ -217,11 +197,11 @@ function musicRequestScope(text) {
   const value = String(text).normalize('NFKC');
   if (mentionsComputerMode(value) || rejectsDesktopAction(value)) return null;
   const gui =
-    /\b(?:click|press|drag|cursor|mouse|keyboard|button|search\s+bar|address\s+bar|type|write|clipboard)\b|нажми|кликни|перетащи|курсор|мыш[ьи]|клавиш|кнопк|строк[ауе]\s+поиска|введи|напиши/iu.test(
+    /\b(?:click|press|drag|cursor|mouse|keyboard|button|search\s+bar|address\s+bar|type|write|clipboard)\b/iu.test(
       value,
     );
   const mixed =
-    /\b(?:chrome|edge|browser|notepad|discord|davinci|calculator|timer|reminder|file|folder)\b|хром|браузер|блокнот|дискорд|давинчи|калькулятор|таймер|напомни|файл|папк/iu.test(
+    /\b(?:chrome|edge|browser|notepad|discord|davinci|calculator|timer|reminder|file|folder)\b/iu.test(
       value,
     );
   return gui || mixed ? null : value;
@@ -231,7 +211,7 @@ function musicRequestScope(text) {
 export function spotifyPlaybackCandidate(text) {
   const scoped = musicRequestScope(text);
   if (scoped === null) return false;
-  return /^(?:play|put\s+on|turn\s+on|resume|pause|skip|next|previous|включи|поставь|воспроизведи|продолжи|приостанови|останови)(?=\s|[.!?]|$)/iu.test(
+  return /^(?:play|put\s+on|turn\s+on|resume|pause|skip|next|previous)(?=\s|[.!?]|$)/iu.test(
     requestText(scoped),
   );
 }
@@ -241,16 +221,15 @@ export function namedSpotifyPlay(text) {
   const scoped = musicRequestScope(text);
   if (scoped === null) return null;
   const request = requestText(scoped)
-    .replace(/[,\s]+(?:please|пожалуйста)[.!?\s]*$/iu, '')
+    .replace(/[,\s]+(?:please)[.!?\s]*$/iu, '')
     .replace(/[.!?\s]+$/u, '');
-  const match = /^(?:play|put\s+on|turn\s+on|включи|поставь|воспроизведи)\s+(.+)$/iu.exec(request);
+  const match = /^(?:play|put\s+on|turn\s+on)\s+(.+)$/iu.exec(request);
   if (!match) return null;
   let query = match[1];
-  const spotify =
-    /^(?:in|on|в)\s+(?:spotify|спотифа[йе])\s+|\s+(?:in|on|в)\s+(?:spotify|спотифа[йе])$/iu;
+  const spotify = /^(?:in|on)\s+(?:spotify)\s+|\s+(?:in|on)\s+(?:spotify)$/iu;
   const explicit = spotify.test(query);
-  query = query.replace(spotify, '').replace(/^(?:me\s+|мне\s+)/iu, '');
-  const named = /^(?:the\s+)?(?:song|track|песню|трек)\s+/iu;
+  query = query.replace(spotify, '').replace(/^(?:me\s+)/iu, '');
+  const named = /^(?:the\s+)?(?:song|track)\s+/iu;
   if (!explicit && !named.test(query) && !/\s[-–—]\s/u.test(query)) return null;
   query = query.replace(named, '').trim();
   // Ambiguous references, compound tasks and quoted tool output stay on the
@@ -259,11 +238,9 @@ export function namedSpotifyPlay(text) {
     !query ||
     query.length > 180 ||
     /[\x00-\x1f{}<>;`]/u.test(query) ||
-    /\b(?:and|then|but|before|after|instead|not|don't|never|if|when)\b|(?:^|\s)(?:и|затем|потом|не|если|когда)(?=\s|$)/iu.test(
-      query,
-    ) ||
+    /\b(?:and|then|but|before|after|instead|not|don't|never|if|when)\b/iu.test(query) ||
     /^(?:is|means|was|are|were)\b/iu.test(query) ||
-    /^(?:(?:some|any|the|this|that|my|your|current|next|previous)\s+)*(?:music|song|track|playlist|it|something|anything)$|^(?:музыку|песню|трек|её|ее|его|это|что-нибудь)$/iu.test(
+    /^(?:(?:some|any|the|this|that|my|your|current|next|previous)\s+)*(?:music|song|track|playlist|it|something|anything)$/iu.test(
       query,
     )
   )
@@ -276,23 +253,16 @@ export function dedicatedMusicContext(text) {
   const value = musicRequestScope(text);
   return (
     value !== null &&
-    /\b(?:spotify|music|songs?|tracks?|playlists?|volume|shuffle|quieter|louder)\b|спотиф|музык|песн|трек|плейлист|громк|потише|погромче/iu.test(
-      value,
-    )
+    /\b(?:spotify|music|songs?|tracks?|playlists?|volume|shuffle|quieter|louder)\b/iu.test(value)
   );
 }
 
 /** Music playback is a dedicated skill, not an implicit request for a GUI session. */
 export function windowsMediaPlayerTask(text) {
   const command = computerTaskCommand(text).replace(/"[^"\n]*"|“[^”\n]*”|«[^»\n]*»/gu, 'track');
-  if (/\b(?:spotify|youtube)\b|спотифа[йе]|ютуб/iu.test(command)) return false;
-  return (
-    /^(?:play|pause|resume|stop|skip|shuffle|put\s+on)\s+[^.!?;\n]{0,150}\b(?:from|in|on)\s+(?:(?:my|the)\s+)?(?:windows(?:['’]s?)?\s+)?media\s+player[.!\s]*$/iu.test(
-      command,
-    ) ||
-    /^(?:включи|поставь|воспроизведи|приостанови|продолжи|останови|переключи)\s+[^.!?;\n]{0,150}\s+в\s+(?:проигрывателе\s+windows|media\s+player)[.!\s]*$/iu.test(
-      command,
-    )
+  if (/\b(?:spotify|youtube)\b/iu.test(command)) return false;
+  return /^(?:play|pause|resume|stop|skip|shuffle|put\s+on)\s+[^.!?;\n]{0,150}\b(?:from|in|on)\s+(?:(?:my|the)\s+)?(?:windows(?:['’]s?)?\s+)?media\s+player[.!\s]*$/iu.test(
+    command,
   );
 }
 
@@ -302,11 +272,11 @@ export function dedicatedMusicRequest(text) {
   if (value === null) return false;
   const request = requestText(value)
     .replace(/[.!?\s]+$/u, '')
-    .replace(/[,\s]+(?:please|пожалуйста)$/iu, '')
+    .replace(/[,\s]+(?:please)$/iu, '')
     .trim();
   // A topic or a quoted song title is not an instruction. Unrecognized wording
   // stays on the general model path rather than being promoted to an action.
-  if (/^(?:do\s+not|don['’]t|not|never|не)(?=\s)/iu.test(request)) return false;
+  if (/^(?:do\s+not|don['’]t|not|never)(?=\s)/iu.test(request)) return false;
   const frenchSpotify = request.replace(/^(?:peux-tu|pourrais-tu)\s+/iu, '');
   if (
     /^(?:(?:mets?|joue|lance|cherche|recherche|reprends?|relance|arrête|jouer|lancer|chercher|mettre|reprendre)\s+[^;\r\n]{1,180}\s+sur\s+spotify|(?:mets?|mettre)\s+spotify\s+en\s+pause)$/iu.test(
@@ -328,46 +298,32 @@ export function dedicatedMusicRequest(text) {
   )
     return false;
   if (/^(?:pause|resume|next|previous|skip)$/iu.test(request)) return true;
-  if (
-    /^(?:(?:a\s+(?:little|bit)|slightly|even|much)\s+)?(?:quieter|louder)$/iu.test(request) ||
-    /^(?:(?:сделай|сделать)\s+)?(?:(?:чуть|немного|ещ[её])\s+)?(?:потише|погромче)$/iu.test(request)
-  )
+  if (/^(?:(?:a\s+(?:little|bit)|slightly|even|much)\s+)?(?:quieter|louder)$/iu.test(request))
     return true;
   if (
     /^(?:what(?:['’]s|\s+is)\s+(?:(?:currently|now)\s+)?playing|(?:what|which)\s+(?:song|track|music)\s+is\s+(?:(?:currently|now)\s+)?playing)(?:\s+(?:on|in)\s+spotify)?(?:\s+(?:right\s+now|now))?$/iu.test(
       request,
     ) ||
-    /^(?:что|какая\s+песня|какой\s+трек)\s+(?:сейчас\s+)?(?:играет|воспроизводится)(?:\s+в\s+(?:spotify|спотифа[йе]))?(?:\s+сейчас)?$/iu.test(
-      request,
-    ) ||
     /^(?:check|show|tell\s+me)\s+(?:(?:the|current|spotify['’]s?)\s+)*(?:spotify\s+)?(?:volume|playback\s+status|now\s+playing)(?:\s+(?:on|in)\s+spotify)?$/iu.test(
-      request,
-    ) ||
-    /^(?:проверь|покажи)\s+(?:текущую\s+)?(?:громкость|статус\s+воспроизведения)(?:\s+(?:в\s+)?(?:spotify|спотифа[йе]))?$/iu.test(
       request,
     )
   )
     return true;
-  const music =
-    /\b(?:spotify|music|songs?|tracks?|playlists?|shuffle)\b|спотиф|музык|песн|трек|плейлист/iu.test(
-      request,
-    );
+  const music = /\b(?:spotify|music|songs?|tracks?|playlists?|shuffle)\b/iu.test(request);
   const playback =
-    /^(?:play|pause|resume|stop|skip|next|previous|shuffle|repeat|seek|turn\s+on|put\s+on|start|search|find|включи(?:ть)?|поставь|поставить|воспроизведи|воспроизвести|проиграй|проиграть|останови(?:ть)?|приостанови(?:ть)?|продолжи(?:ть)?|переключи(?:ть)?|найди|найти|поищи)(?=\s|$)/iu.test(
+    /^(?:play|pause|resume|stop|skip|next|previous|shuffle|repeat|seek|turn\s+on|put\s+on|start|search|find)(?=\s|$)/iu.test(
       request,
     );
   const openAndPlay =
-    /^(?:open|launch|открой|запусти)\s/iu.test(request) &&
-    /\s(?:and(?:\s+then)?|then|и|затем)\s+(?:turn\s+on|put\s+on|play|start|resume|включи|поставь|воспроизведи)(?=\s)/iu.test(
-      request,
-    );
+    /^(?:open|launch)\s/iu.test(request) &&
+    /\s(?:and(?:\s+then)?|then)\s+(?:turn\s+on|put\s+on|play|start|resume)(?=\s)/iu.test(request);
   if (music && (playback || openAndPlay)) return true;
   const volumeAction =
-    /^(?:turn|make|set|adjust|lower|reduce|raise|increase|decrease|mute|unmute|убавь|уменьши|прибавь|увеличь|сделай|сделать|установи|настрой)(?=\s|$)/iu.test(
+    /^(?:turn|make|set|adjust|lower|reduce|raise|increase|decrease|mute|unmute)(?=\s|$)/iu.test(
       request,
     );
   const volume =
-    /\b(?:volume|quieter|louder|mute|unmute)\b|громк|потише|погромче/iu.test(request) ||
+    /\b(?:volume|quieter|louder|mute|unmute)\b/iu.test(request) ||
     (music && /\b(?:up|down)\b/iu.test(request));
   return (
     volumeAction &&
@@ -379,7 +335,7 @@ export function dedicatedMusicRequest(text) {
 // This is only an application anchor for semantic routing, never permission or
 // an action classifier. Keep translated product names usable with any language.
 export const mentionsDiscord = (text) =>
-  /\bdiscord\b|(?<!\p{L})дискорд(?:а|е|ом|у)?(?!\p{L})|ディスコード|디스코드|迪斯科德|狄斯科德|ديسكورد|דיסקורד|डिस्कॉर्ड/iu.test(
+  /\bdiscord\b|ディスコード|디스코드|迪斯科德|狄斯科德|ديسكورد|דיסקורד|डिस्कॉर्ड/iu.test(
     String(text).normalize('NFKC'),
   );
 
@@ -392,21 +348,15 @@ function authorizedDiscordCommand(text) {
   const addressed = unquoted.trim().replace(prefix, '');
   if (
     !mentionsDiscord(unquoted) ||
-    /[?？]|^(?:(?:can|could|would)\s+you(?!\p{L})|(?:можешь|можете)(?!\p{L}))/iu.test(addressed)
+    /[?？]|^(?:(?:can|could|would)\s+you(?!\p{L}))/iu.test(addressed)
   )
     return false;
   const command = requestText(unquoted);
-  if (
-    /^(?:join|connect|leave|disconnect|navigate|go\s+to|switch\s+to|подключись|присоединись|отключись|покинь|выйди|войди|зайди|перейди|переключись)(?=\s)/iu.test(
-      command,
-    )
-  )
+  if (/^(?:join|connect|leave|disconnect|navigate|go\s+to|switch\s+to)(?=\s)/iu.test(command))
     return true;
   return (
-    /^(?:send|post|type|write|отправь|напиши|введи|набери)(?=\s)/iu.test(command) &&
-    /\b(?:in|into|to|on)\s+(?:the\s+)?discord\b|(?:^|\s)в\s+(?:discord\b|дискорд(?:а|е|ом|у)?(?!\p{L}))/iu.test(
-      command,
-    )
+    /^(?:send|post|type|write)(?=\s)/iu.test(command) &&
+    /\b(?:in|into|to|on)\s+(?:the\s+)?discord\b/iu.test(command)
   );
 }
 
@@ -415,17 +365,15 @@ function authorizedDiscordCommand(text) {
 function authorizedSequence(value) {
   const unquoted = value.replace(/"[^"\n]*"|“[^”\n]*”|«[^»\n]*»/gu, '');
   const command = requestText(unquoted);
-  const browser =
-    /\b(?:chrome|edge|browser|computer\s+control)\b|хром|браузер|управлени[ея]\s+компьютером/iu;
-  const app = /\b(?:discord|davinci\s+resolve)\b|дискорд|давинчи/iu;
+  const browser = /\b(?:chrome|edge|browser|computer\s+control)\b/iu;
+  const app = /\b(?:discord|davinci\s+resolve)\b/iu;
   const nextNavigation =
-    /(?:,\s*|\b(?:and(?:\s+then)?|then|after\s+(?:this|that)|next|finally)\s+|(?:затем|потом|после\s+этого|и)\s+)(?:(?:please|uh|um)\s+)*(?:go\s+to|click|open|search|find|google|show|display|press|navigate|watch|export|перейди|нажми|открой|найди|поищи|покажи|разверни)(?=\s)/iu;
+    /(?:,\s*|\b(?:and(?:\s+then)?|then|after\s+(?:this|that)|next|finally)\s+)(?:(?:please|uh|um)\s+)*(?:go\s+to|click|open|search|find|google|show|display|press|navigate|watch|export)(?=\s)/iu;
   return (
     taskCommand.test(command) &&
     ((accessTask.test(unquoted) &&
       /\b(?:open|search|google|find|launch|turn\s+on|go\s+to)\b/iu.test(command)) ||
-      (/^(?:open|launch|start|открой|запусти)\s/iu.test(command) &&
-        nextNavigation.test(unquoted)) ||
+      (/^(?:open|launch|start)\s/iu.test(command) && nextNavigation.test(unquoted)) ||
       ((browser.test(unquoted) || app.test(unquoted)) && nextNavigation.test(unquoted)) ||
       (app.test(unquoted) &&
         /\b(?:uh|um)\s+(?:go\s+to|open|click|type|press|export)\s/iu.test(command)) ||
@@ -445,7 +393,7 @@ export function computerModeRequest(text, { fullComputerAccess = false } = {}) {
   if (on) {
     const remaining = value
       .slice(on[0].length)
-      .replace(/^[\s,.:;!?]*(?:please|пожалуйста|now|сейчас)?[\s,.:;!?]*$/iu, '')
+      .replace(/^[\s,.:;!?]*(?:please|now)?[\s,.:;!?]*$/iu, '')
       .trim();
     return { enabled: true, run: Boolean(remaining) };
   }
@@ -456,7 +404,7 @@ export function computerModeRequest(text, { fullComputerAccess = false } = {}) {
     const command = value
       .slice(recovered[0].length)
       .replace(/^[,.:;\s]+/u, '')
-      .replace(/^(?:and|to|и)\s+/iu, '');
+      .replace(/^(?:and|to)\s+/iu, '');
     if (action.test(command) || /^(?:do|switch|press|navigate|go)\s/iu.test(command))
       return { enabled: true, run: true };
   }
@@ -473,8 +421,7 @@ export function computerModeRequest(text, { fullComputerAccess = false } = {}) {
       return { enabled: true, run: true };
     const opening = ownerAppLaunch(value);
     const browserDraft =
-      opening &&
-      /^(?:google chrome|chrome|edge|microsoft edge|browser|браузер|хром)$/iu.test(opening.name);
+      opening && /^(?:google chrome|chrome|edge|microsoft edge|browser)$/iu.test(opening.name);
     if (authorizedSequence(value) || (opening && (opening.single || !browserDraft)))
       return { enabled: true, run: true };
   }

@@ -5,13 +5,13 @@ import { canClickTarget, hasVisualEvidence } from './computer-click-target.mjs';
 const cyberpunkAppId = '1091500';
 const cyberpunkUri = 'steam://rungameid/' + cyberpunkAppId;
 const redLauncherPath = /(?:^|[\\/])CD Projekt Red[\\/]REDlauncher[\\/]REDlauncher\.exe$/iu;
-const title = String.raw`(?:cyberpunk|киберпанк)(?:['’]s)?(?:\s+(?:2077|twenty seventy[- ]seven|две тысячи семьдесят семь))?`;
-const steam = String.raw`(?:steam|стим[еа]?)`;
-const direct = String.raw`(?:launch|start|open|play|turn on|запусти|открой|включи)\s+${title}(?:\s+(?:in|on|via|through|в|через)\s+${steam})?`;
-const next = String.raw`(?:and(?: then)?|then|и|потом|затем)`;
-const openSteam = String.raw`(?:open|go to|launch|открой|перейди в)\s+(?:(?:the app|приложение|клиент)\s+)?${steam}(?:,\s*(?:${next}\s+)?|\s+${next}\s+)`;
-const fromLibrary = String.raw`(?:\s+(?:from (?:my |the )?library|из (?:моей )?библиотеки))?`;
-const playButton = String.raw`(?:click|press|нажми)\s+["'«“]?(?:play|launch|играть|запустить)["'»”]?`;
+const title = String.raw`(?:cyberpunk)(?:['’]s)?(?:\s+(?:2077|twenty seventy[- ]seven))?`;
+const steam = String.raw`(?:steam)`;
+const direct = String.raw`(?:launch|start|open|play|turn on)\s+${title}(?:\s+(?:in|on|via|through)\s+${steam})?`;
+const next = String.raw`(?:and(?: then)?|then)`;
+const openSteam = String.raw`(?:open|go to|launch)\s+(?:(?:the app)\s+)?${steam}(?:,\s*(?:${next}\s+)?|\s+${next}\s+)`;
+const fromLibrary = String.raw`(?:\s+(?:from (?:my |the )?library))?`;
+const playButton = String.raw`(?:click|press)\s+["'«“]?(?:play|launch)["'»”]?`;
 const confirmPlay = String.raw`(?:,\s*(?:${next}\s+)?|\s+${next}\s+)${playButton}`;
 const selectAndPlay = String.raw`(?:go to (?:my |the )?library\s+(?:and |then )?)?(?:go to|select|find)\s+${title}${confirmPlay}`;
 const launchRequest = new RegExp(
@@ -25,16 +25,16 @@ export function cyberpunkSteamLaunch(goal) {
   const request = String(goal)
     .normalize('NFKC')
     .trim()
-    .replace(/^(?:(?:hey\s+)?capri|капри)[,\s:]+/iu, '')
+    .replace(/^(?:(?:hey\s+)?capri)[,\s:]+/iu, '')
     .replace(/^(?:i need to test your ability\.\s*see,\s*)?i want you to\s+/iu, '')
-    .replace(/^(?:can you|could you|можешь|please|пожалуйста)[,\s]+/iu, '')
+    .replace(/^(?:can you|could you|please)[,\s]+/iu, '')
     .replace(
-      /^(?:(?:use(?:ful)?\s+(?:uh\s+)?(?:my computer|(?:full\s+)?computer access|full access to my (?:pc|computer)))|(?:используй\s+(?:полный доступ к (?:моему )?(?:пк|компьютеру)|мой\s+(?:компьютер|пк))))\s*(?:(?:,\s*)?then\s+|\s+and\s+|,\s*(?:затем\s+)?|\s+и\s+)/iu,
+      /^(?:(?:use(?:ful)?\s+(?:uh\s+)?(?:my computer|(?:full\s+)?computer access|full access to my (?:pc|computer))))\s*(?:(?:,\s*)?then\s+|\s+and\s+|,\s*)/iu,
       '',
     )
     .replace(/\b(?:uh|um)\s+/giu, '')
     .replace(/[.!?]+$/u, '')
-    .replace(/(?:[,\s]+(?:please|пожалуйста))$/iu, '')
+    .replace(/(?:[,\s]+(?:please))$/iu, '')
     .trim();
   return launchRequest.test(request);
 }
@@ -54,7 +54,7 @@ export function isCyberpunkLauncherWindow(identity) {
 }
 
 export const isCyberpunkPlayLabel = (value) =>
-  /^(?:Play|Играть|Jouer|Spielen|Jugar|Jogar|Gioca|Graj|プレイ|开始游戏|開始遊戲|플레이)$/iu.test(
+  /^(?:Play|Грати|Jouer|Spielen|Jugar|Jogar|Gioca|Graj|プレイ|开始游戏|開始遊戲|플레이)$/iu.test(
     value?.trim() ?? '',
   );
 

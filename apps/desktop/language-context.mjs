@@ -2,7 +2,6 @@ import { LANGUAGE_DEFAULTS, LANGUAGE_PACKS, languageName } from './renderer/lang
 
 const delivery = {
   en: 'Reply only in English.',
-  ru: 'Отвечай только на русском языке.',
   ja: '必ず日本語だけで答えてください。',
   zh: '请只用中文回答。',
   de: 'Antworte ausschließlich auf Deutsch.',
@@ -30,7 +29,6 @@ export function conversationInstruction(
 
 export const VOICE_PREVIEWS = Object.freeze({
   en: 'Hey choom, I am right here. How does this sound?',
-  ru: 'Привет, чумба. Я рядом. Как тебе мой голос?',
   de: 'Hey, ich bin hier. Wie klingt meine Stimme?',
   fr: 'Salut, je suis là. Tu aimes ma voix ?',
   es: 'Hola, estoy aquí. ¿Qué te parece mi voz?',

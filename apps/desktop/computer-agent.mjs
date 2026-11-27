@@ -213,9 +213,7 @@ const progressForPlanner = (history) => ({
 const displayRequirementMet = (goal, view) => {
   if (
     view.window?.modal &&
-    !/\b(?:open|show|fill|type|enter|leave)\b[^.!?]{0,120}\b(?:dialog|picker|menu)\b|(?:открой|покажи|заполни|введи|оставь)[^.!?]{0,100}(?:диалог|меню|окн)/iu.test(
-      goal,
-    )
+    !/\b(?:open|show|fill|type|enter|leave)\b[^.!?]{0,120}\b(?:dialog|picker|menu)\b/iu.test(goal)
   )
     return false;
   if (!fullscreenRequested(goal)) return true;
@@ -225,25 +223,19 @@ const displayRequirementMet = (goal, view) => {
   );
 };
 const draftOnlyGoal = (goal) =>
-  /\b(?:do not|don't|never|without)\s+(?:press(?:ing)?\s+enter|submit(?:ting)?|navigat\w*)|не\s+(?:нажимай\w*\s+(?:enter|ввод)|отправляй\w*|переходи\w*)/iu.test(
+  /\b(?:do not|don't|never|without)\s+(?:press(?:ing)?\s+enter|submit(?:ting)?|navigat\w*)/iu.test(
     goal,
   );
 const mentionsSite = (goal) =>
-  /\b(?:on|in|at|go\s+to|visit|open)\s+(?:the\s+)?(?:netflix|youtube)\b|на\s+(?:нетфликсе|ютубе|youtube|netflix)/iu.test(
-    goal,
-  );
+  /\b(?:on|in|at|go\s+to|visit|open)\s+(?:the\s+)?(?:netflix|youtube)\b/iu.test(goal);
 const siteSearch = (goal) => {
-  const clauses = goal.split(
-    /[.!?;]|\b(?:and then|then|after that|afterwards)\b|\s+(?:затем|потом)\s+/iu,
-  );
+  const clauses = goal.split(/[.!?;]|\b(?:and then|then|after that|afterwards)\b/iu);
   const search = clauses.findIndex((clause) =>
-    /\b(?:search|find|google)\b|найди|поищи|погугли/iu.test(
-      clause.replace(/\bgoogle chrome\b/giu, ''),
-    ),
+    /\b(?:search|find|google)\b/iu.test(clause.replace(/\bgoogle chrome\b/giu, '')),
   );
   if (search < 0) return mentionsSite(goal);
   if (
-    /\b(?:official\s+[^.!?]{0,100}\b(?:site|website)|google)\b|официальн\p{L}*\s+сайт|погугли/iu.test(
+    /\b(?:official\s+[^.!?]{0,100}\b(?:site|website)|google)\b/iu.test(
       clauses[search].replace(/\bgoogle chrome\b/giu, ''),
     )
   )
@@ -258,7 +250,7 @@ function submittedPageQuery(step, view) {
     !(
       (step.action === 'press_keys' && step.keys?.includes('ENTER') && field.focused) ||
       (step.action === 'click' &&
-        /^(?:Google Search|Search|Поиск(?: в Google)?)$/iu.test(clicked?.untrustedLabel ?? ''))
+        /^(?:Google Search|Search)$/iu.test(clicked?.untrustedLabel ?? ''))
     )
   )
     return null;
@@ -492,9 +484,7 @@ export class ComputerAgent {
           'Opened the Google home page. The requested search is NOT submitted yet. Use its visible page search field next.',
       };
     }
-    const reuseTab = /\b(?:current|same|this) tab\b|(?:текущ|этой|той же)\p{L}*\s+вкладк/iu.test(
-      goal,
-    );
+    const reuseTab = /\b(?:current|same|this) tab\b/iu.test(goal);
     const directNavigation =
       !ownerTitle && !reuseTab && (navigating || (searching && pageField.length !== 1));
     if (view.observationUnavailable && !directNavigation && navigating)
@@ -834,7 +824,6 @@ export class ComputerAgent {
             return receipt;
           },
           wait: () => delay(500, undefined, { signal: combined }),
-          russian: this.language() === 'ru',
         });
         combined.throwIfAborted();
         completed = result.ok;
@@ -885,9 +874,7 @@ export class ComputerAgent {
         const needsUser = ['sign_in', 'profile'].includes(result.status);
         if (!completed)
           this.lastFailure = { phase: result.stage, reason: result.status, steps, at: Date.now() };
-        const summary = needsUser
-          ? this.message(result.status)
-          : edgerunnersReply(result, this.language());
+        const summary = needsUser ? this.message(result.status) : edgerunnersReply(result);
         return {
           ok: completed,
           status: completed ? 'completed' : needsUser ? 'needs_user' : 'incomplete',
@@ -1047,24 +1034,14 @@ export class ComputerAgent {
         completed = status === 'started' || status === 'running';
         this.trace.push({ action: 'steam_launch', outcome: status });
         const messages = {
-          started: ['Запустила Cyberpunk 2077.', 'Cyberpunk 2077 is running.'],
-          unconfirmed: [
-            'Не смогла подтвердить запуск Cyberpunk 2077. Проверь Steam и REDlauncher.',
+          started: 'Cyberpunk 2077 is running.',
+          unconfirmed:
             'I could not confirm that Cyberpunk 2077 started. Check Steam and REDlauncher.',
-          ],
-          running: ['Cyberpunk 2077 уже запущена.', 'Cyberpunk 2077 is already running.'],
-          'not-installed': [
-            'Steam не видит установленный Cyberpunk 2077.',
-            'Steam does not list Cyberpunk 2077 as installed.',
-          ],
-          unavailable: [
-            'Не удалось проверить установку Cyberpunk 2077 в Steam.',
-            'I could not check the Steam installation of Cyberpunk 2077.',
-          ],
-          'client-unavailable': [
-            'Windows не смогла передать команду в Steam. Проверь, открывается ли клиент.',
+          running: 'Cyberpunk 2077 is already running.',
+          'not-installed': 'Steam does not list Cyberpunk 2077 as installed.',
+          unavailable: 'I could not check the Steam installation of Cyberpunk 2077.',
+          'client-unavailable':
             'Windows could not pass the request to Steam. Check that the Steam client opens.',
-          ],
         };
         return terminal(
           {
@@ -1072,7 +1049,7 @@ export class ComputerAgent {
             status: completed ? 'completed' : 'incomplete',
             verified: completed,
             steps,
-            summary: messages[status][this.language() === 'ru' ? 0 : 1],
+            summary: messages[status],
           },
           status,
         );
@@ -1148,7 +1125,7 @@ export class ComputerAgent {
             status: completed ? 'completed' : 'needs_user',
             verified: completed,
             steps,
-            summary: steamTaskReply(result, this.language()),
+            summary: steamTaskReply(result),
           },
           result.status,
         );
@@ -1226,7 +1203,7 @@ export class ComputerAgent {
           goal,
         )?.[1];
       let youtubeSeed =
-        youtubeQuery && /chrome|edge|firefox|brave|vivaldi|opera|хром/i.test(browserName ?? '')
+        youtubeQuery && /chrome|edge|firefox|brave|vivaldi|opera/i.test(browserName ?? '')
           ? {
               action: 'browser_search',
               query: browserName,
@@ -1296,8 +1273,7 @@ export class ComputerAgent {
         this.taskPlan.startOutline({
           milestones: [],
           outcome: {
-            label:
-              this.language() === 'ru' ? 'Проверить результат в Steam' : 'Verify the Steam result',
+            label: 'Verify the Steam result',
             successCriterion:
               'Current evidence confirms the requested Steam game and all remaining owner steps.',
           },
@@ -1521,10 +1497,7 @@ export class ComputerAgent {
             this.taskPlan.startOutline({
               milestones: [],
               outcome: {
-                label:
-                  this.language() === 'ru'
-                    ? 'Проверить результат задачи'
-                    : 'Verify the requested result',
+                label: 'Verify the requested result',
                 successCriterion:
                   'Current evidence confirms every requirement of the original owner goal.',
               },
@@ -1551,10 +1524,7 @@ export class ComputerAgent {
               status: 'completed',
               steps,
               verified: true,
-              summary:
-                this.language() === 'ru'
-                  ? `Открыла раздел «${opening.section}» в ${opening.name}.`
-                  : `Opened “${opening.section}” in ${opening.name}.`,
+              summary: `Opened “${opening.section}” in ${opening.name}.`,
             },
             'completed',
           );
@@ -1931,14 +1901,11 @@ export class ComputerAgent {
           typeof step.text === 'string' &&
           !draftOnlyGoal(goal)
         ) {
-          if (
-            /^https?:\/\//i.test(step.text) &&
-            /\b(?:go to|navigate|visit|watch)\b|перейди|открой\s+сайт/iu.test(goal)
-          )
+          if (/^https?:\/\//i.test(step.text) && /\b(?:go to|navigate|visit|watch)\b/iu.test(goal))
             step = { ...step, action: 'open_url', url: step.text };
           else if (
             !/^https?:\/\//i.test(step.text) &&
-            /\b(?:google|search\s+the\s+web)\s+(?!chrome\b)\S|погугли/iu.test(goal) &&
+            /\b(?:google|search\s+the\s+web)\s+(?!chrome\b)\S/iu.test(goal) &&
             !siteSearch(goal)
           )
             step = { ...step, action: 'browser_search' };
@@ -1948,7 +1915,7 @@ export class ComputerAgent {
           (['browser_search', 'browser_input', 'open_url', 'launch_executable'].includes(
             step.action,
           ) ||
-            (step.action === 'launch' && !/^(?:steam|стим)$/iu.test(step.query?.trim() ?? '')));
+            (step.action === 'launch' && !/^(?:steam)$/iu.test(step.query?.trim() ?? '')));
         const invalid = outsideSteam
           ? 'The owner requested the Steam library. Open Steam and use its own game controls. Do not search the web or launch a different application.'
           : argumentProblem(step, goal, view);
@@ -2057,10 +2024,7 @@ export class ComputerAgent {
               ok: false,
               status: 'needs_user',
               steps,
-              summary:
-                this.language() === 'ru'
-                  ? 'Уточни действие, сервер и канал Discord.'
-                  : 'Specify the Discord action, server and channel.',
+              summary: 'Specify the Discord action, server and channel.',
             });
           continue;
         }
@@ -2609,9 +2573,7 @@ export class ComputerAgent {
           result?.ok &&
           step.action === 'click' &&
           pageBefore?.results === 'web' &&
-          /^(?:Images|Картинки|Bilder|Imágenes|Imagens)$/iu.test(
-            selected?.untrustedLabel?.trim() ?? '',
-          )
+          /^(?:Images|Bilder|Imágenes|Imagens)$/iu.test(selected?.untrustedLabel?.trim() ?? '')
         )
           result = {
             ...result,
@@ -2699,10 +2661,7 @@ export class ComputerAgent {
               ok: true,
               status: 'completed',
               steps,
-              summary:
-                this.language() === 'ru'
-                  ? `Нажала «${requestedClick}».`
-                  : `Clicked “${requestedClick}”.`,
+              summary: `Clicked “${requestedClick}”.`,
             },
             'exact_control_clicked',
           );
@@ -2720,8 +2679,7 @@ export class ComputerAgent {
             status: 'completed',
             steps,
             verified: true,
-            summary:
-              this.language() === 'ru' ? `Открыла ${opening.name}.` : `Opened ${opening.name}.`,
+            summary: `Opened ${opening.name}.`,
           };
         }
         if (!succeeded) {
@@ -2932,35 +2890,20 @@ export class ComputerAgent {
     }
   }
   message(key, httpStatus) {
-    const ru = this.language() === 'ru';
     if (key === 'indicator_bounds_failed')
-      return ru
-        ? 'Управление компьютером не запустилось. Рамка управления не совпала с границами монитора.'
-        : 'Computer control could not start because its indicator frame did not match the display bounds.';
+      return 'Computer control could not start because its indicator frame did not match the display bounds.';
     if (key === 'escape_unavailable')
-      return ru
-        ? 'Управление компьютером не запустилось. Не удалось настроить аварийную остановку по Esc.'
-        : 'Computer control could not start because its Escape emergency stop was unavailable.';
+      return 'Computer control could not start because its Escape emergency stop was unavailable.';
     if (key === 'indicator_timeout')
-      return ru
-        ? 'Управление компьютером не запустилось. Рамка управления не появилась вовремя.'
-        : 'Computer control could not start because its indicator did not appear in time.';
+      return 'Computer control could not start because its indicator did not appear in time.';
     if (key === 'challenge')
-      return ru
-        ? 'Запрос отправлен, но Google просит подтвердить, что ты не робот. Пройди проверку в Chrome, затем попроси меня продолжить.'
-        : 'The search was submitted, but Google requires a human verification. Complete it in Chrome, then ask me to continue.';
+      return 'The search was submitted, but Google requires a human verification. Complete it in Chrome, then ask me to continue.';
     if (key === 'sign_in')
-      return ru
-        ? 'Netflix открыл страницу входа. Войди в аккаунт, затем попроси меня продолжить.'
-        : 'Netflix opened its sign-in page. Sign in, then ask me to continue.';
+      return 'Netflix opened its sign-in page. Sign in, then ask me to continue.';
     if (key === 'profile')
-      return ru
-        ? 'Netflix просит выбрать профиль. Выбери его, затем попроси меня продолжить.'
-        : 'Netflix is asking you to choose a profile. Choose one, then ask me to continue.';
+      return 'Netflix is asking you to choose a profile. Choose one, then ask me to continue.';
     if (key === 'navigation')
-      return ru
-        ? 'Запрос отправлен, но загрузку результатов подтвердить не удалось. Проверь страницу в браузере.'
-        : 'The search was submitted, but I could not verify that the results loaded. Please check the browser page.';
+      return 'The search was submitted, but I could not verify that the results loaded. Please check the browser page.';
     if (key === 'pageUnverified')
       return uiText(
         'I could not verify that YouTube opened. Check the page in the browser.',
@@ -2969,59 +2912,31 @@ export class ComputerAgent {
     if (key === 'browserMissing')
       return uiText('No supported browser was found to open YouTube.', this.language());
     if (key === 'window')
-      return ru
-        ? 'Не смогла однозначно выбрать окно. Выведи нужное окно на передний план и повтори запрос.'
-        : 'I could not select the intended window. Bring it to the front and try again.';
+      return 'I could not select the intended window. Bring it to the front and try again.';
     if (key === 'covered')
-      return ru
-        ? 'Не смогла подтвердить точку для нажатия. Проверь, не перекрыта ли нужная кнопка.'
-        : 'I could not verify a place to click. Check whether the intended control is covered.';
+      return 'I could not verify a place to click. Check whether the intended control is covered.';
     if (key === 'stale')
-      return ru
-        ? 'Интерфейс изменился, и я больше не вижу нужный элемент. Проверь текущее окно.'
-        : 'The interface changed and I can no longer find the intended control. Check the current window.';
+      return 'The interface changed and I can no longer find the intended control. Check the current window.';
     if (key === 'inputBusy')
-      return ru
-        ? 'Windows отменила ввод: указатель смещался или была зажата клавиша. Проверь, осталось ли нужное окно открытым.'
-        : 'Windows blocked input because the pointer moved or a key was held. Check that the intended window is still open.';
+      return 'Windows blocked input because the pointer moved or a key was held. Check that the intended window is still open.';
     if (key === 'foreground')
-      return ru
-        ? 'Активное окно сменилось, и я остановила ввод. Проверь, какое окно сейчас открыто.'
-        : 'The foreground window changed, so I stopped sending input. Check which window is active.';
+      return 'The foreground window changed, so I stopped sending input. Check which window is active.';
     if (key === 'launch')
-      return ru
-        ? 'Не смогла открыть или активировать нужное приложение. Проверь, есть ли оно на панели задач.'
-        : 'I could not open or focus the requested app. Check whether it is on the taskbar.';
+      return 'I could not open or focus the requested app. Check whether it is on the taskbar.';
     if (key === 'planning' && [401, 403].includes(httpStatus))
-      return ru
-        ? 'Провайдер модели отклонил доступ. Проверь подключение в настройках API или выбери другую модель.'
-        : 'The model provider denied access. Check the API connection in Settings or choose another model.';
+      return 'The model provider denied access. Check the API connection in Settings or choose another model.';
     if (key === 'planning' && httpStatus === 429)
-      return ru
-        ? 'Провайдер модели ограничил число запросов. Подожди немного или выбери другую модель.'
-        : 'The model provider rate-limited the task. Wait a moment or choose another model.';
+      return 'The model provider rate-limited the task. Wait a moment or choose another model.';
     if (key === 'planning')
-      return ru
-        ? 'Выбранная модель не смогла предложить проверяемое действие. Проверь модель в настройках и текущее состояние задачи.'
-        : 'The selected model did not return a usable action. Check the model in Settings and the current state of the task.';
+      return 'The selected model did not return a usable action. Check the model in Settings and the current state of the task.';
     if (key === 'steamGame')
-      return ru
-        ? 'Не смогла подтвердить действие с нужной игрой в Steam. Проверь её страницу в библиотеке.'
-        : 'I could not verify the requested action on that Steam game. Check its page in your Library.';
+      return 'I could not verify the requested action on that Steam game. Check its page in your Library.';
     if (key === 'applicationMissing')
-      return ru
-        ? 'Не нашла это приложение в Windows. Уточни его название.'
-        : 'I couldn’t find that application in Windows. Please check its name.';
+      return 'I couldn’t find that application in Windows. Please check its name.';
     if (key === 'applicationAmbiguous')
-      return ru
-        ? 'В Windows есть несколько подходящих приложений. Уточни, какое открыть.'
-        : 'Windows found more than one matching application. Which one should I open?';
+      return 'Windows found more than one matching application. Which one should I open?';
     return key === 'stalled'
-      ? ru
-        ? 'Остановилась: дальнейшие действия не дают результата. Нужна помощь с текущим окном.'
-        : 'Stopped because further actions were not making progress. I need help with the current window.'
-      : ru
-        ? 'Не смогла подтвердить выполнение всех шагов. Проверь текущее окно.'
-        : 'I could not verify that all requested steps were completed. Please check the current window.';
+      ? 'Stopped because further actions were not making progress. I need help with the current window.'
+      : 'I could not verify that all requested steps were completed. Please check the current window.';
   }
 }

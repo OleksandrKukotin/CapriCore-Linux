@@ -19,7 +19,6 @@
     "cpuDecoder": { "ram": [2.4, 4], "vram": [1.05, 1.8] }
   },
   "voiceQwenCpu": { "ram": [4, 8], "vram": [0, 0] },
-  "voiceQwenRussianCpu": { "ram": [6, 12], "vram": [0, 0] },
   "router": { "ram": [0.1, 0.5], "vram": [0, 0] },
   "models": {
     "minimal": {
