@@ -16,7 +16,6 @@ import {
 import { startCompanionVoice } from '../../integrations/voice_runtime/host.mjs';
 
 const parent = path.join(root, '.runtime/asr-verification');
-const russian = process.argv.includes('--ru');
 mkdirSync(parent, { recursive: true });
 const folder = mkdtempSync(path.join(parent, 'electron-'));
 const reference = path.join(parent, 'english-reference.wav');
@@ -28,15 +27,7 @@ if (!existsSync(reference)) {
   writeFileSync(reference, Buffer.from(await response.arrayBuffer()));
 }
 const fakeAudio = path.join(folder, 'fake-microphone.wav');
-if (russian)
-  execFileSync(
-    path.join(root, '.runtime/asr-venv/bin/python'),
-    [path.join(root, 'scripts/prepare-russian-asr-fixture.py')],
-    { windowsHide: true },
-  );
-const inputReference = russian
-  ? path.join(root, '.runtime/asr-verification/russian-reference.wav')
-  : reference;
+const inputReference = reference;
 // Test fixture files contain only a public reference recording, never live audio.
 execFileSync(
   path.join(root, '.runtime/asr-venv/bin/python'),
@@ -101,21 +92,6 @@ const rt = runtime({
 initialize(rt);
 mkdirSync(path.join(folder, 'desktop'), { recursive: true });
 writeFileSync(path.join(folder, 'desktop/voice.json'), JSON.stringify({ enabled: true }));
-if (russian)
-  writeFileSync(
-    path.join(folder, 'desktop/languages.json'),
-    JSON.stringify({
-      schemaVersion: 1,
-      settings: {
-        interface: 'en',
-        conversation: 'en',
-        recognition: 'ru',
-        speech: 'follow',
-        autoDetect: false,
-        experimentalRecognition: true,
-      },
-    }),
-  );
 const env = {
   ...environment(rt),
   CAPRI_DESKTOP_VERIFICATION_DIR: folder,
@@ -259,8 +235,7 @@ try {
   assert.equal(seen[1].text, final.text);
   // Acoustic preprocessing may alter the opening words; this is an integration
   // check of real recognition and routing, not a word-error-rate benchmark.
-  if (russian) assert.match(seen[1].text, /[А-Яа-яЁё]{3}/);
-  else assert.ok(seen[1].text.toUpperCase().includes('YELLOW LAMPS'));
+  assert.ok(seen[1].text.toUpperCase().includes('YELLOW LAMPS'));
   assert.equal(seen[0].session, seen[1].session);
   assert.equal(seen[0].session, settings.sessionKey);
   assert.equal(await page.locator('#message').inputValue(), 'Keep this typed draft.');
@@ -286,7 +261,7 @@ try {
   await page.screenshot({ path: path.join(folder, 'microphone.png') });
   const report = {
     passed: true,
-    language: russian ? 'ru' : 'en',
+    language: 'en',
     timestamp: new Date().toISOString(),
     realCpuAsr: true,
     realTts: true,
@@ -306,12 +281,7 @@ try {
     folder,
   };
   writeFileSync(
-    path.join(
-      root,
-      russian
-        ? 'logs/desktop-microphone-ru-verification.json'
-        : 'logs/desktop-microphone-verification.json',
-    ),
+    path.join(root, 'logs/desktop-microphone-verification.json'),
     JSON.stringify(report, null, 2),
   );
   console.log(

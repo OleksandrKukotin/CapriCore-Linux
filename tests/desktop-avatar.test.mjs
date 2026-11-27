@@ -119,8 +119,8 @@ test('all expressions survive every possible streaming split and never enter vis
       (candidate) => candidate.pose === sprite.pose && candidate.expression === sprite.expression,
     );
     for (let cut = 0; cut <= frame.length; cut++) {
-      const result = parse([frame.slice(0, cut), frame.slice(cut), '\nHello, Капри ✨']);
-      assert.equal(result.text, '\nHello, Капри ✨');
+      const result = parse([frame.slice(0, cut), frame.slice(cut), '\nHello, Капрі ✨']);
+      assert.equal(result.text, '\nHello, Капрі ✨');
       assert.deepEqual(
         result.choices.map((choice) => choice.avatar.id),
         [canonical.id],
@@ -200,10 +200,10 @@ test('unknown, malformed and oversized control frames are discarded with bounded
 
 test('recover only standalone prose from the first avatar wrapper of a completed dialogue', () => {
   const options = { recoverWrappedReply: true };
-  const longer = 'Вот это да! '.repeat(20).trim();
+  const longer = 'Ось це так! '.repeat(20).trim();
   for (const [wrapped, expected] of [
     ['[avatar:' + longer + ']', longer],
-    ['[аватар:Это был хороший вечер.', 'Это был хороший вечер.'],
+    ['[аватар:Це був гарний вечір.', 'Це був гарний вечір.'],
     ['[avatar:またその曲を聴きたい。]', 'またその曲を聴きたい。'],
     ['[avatar:This was an alternate reply.]\nRegular answer.', '\nRegular answer.'],
     ['[avatar:pose=idle and expression=happy.]', ''],

@@ -4,13 +4,6 @@ Open **Settings → API connections → Add an API connection**. Select a
 preset or enter a Chat Completions base URL under **Custom**. Save the profile,
 test the connection, then choose **Use connection** to restart Capri with it.
 
-For ProxyAPI, use a ProxyAPI key and a full model ID such as
-`openai/gpt-5-mini`. The preset uses `https://api.proxyapi.ru/v1`.
-See the [ProxyAPI model catalog](https://proxyapi.ru/docs/models).
-Capri uses the Windows proxy route when one is configured for ProxyAPI. If
-the connection times out before HTTPS starts, check how the VPN or proxy routes
-`api.proxyapi.ru`.
-
 Enable tool calls and images only if the selected model supports them.
 
 ### Google Gemini

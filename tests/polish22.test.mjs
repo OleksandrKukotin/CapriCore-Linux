@@ -246,7 +246,7 @@ test('file replacement reviews the exact file, keeps recovery and refuses concur
   const missing = await service.execute('missing', {
     action: 'read_text',
     scopeId: scope.id,
-    path: 'выдуманное.txt',
+    path: 'вигадане.txt',
   });
   assert.equal(missing.error.code, 'file_not_found');
   assert.equal(missing.entries[0].path, 'Текст.txt');
@@ -274,13 +274,13 @@ test('elapsed follow-ups always sample the service instead of a creation receipt
   assert.match(conversation.read('How much time has passed?'), /00:00:26/);
   mono = 46000;
   wall += 20000;
-  assert.match(conversation.read('А сейчас?'), /00:00:46/);
+  assert.match(conversation.read('And now?'), /00:00:46/);
   const read = await service.execute('same-read', { action: 'status', id: result.id });
   mono += 10000;
   const next = await service.execute('same-read', { action: 'status', id: result.id });
   assert.equal(next.elapsedSeconds, read.elapsedSeconds + 10);
   conversation.read('Tell me about Night City');
-  assert.equal(conversation.read('А сейчас?'), null);
+  assert.equal(conversation.read('And now?'), null);
 });
 test('reminders persist spoken delivery separately, wake the voice and respect mute', async (t) => {
   const folder = await temp(t),

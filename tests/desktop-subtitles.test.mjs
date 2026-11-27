@@ -11,7 +11,7 @@ import {
 test('long captions preserve all content, including Cyrillic, emoji and unbroken text', () => {
   for (const text of [
     'A quiet moment. ' + 'The city can wait; we have a little time. '.repeat(40),
-    'Привет, чум! ✨ ' + 'Побудем рядом. '.repeat(40),
+    'Привіт, чум! ✨ ' + 'Побудьмо поруч. '.repeat(40),
     '😺'.repeat(500),
     'https://example.com/' + 'x'.repeat(1000),
   ]) {

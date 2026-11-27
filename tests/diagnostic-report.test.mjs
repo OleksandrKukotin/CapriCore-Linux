@@ -521,7 +521,7 @@ test('a useful report survives missing voice components and includes bounded red
     root: base,
     input: {
       category: 'voice',
-      description: 'Не работает голос',
+      description: 'Не працює голос',
       steps: 'Install, enable voice, send a message',
     },
     snapshot: {
@@ -558,7 +558,7 @@ test('a useful report survives missing voice components and includes bounded red
     all = [...files.values()].join('\n');
   for (const value of ['history canary', 'voice-secret-canary', base, 'private_token'])
     assert.ok(!all.includes(value), value);
-  assert.match(files.get('REPORT.md'), /Не работает голос/);
+  assert.match(files.get('REPORT.md'), /Не працює голос/);
   assert.match(files.get('REPORT.md'), /CUDA unavailable/);
   assert.match(files.get('REPORT.md'), /Local voice also supports CPU inference/);
   assert.match(files.get('REPORT.md'), /missing Python module/);

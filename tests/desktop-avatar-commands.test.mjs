@@ -8,23 +8,13 @@ import {
 } from '../apps/desktop/desktop-avatar-commands.mjs';
 
 test('spoken return and window seat commands are recognized without matching questions or quotes', () => {
-  for (const text of [
-    'Капри, вернись в своё окно!',
-    'Вернись в свою рамку, пожалуйста.',
-    'Please return to your frame.',
-    'Capri, go back into your window.',
-  ])
+  for (const text of ['Please return to your frame.', 'Capri, go back into your window.'])
     assert.deepEqual(desktopAvatarCommand(text), { action: 'return' });
-  assert.deepEqual(desktopAvatarCommand('Присядь на окно «Хрома».'), {
-    action: 'perch',
-    title: 'chrome',
-  });
-  assert.deepEqual(desktopAvatarCommand('Посиди на текущем окне.'), { action: 'perch', title: '' });
   assert.deepEqual(desktopAvatarCommand('Perch on top of the Notepad window'), {
     action: 'perch',
     title: 'Notepad',
   });
-  for (const text of ['What does return to your frame do?', 'Скажи «вернись домой»', 'Open Chrome'])
+  for (const text of ['What does return to your frame do?', 'Open Chrome'])
     assert.equal(desktopAvatarCommand(text), null);
 });
 
@@ -33,8 +23,6 @@ test('Settings window names resolve across conversation and interface languages 
     'Sit on the Settings window',
     'Sit on your Settings window',
     "Sit on Capri's Settings window",
-    'Сядь на окно настроек',
-    'Капри, присядь на окно «Настройки Capri».',
   ]) {
     const command = desktopAvatarCommand(request);
     assert.equal(command?.action, 'perch', request);
@@ -49,18 +37,11 @@ test('a direct request to wave is a local avatar command', () => {
   for (const text of [
     'Wave!',
     'Capri, could you wave at me, please?',
-    'Капри, помаши мне рукой.',
-    'Можешь помахать рукой?',
     'Capri, fais-moi coucou !',
     'Acena para mim.',
   ])
     assert.deepEqual(desktopAvatarCommand(text), { action: 'wave' }, text);
-  for (const text of [
-    'What is a wave?',
-    'Не маши рукой.',
-    'Скажи «помаши рукой»',
-    'Wave goodbye to the dog.',
-  ])
+  for (const text of ['What is a wave?', 'Wave goodbye to the dog.'])
     assert.equal(desktopAvatarCommand(text), null, text);
 });
 

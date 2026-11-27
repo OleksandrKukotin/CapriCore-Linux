@@ -165,7 +165,7 @@ test('changing microphone gain updates the live input without changing the syste
 });
 
 test('startup failure survives capture shutdown as a bounded diagnostic', async () => {
-  const { worker, service, events } = fixture({ language: 'ru' });
+  const { worker, service, events } = fixture({ language: 'uk' });
   worker.send = async () => {
     const failure = Object.assign(new Error('private machine path'), { code: 'ASR_START_MODEL' });
     worker.emit('failure', failure);

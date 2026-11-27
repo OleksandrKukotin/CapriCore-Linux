@@ -15,7 +15,7 @@ def call(route,body=None,timeout=180):
  req=urllib.request.Request('http://127.0.0.1:8101/'+route,data=json.dumps(body).encode() if body else None,headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
  with urllib.request.urlopen(req,timeout=timeout) as response:return response.read(24000*4*45+1),response.headers
 whisper=None
-cases=[('ru','Привет. Я здесь и готова поговорить.'),('ja','こんにちは。今日は何を話そうか？'),('zh','你好。我在这里，今天想聊些什么？'),('en','Hey choom, I am right here. How does this sound?')]
+cases=[('ja','こんにちは。今日は何を話そうか？'),('zh','你好。我在这里，今天想聊些什么？'),('en','Hey choom, I am right here. How does this sound?')]
 try:
  for language,text in cases:
   started=time.perf_counter();data,headers=call('synthesize',dict(language=language,text=text,requestId=str(uuid.uuid4())))

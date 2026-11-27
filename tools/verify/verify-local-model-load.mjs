@@ -12,7 +12,7 @@ const parent = path.join(root, '.runtime/desktop-verification');
 mkdirSync(parent, { recursive: true });
 const folder = mkdtempSync(path.join(parent, 'local-load-')),
   report = { passed: false, errors: [], checks: [] };
-if (process.argv.includes('--russian')) {
+if (process.argv.includes('--ukrainian')) {
   mkdirSync(path.join(folder, 'desktop'), { recursive: true });
   writeFileSync(
     path.join(folder, 'desktop/languages.json'),

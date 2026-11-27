@@ -48,12 +48,12 @@ class UvRetryTests(unittest.TestCase):
                 report = TORCH_TLS_EOF.replace('2.6.0', spec['torch'].split('+')[0]).replace('cu124', spec['backend'])
                 calls, notices = [], []
                 command = ['uv.exe', 'pip', 'sync' if profile == 'legacy' else 'install',
-                           '--python', 'D:/Капри test/voice/Scripts/python.exe',
+                           '--python', 'D:/Капрі test/voice/Scripts/python.exe',
                            '-r', spec['requirements'], '--torch-backend', spec['backend']]
                 def run(args, env):
                     calls.append((args, env))
                     return (2, report) if len(calls) == 1 else (0, '')
-                original_env = {'UV_CACHE_DIR': 'D:/Капри test/cache'}
+                original_env = {'UV_CACHE_DIR': 'D:/Капрі test/cache'}
                 self.assertEqual(retry.run_uv(command, environ=original_env, run=run, sleep=lambda _: None,
                                              notify=notices.append, pytorch_profile=profile), 0)
                 self.assertEqual(calls[0][0], command)
@@ -211,7 +211,7 @@ class UvRetryTests(unittest.TestCase):
         parent_env = {'UV_CACHE_DIR': 'private cache', 'GIT_CONFIG_COUNT': '1',
                       'GIT_CONFIG_KEY_0': 'fixture.setting', 'GIT_CONFIG_VALUE_0': 'unchanged'}
         original = dict(parent_env)
-        command = ['uv.exe', 'pip', 'sync', '--python', 'Капри voice/python.exe',
+        command = ['uv.exe', 'pip', 'sync', '--python', 'Капрі voice/python.exe',
                    'config/requirements-voice-training.lock', '--torch-backend', 'cu124',
                    '--default-index', 'https://pypi.org/simple', '--index-strategy', 'first-index']
         def run(args, env):
@@ -496,7 +496,7 @@ cause: operation timed out'''
     def test_real_wrapper_and_windows_splat_preserve_paths_pins_cache_and_progress(self):
         parent = ROOT / '.runtime/uv-retry-tests'
         parent.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(prefix='Капри cache ', dir=parent) as directory:
+        with tempfile.TemporaryDirectory(prefix='Капрі cache ', dir=parent) as directory:
             folder = Path(directory)
             cache = folder / 'cache'
             cache.mkdir()

@@ -30,7 +30,7 @@ test('composer buttons are independent of toolbar buttons', () => {
 test('Wikipedia search sends only the query to the selected language and filters actual hostnames', async () => {
   const service = new WebSearch({
     fetchImpl: async (url) => {
-      assert.equal(new URL(url).origin, 'https://ru.wikipedia.org');
+      assert.equal(new URL(url).origin, 'https://uk.wikipedia.org');
       assert.equal(new URL(url).searchParams.get('q'), 'Synthetic query');
       return Response.json({
         pages: [
@@ -41,14 +41,14 @@ test('Wikipedia search sends only the query to the selected language and filters
     },
   });
   const settings = { engine: 'wikipedia', sort: 'title', domains: 'wikipedia.org' };
-  const result = await service.search('Synthetic query', { language: 'ru-RU', settings });
+  const result = await service.search('Synthetic query', { language: 'uk-UA', settings });
   assert.deepEqual(
     result.sources.map(({ title }) => title),
     ['Alpha', 'Beta'],
   );
   assert.equal(result.sources[1].snippet, 'Evidence');
   const blocked = await service.search('Synthetic query', {
-    language: 'ru',
+    language: 'uk',
     settings: { ...settings, exclude: true },
   });
   assert.equal(blocked.status, 'empty');
@@ -104,6 +104,5 @@ test('specific launch intent stays scoped to Steam without capturing multi-app r
     explicitSteamGame('Use full computer access, launch Portal 2 in Steam.'),
     'Portal 2',
   );
-  assert.equal(explicitSteamGame('Запусти Portal 2 в Стиме'), 'Portal 2');
   assert.equal(explicitSteamGame('Launch Portal 2 in Steam and open Discord'), null);
 });

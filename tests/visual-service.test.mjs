@@ -79,20 +79,20 @@ function inferenceFixture(raw, options = {}) {
 
 test('image attachments use the same fictional identity as snapshots; documents do not', async () => {
   const fixture = inferenceFixture(
-    JSON.stringify({ message: { content: 'Это мой аватар.' }, done: true }) + '\n',
-    { languages: () => ({ conversation: 'ru' }), identifyPortrait: () => 'Capri (Capricorn)' },
+    JSON.stringify({ message: { content: 'Це мій аватар.' }, done: true }) + '\n',
+    { languages: () => ({ conversation: 'uk' }), identifyPortrait: () => 'Capri (Capricorn)' },
   );
   const png = visionImage();
-  await fixture.generate({ text: 'Кто на картинке?', png: undefined, attachments: [{ png }] });
+  await fixture.generate({ text: 'Хто на зображенні?', png: undefined, attachments: [{ png }] });
   await fixture.generate({
-    text: 'Что в документе?',
+    text: 'Що в документі?',
     png: undefined,
     attachments: [{ text: 'Fixture' }],
   });
   const [picture, document] = fixture.requests.map(({ messages }) => messages[0].content);
   assert.ok(picture.includes(CAPRI_SCREEN_SELF));
   assert.match(picture, /Image 1 matches a reference portrait of Capri/);
-  assert.match(picture, /Отвечай только на русском языке/);
+  assert.match(picture, /only in Ukrainian/);
   assert.doesNotMatch(document, /Fictional character reference|Reference portrait matches/);
 });
 
@@ -137,7 +137,7 @@ test('ordinary visual maths has room beyond 768 tokens and reserves its actual a
 });
 
 test('visual final packets work at EOF without a newline and across split Unicode bytes', async () => {
-  const answer = 'Решение: sin² θ + cos² θ = 1. Значит, ответ проверен.';
+  const answer = 'Розвʼязок: sin² θ + cos² θ = 1. Отже, відповідь перевірено.';
   const raw = JSON.stringify({ message: { content: answer }, done: true, done_reason: 'stop' });
   assert.equal((await inferenceFixture(raw).generate()).text, answer);
   const bytes = Buffer.from(raw);
@@ -172,7 +172,7 @@ test('visual explicit truncation and incomplete streams preserve typed causes', 
 });
 
 test('visual thinking retries once with a direct answer when the first pass runs out of tokens', async () => {
-  const solution = 'v(t) = 12t − 48. При t = 9 с скорость равна 60 м/с.';
+  const solution = 'v(t) = 12t − 48. При t = 9 с швидкість дорівнює 60 м/с.';
   const raw = (attempt) =>
     attempt === 1
       ? [
@@ -193,7 +193,7 @@ test('visual thinking retries once with a direct answer when the first pass runs
   assert.equal(
     (
       await f.generate({
-        text: 'Найдите скорость в момент t = 9 с по формуле на изображении.',
+        text: 'Знайдіть швидкість у момент t = 9 с за формулою на зображенні.',
         attachments: [{ png: visionImage() }],
         thinking: true,
         effort: 'medium',

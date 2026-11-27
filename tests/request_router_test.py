@@ -12,7 +12,7 @@ class RoutingGuardTests(unittest.TestCase):
         router.encoder = NoEncoder()
         for text in ('Tell me something cheerful and save it in my notes.',
                      'GOOD NIGHT AND PAUSE THE MUSIC', 'Which one is playing?',
-                     'The other one, please.', 'Привет Капри', 'x' * 401,
+                     'The other one, please.', 'Привіт, Капрі', 'x' * 401,
                      'Hey, open https://example.com', 'Compute 17 / 40.'):
             self.assertEqual(router.classify(text)['mode'], 'normal')
         self.assertEqual(router.classify('Yes, please.', ['Turn the music down.'])['mode'], 'normal')

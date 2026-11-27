@@ -205,9 +205,7 @@ try {
 
   const settings = await settingsView(application, 'screen');
   settings.on('pageerror', (error) => errors.push(error.message));
-  const group = settings
-    .locator('#screen-source option')
-    .filter({ hasText: /All monitors|Все мониторы/i });
+  const group = settings.locator('#screen-source option').filter({ hasText: /All monitors/i });
   await group.waitFor({ state: 'attached' });
   assert.equal(await settings.locator('#screen-source').inputValue(), '');
   assert.equal(await settings.locator('#screen-capture').isDisabled(), true);

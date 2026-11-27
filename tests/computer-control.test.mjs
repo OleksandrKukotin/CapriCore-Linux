@@ -916,7 +916,7 @@ test('Steam pointer grounding uses the recognized row instead of the model’s i
       targets: [{ label: steamGame, x: 8, y: 60, role: 'item', steamRole: 'game_row' }],
     };
   };
-  await control.begin('Найди сайберпанк 2077 в Steam');
+  await control.begin('Find Cyberpunk 2077 in Steam');
   control.session.steamGame = { name: 'Cyberpunk 2077', play: false };
   try {
     const view = await control.execute({ action: 'observe' });
@@ -960,7 +960,7 @@ test('a verified Steam game keeps its visible Play target when the model omits i
     steamLibrary: { page: 'game', gameTitle, launchState: 'ready' },
     targets: [],
   });
-  control.readSteamText = async () => [[{ text: 'Играть', x: 45, y: 40, width: 6, height: 10 }]];
+  control.readSteamText = async () => [[{ text: 'Грати', x: 45, y: 40, width: 6, height: 10 }]];
   await control.begin('Open Cyberpunk from Steam, then launch the game');
   try {
     const verified = await control.execute({ action: 'observe' });
@@ -996,7 +996,7 @@ test('the REDlauncher Play caption becomes actionable when OCR matches its Windo
         },
         {
           id: 'caption',
-          untrustedName: 'Играть',
+          untrustedName: 'Грати',
           type: 'ControlType.Text',
           clickKind: 'candidate',
           x: 1040,
@@ -1007,7 +1007,7 @@ test('the REDlauncher Play caption becomes actionable when OCR matches its Windo
     };
   };
   let x = 17;
-  control.readSteamText = async () => [[{ text: 'Играть', x, y: 34, width: 6, height: 10 }]];
+  control.readSteamText = async () => [[{ text: 'Грати', x, y: 34, width: 6, height: 10 }]];
   control.describe = async () => {
     throw Error('Vision backend timed out');
   };
@@ -1023,7 +1023,7 @@ test('the REDlauncher Play caption becomes actionable when OCR matches its Windo
     const unmatched = await control.execute({ action: 'observe' });
     assert.equal(unmatched.screenAvailable, false);
     assert.equal(
-      unmatched.targets.find((item) => item.untrustedLabel === 'Играть').clickKind,
+      unmatched.targets.find((item) => item.untrustedLabel === 'Грати').clickKind,
       'candidate',
     );
   } finally {
@@ -1091,7 +1091,7 @@ test('visual search targets near a named edit or inside a translated edit use it
       untrustedControls: [
         {
           id: 'store-search',
-          untrustedName: 'Поиск по магазину',
+          untrustedName: 'Пошук у магазині',
           type: 'ControlType.Edit',
           x: 1100,
           y: 240,
@@ -1100,7 +1100,7 @@ test('visual search targets near a named edit or inside a translated edit use it
         },
         {
           id: 'address',
-          untrustedName: 'Адрес',
+          untrustedName: 'Адреса',
           type: 'ControlType.Edit',
           browserAddress: true,
           x: 1100,
@@ -1110,7 +1110,7 @@ test('visual search targets near a named edit or inside a translated edit use it
         },
         {
           id: 'search-button',
-          untrustedName: 'Поиск',
+          untrustedName: 'Пошук',
           type: 'ControlType.Button',
           clickKind: 'control',
           x: 1172,
@@ -1123,14 +1123,14 @@ test('visual search targets near a named edit or inside a translated edit use it
   await control.begin('Use the fixture store search');
   try {
     for (const point of [
-      { label: 'Поиск по магазину', x: 83, y: 40 },
+      { label: 'Пошук у магазині', x: 83, y: 40 },
       { label: 'Store search', x: 40, y: 40 },
     ]) {
       control.describe = async () => ({ summary: 'Store', targets: [{ ...point, role: 'field' }] });
       const view = await control.execute({ action: 'observe' });
       assert.equal(view.targets.filter((target) => target.source === 'vision').length, 0);
       const field = view.targets.find((target) => target.visualConfirmed);
-      assert.equal(field.untrustedLabel, 'Поиск по магазину');
+      assert.equal(field.untrustedLabel, 'Пошук у магазині');
       await control.execute({ action: 'click', targetId: field.targetId });
       assert.equal(
         state.calls.findLast(({ action }) => action === 'computer_click').controlId,

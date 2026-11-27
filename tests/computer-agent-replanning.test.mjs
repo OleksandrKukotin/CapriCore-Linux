@@ -523,9 +523,9 @@ test('an explicit quoted click uses a unique observed control and reports only t
     view: () => ({
       window: { windowId: '11', untrustedTitle: 'Game launcher' },
       targets: [
-        button('heading', 'Играть', { role: 'ControlType.Text', clickKind: 'text' }),
-        button('play', 'Играть', { role: 'ControlType.Text', clickKind: 'candidate' }),
-        button('settings', 'Настройки'),
+        button('heading', 'Грати', { role: 'ControlType.Text', clickKind: 'text' }),
+        button('play', 'Грати', { role: 'ControlType.Text', clickKind: 'candidate' }),
+        button('settings', 'Налаштування'),
       ],
     }),
     outline: async () => assert.fail('An exact click needs no model plan'),
@@ -535,12 +535,12 @@ test('an explicit quoted click uses a unique observed control and reports only t
       return { ok: true };
     },
   });
-  const result = await f.agent.run('Press “Играть”');
+  const result = await f.agent.run('Press “Грати”');
   assert.deepEqual(
     f.calls.map(({ action }) => action),
     ['observe', 'click', 'observe'],
   );
-  assert.equal(result.summary, 'Clicked “Играть”.');
+  assert.equal(result.summary, 'Clicked “Грати”.');
 });
 
 test('a visual button takes precedence over an equally named native button from the first observation', async () => {

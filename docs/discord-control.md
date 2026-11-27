@@ -11,7 +11,7 @@ Give Capri the server and channel names. Quoted names make exact commands faster
 - `Read Discord channel "general" on server "Friends".`
 - `Send "Hello everyone!" in Discord channel "general" on server "Friends".`
 
-Russian examples: `Подключись к голосовому каналу «Общий» на сервере «Друзья» в Discord.` and `Выйди из голосового канала Discord.` Other request languages use Capri's configured model to interpret the task, then the same guarded desktop executor. The observed Discord controls currently support English and Russian labels. Unrecognized layouts ask for clarification instead of guessing.
+Other request languages use Capri's configured model to interpret the task, then the same guarded desktop executor. The observed Discord controls currently support English labels. Unrecognized layouts ask for clarification instead of guessing.
 
 Capri verifies the actual voice connection and its server/channel. It reads only visible channel information, preserves existing message drafts and submits an explicitly requested message once. A submitted message is not proof of delivery. Duplicate channel/server names, missing permissions and unverified results require your help; uncertain actions are never automatically replayed. Lists and summaries cover visible content, not the entire server history.
 

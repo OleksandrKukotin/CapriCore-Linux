@@ -855,7 +855,7 @@ try {
     window.capri.send({ id: crypto.randomUUID(), text: 'How much time has passed?' }),
   );
   await page.waitForTimeout(1100);
-  await page.evaluate(() => window.capri.send({ id: crypto.randomUUID(), text: 'А сейчас?' }));
+  await page.evaluate(() => window.capri.send({ id: crypto.randomUUID(), text: 'And now?' }));
   const messages = (await page.evaluate(() => window.capri.bootstrap())).messages;
   assert(messages.at(-1).text.includes(':') && !messages.at(-1).text.includes('{time}'));
   await page.evaluate((id) => window.capri.timeAction({ action: 'pause', id }), stopwatch.id);
@@ -882,12 +882,6 @@ try {
       locale === 'ar' ? 'rtl' : 'ltr',
     );
     assert.equal(await settings.locator('#companion-glitch-strength').isVisible(), true);
-    if (locale === 'ru') {
-      await search.fill('масштаб портрета');
-      await portraitResult.waitFor();
-      assert.match(await portraitResult.innerText(), /Масштаб портрета/);
-      await search.press('Escape');
-    }
     if (locale === 'de') {
       await navigate('web-search');
       assert.equal(

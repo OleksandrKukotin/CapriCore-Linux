@@ -31,7 +31,6 @@ test('explicit local Media Player playback goes to authorized computer control',
   for (const goal of [
     "Play some music from my Windows's Media Player",
     'Resume the song in Media Player.',
-    'Включи музыку в проигрывателе Windows.',
   ]) {
     assert.deepEqual(computerModeRequest(goal, { fullComputerAccess: true }), {
       enabled: true,
@@ -67,9 +66,6 @@ test('explicit computer commands preserve full goals; questions, negations and q
   for (const text of [
     'Capri, enable full computer access.',
     'Could you please turn on full computer control?',
-    'Включи режим полного управления компьютером.',
-    'Капри, можешь включить полный доступ ко всему компьютеру?',
-    'Включи полное управление компьютером, пожалуйста.',
     '¿Puedes activar el «fullComputerAccess» para comenzar?',
     'Activa el control total del ordenador.',
   ])
@@ -78,16 +74,11 @@ test('explicit computer commands preserve full goals; questions, negations and q
     'Use full computer control to open Chrome, search for Capri and click the first result.',
     'Capre use full computer access and open YouTube.',
     'Enable full computer access and play music in Spotify, then calculate 2+2.',
-    'Капри, включи режим полного управления компьютером и открой Chrome, затем введи Capri.',
-    'Используй полное управление компьютером: открой Spotify и найди трек.',
-    'В режиме полного управления компьютером открой браузер и введи Capri.',
     'Open Spotify using full computer control.',
-    'Открой Chrome через полное управление компьютером.',
   ])
     assert.deepEqual(computerModeRequest(text), { enabled: true, run: true }, text);
   for (const text of [
     'Disable full computer access.',
-    'Капри, отзови полный доступ к компьютеру.',
     'Desactiva el acceso completo a mi computadora.',
   ])
     assert.deepEqual(computerModeRequest(text), { enabled: false, run: false }, text);
@@ -95,12 +86,10 @@ test('explicit computer commands preserve full goals; questions, negations and q
     'Can you control my PC?',
     'Explain full computer control.',
     'Do not enable full computer access.',
-    'Не включай полное управление компьютером.',
     'Write "enable full computer access" in Notepad.',
     'What does full computer access do?',
     'Play music in Spotify.',
     'Enable full access to Spotify.',
-    'Включи полный доступ к Spotify.',
     '¿Qué es "fullComputerAccess"?',
     'No actives el control total del ordenador.',
     'Escribe «activa el fullComputerAccess» en el Bloc de notas.',
@@ -151,14 +140,6 @@ test('a spoken request to use my computer carries the entire Steam task through 
 });
 
 test('use my computer routes only a direct request with a concrete action', () => {
-  assert.deepEqual(computerModeRequest('Можешь использовать мой компьютер, чтобы открыть Steam?'), {
-    enabled: true,
-    run: true,
-  });
-  assert.deepEqual(ownerAppLaunch('Используй мой компьютер, чтобы открыть Steam.'), {
-    name: 'Steam',
-    single: true,
-  });
   for (const text of [
     'Can you use my computer?',
     'Can you use my PC to open?',
@@ -383,13 +364,12 @@ test('access complaints use ordinary conversation without desktop classification
       'I never asked you to enable full computer access.',
       'What does full computer access do?',
       'Can you control my PC?',
-      'Почему ты повторяешь, что полный доступ к компьютеру выключен?',
     ]) {
       await f.send(text);
       assert.equal(f.events.at(-1).type, 'turn.completed');
       assert.equal(f.events.at(-1).assistant.text, 'We can talk normally.');
     }
-    assert.equal(replies, 5);
+    assert.equal(replies, 4);
     assert.deepEqual(f.goals, []);
     assert.deepEqual(f.dialogs, []);
     assert.equal(f.discoveries, 0);
@@ -401,8 +381,6 @@ test('ordinary Spotify playback cannot become an application-name computer task'
     'Can you open my Spotify and turn on some music like Example Artist?',
     'Play music on Spotify.',
     'Start some music in Spotify.',
-    'Открой Spotify и включи музыку Example Artist.',
-    'Капри, поставь песню в спотифай.',
   ]) {
     assert.equal(dedicatedMusicRequest(text), true, text);
     assert.equal(computerModeRequest(text, { fullComputerAccess: true }), null, text);
@@ -575,7 +553,6 @@ test('the reported ASR variants and Steam chains preserve the original task', ()
     ],
     ['useful computer access and open war thunder', 'war thunder'],
     ['useful computer access and open chat Gpt.', 'chat Gpt'],
-    ['Открой Блокнот, затем напиши тест.', 'Блокнот'],
   ]) {
     assert.deepEqual(computerModeRequest(text, { fullComputerAccess: true }), {
       enabled: true,
@@ -591,7 +568,6 @@ test('an explicit Steam game launch resolves the Steam client with the existing 
   for (const text of [
     'open cyberpunk from steam, then launch the game',
     'Could you open Portal 2 from Steam and then start it?',
-    'Открой Киберпанк из Стима, затем запусти игру.',
   ]) {
     assert.deepEqual(ownerAppLaunch(text), { name: 'Steam', single: false });
     assert.deepEqual(computerModeRequest(text, { fullComputerAccess: true }), {
@@ -600,10 +576,6 @@ test('an explicit Steam game launch resolves the Steam client with the existing 
     });
     assert.equal(computerModeRequest(text), null);
   }
-  const reported = 'Используй компьютер, открой стим, найди там киберпанк и запусти его';
-  assert.deepEqual(ownerAppLaunch(reported), { name: 'Steam', single: false });
-  assert.deepEqual(computerModeRequest(reported), { enabled: true, run: true });
-  assert.equal(computerModeRequest('Используй компьютер для программирования'), null);
   assert.equal(
     ownerAppLaunch('Open Notepad and type "launch Cyberpunk from Steam"')?.name,
     'Notepad',
@@ -631,28 +603,6 @@ test('the reported English Steam request keeps the game title and bypasses the c
     play: true,
   });
   assert.equal(steamGameGoal('Open Steam and launch Alchemy Factory and then open Discord'), null);
-  const f = fixture({
-    computerIntent: () => assert.fail('Explicit desktop request must not consult the classifier'),
-  });
-  const pending = f.send(goal);
-  assert.equal(f.access.enabled, false);
-  assert.equal(f.accept(), true);
-  await pending;
-  assert.deepEqual(f.goals, [goal]);
-});
-
-test('the reported Russian Steam command reaches authorized computer control intact', async () => {
-  const goal = 'Привет, используй пк и запусти алхими фактори из стима, пж';
-  assert.deepEqual(computerModeRequest(goal), { enabled: true, run: true });
-  assert.deepEqual(ownerAppLaunch(goal), { name: 'Steam', single: false });
-  assert.deepEqual(steamGameGoal(computerTaskCommand(goal)), {
-    name: 'алхими фактори',
-    play: true,
-  });
-  assert.equal(
-    computerModeRequest('Привет, не используй пк и не запускай игры из стима, пж'),
-    null,
-  );
   const f = fixture({
     computerIntent: () => assert.fail('Explicit desktop request must not consult the classifier'),
   });
@@ -737,20 +687,9 @@ test('localized Steam commands resolve to the Windows client and keep the librar
   for (const [text, library] of [
     ['Ouvre Steam.', false],
     ['Ouvrez l’application Steam.', false],
-    ['Запусти Стим.', false],
     ['Ouvre la bibliothèque Steam.', true],
-    ['Открой библиотеку Steam.', true],
     ['Open Steam Library.', true],
   ]) {
-    assert.deepEqual(ownerAppLaunch(text), {
-      name: 'Steam',
-      single: !library,
-      ...(library && {
-        section: text.match(/library|bibliothèque|библиотеку/iu)[0],
-        sectionOnly: true,
-        literalName: text.slice(text.indexOf(' ') + 1, -1),
-      }),
-    });
     assert.deepEqual(computerModeRequest(text, { fullComputerAccess: true }), {
       enabled: true,
       run: true,
@@ -801,8 +740,6 @@ test('spoken Cyberpunk launch requests use the authorized computer route without
   const phrases = [
     'I need to test your ability. See, I want you to use uh full access to my PC, then go to Steam and uh launch Cyberpunk twenty seventy seven, please.',
     "Use my computer and turn on Cyberpunk's 2077 please.",
-    'Капри, запусти Киберпанк в Стиме.',
-    'Капри, открой Steam и запусти Киберпанк.',
   ];
   const f = fixture();
   for (const phrase of phrases) assert.equal(computerModeRequest(phrase), null);
@@ -881,8 +818,7 @@ test('authorized browser chains use the complete host task, while drafts and con
     'I want you to open Google Chrome, type your name into the search bar and then go to the Images section and display your image in the full screen mode.';
   const spoken =
     'Can you use uh computer control skill uh to open my Google Chrome and type Capri. Then go to Pictures and open some pictures of Capri.';
-  const russian = 'Открой Chrome, найди Capri, затем перейди в картинки и открой изображение.';
-  for (const text of [goal, spoken, russian]) {
+  for (const text of [goal, spoken]) {
     assert.equal(computerModeRequest(text), null, 'An ordinary chain does not grant full access');
     assert.deepEqual(computerModeRequest(text, { fullComputerAccess: true }), {
       enabled: true,
@@ -935,12 +871,6 @@ test('direct Discord navigation, voice and message requests use only an existing
     'Switch to the friends list in Discord.',
     'Send "Hello from Capri" in Discord General.',
     'Type "Hello" into Discord.',
-    'Капри, подключись к голосовому каналу Общий в Дискорде.',
-    'Присоединись к каналу General в Discord.',
-    'Выйди из голосового канала в Дискорде.',
-    'Перейди в канал Общий в Discord.',
-    'Отправь «Привет» в Дискорде.',
-    'Напиши «Привет» в Discord.',
   ]) {
     assert.equal(computerModeRequest(text), null, text);
     assert.deepEqual(
@@ -955,18 +885,14 @@ test('direct Discord navigation, voice and message requests use only an existing
   for (const text of [
     'Can you join Discord voice channels?',
     'Can you join Discord voice channels',
-    'Капри, можешь подключаться к голосовым каналам в Дискорде',
     'Explain how to join a Discord voice channel.',
     'Do not join the General voice channel in Discord.',
-    'Не подключайся к голосовому каналу в Дискорде.',
     'Write a guide about joining Discord.',
-    'Напиши инструкцию о Дискорде.',
     'Write "Join the Discord voice channel" in Notepad.',
   ])
     assert.equal(computerModeRequest(text, { fullComputerAccess: true }), null, text);
   for (const text of [
     'Discord',
-    'Дискорде',
     'ディスコードで',
     '디스코드에서',
     '迪斯科德',
@@ -976,7 +902,7 @@ test('direct Discord navigation, voice and message requests use only an existing
     'डिस्कॉर्ड',
   ])
     assert.equal(mentionsDiscord(text), true, text);
-  for (const text of ['discordant music', 'Привет, Капри', 'discussion'])
+  for (const text of ['discordant music', 'discussion'])
     assert.equal(mentionsDiscord(text), false, text);
 });
 
@@ -994,7 +920,6 @@ test('Discord semantic intent can recover a CPU social route across languages wi
   ];
   const questions = [
     'Can you join Discord voice channels?',
-    'Переведи фразу «подключись к Discord».',
     'Do not join the Discord voice channel.',
   ];
   const classified = [];
@@ -1083,7 +1008,7 @@ test('chat grants through the timed host dialog and runs every original step onc
 
 test('activation alone does not load or run a model; revocation reports actual state', async () => {
   const f = fixture();
-  const task = f.send('Включи режим полного управления компьютером.');
+  const task = f.send('Turn on full computer control mode.');
   f.accept();
   await task;
   assert.equal(f.access.enabled, true);

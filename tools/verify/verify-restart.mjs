@@ -42,7 +42,7 @@ try {
       JSON.stringify({
         schemaVersion: 1,
         settings: {
-          interface: mode === 'quit' ? 'ru' : 'en',
+          interface: mode === 'quit' ? 'uk' : 'en',
           conversation: 'en',
           recognition: 'en',
           speech: 'off',
@@ -92,7 +92,7 @@ try {
     );
     assert.equal(
       await dialog.locator('[data-choice="restart"]').innerText(),
-      mode === 'quit' ? 'Перезапустить' : 'Restart',
+      mode === 'quit' ? 'Перезапустити' : 'Restart',
     );
     assert.equal(
       await dialog

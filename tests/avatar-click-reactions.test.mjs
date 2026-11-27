@@ -427,8 +427,8 @@ test('mixed sleeping taps preserve a queued wake across a briefly busy host', as
 test('reaction inference sends only a bounded, tool-free click cue and safe output', async () => {
   const calls = [];
   const signal = new AbortController().signal;
-  let message = { content: '**Эй, полегче.**' };
-  let conversation = 'ru';
+  let message = { content: '**살살 해.**' };
+  let conversation = 'ko';
   const generate = avatarClickGenerator({
     url: 'http://127.0.0.1:11434',
     model: 'fixture',
@@ -440,7 +440,7 @@ test('reaction inference sends only a bounded, tool-free click cue and safe outp
     },
   });
   const cue = { gesture: 'many', mood: 'reserved', variation: 2 };
-  assert.equal(await generate(cue, { signal }), 'Эй, полегче.');
+  assert.equal(await generate(cue, { signal }), '살살 해.');
   const [{ url, options, body }] = calls;
   assert.equal(url, 'http://127.0.0.1:11434/api/chat');
   assert.equal(options.signal, signal);
@@ -455,24 +455,21 @@ test('reaction inference sends only a bounded, tool-free click cue and safe outp
   assert.deepEqual(body.tools, []);
   assert.equal(body.messages.length, 2);
   assert.match(body.messages[0].content, /would like some space/);
-  assert.match(body.messages[0].content, /entirely in Russian/);
+  assert.match(body.messages[0].content, /entirely in Korean/);
   assert.match(body.messages[1].content, /many times/);
-  assert.equal(await generate({ ...cue, part: 'left-arm' }, { signal }), 'Эй, полегче.');
+  assert.equal(await generate({ ...cue, part: 'left-arm' }, { signal }), '살살 해.');
   assert.equal(
     calls.at(-1).body.messages[1].content,
-    'Reply in Russian. The user tapped your left arm many times in rapid succession.',
+    'Reply in Korean. The user tapped your left arm many times in rapid succession.',
   );
 
-  assert.equal(await generate({ ...cue, headpat: true }, { signal }), 'Эй, полегче.');
+  assert.equal(await generate({ ...cue, headpat: true }, { signal }), '살살 해.');
   assert.equal(
     calls.at(-1).body.messages[1].content,
-    'Reply in Russian. The user patted your head many times in rapid succession.',
+    'Reply in Korean. The user patted your head many times in rapid succession.',
   );
 
-  assert.equal(
-    await generate({ ...cue, headpat: true, awakened: true }, { signal }),
-    'Эй, полегче.',
-  );
+  assert.equal(await generate({ ...cue, headpat: true, awakened: true }, { signal }), '살살 해.');
   const awakened = calls.at(-1).body;
   assert.deepEqual(awakened.tools, []);
   assert.equal(awakened.messages.length, 2, 'A wake reaction never receives conversation history');
@@ -491,8 +488,8 @@ test('reaction inference sends only a bounded, tool-free click cue and safe outp
   message = { content: 'x'.repeat(20000) };
   assert.equal(await generate(cue, { signal }), '');
   message = { content: 'Easy there, darling.' };
-  assert.equal(await generate(cue, { signal }), 'Да?');
-  assert.equal(await generate({ ...cue, awakened: true }, { signal }), 'Эй, ты меня разбудил!');
+  assert.equal(await generate(cue, { signal }), '왜?');
+  assert.equal(await generate({ ...cue, awakened: true }, { signal }), '손 떼.');
   conversation = 'fr';
   message = { content: 'Doucement, toi.' };
   assert.equal(await generate(cue, { signal }), 'Doucement, toi.');

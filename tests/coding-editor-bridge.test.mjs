@@ -22,7 +22,7 @@ test('editor bridge authenticates loopback requests, preserves split UTF-8 and e
     for await (const chunk of request) input += chunk;
     assert.equal(JSON.parse(input).workspace, workspace);
     response.setHeader('content-type', 'application/json');
-    const bytes = Buffer.from(JSON.stringify({ text: 'Привет, мир!' }));
+    const bytes = Buffer.from(JSON.stringify({ text: 'Привіт, світе!' }));
     for (const byte of bytes) response.write(Buffer.from([byte]));
     response.end();
   });
@@ -41,7 +41,7 @@ test('editor bridge authenticates loopback requests, preserves split UTF-8 and e
   const bridge = new CodingEditorBridge({ directory });
   assert.equal(
     (await bridge.request(workspace, { action: 'read', path: 'a.js' })).text,
-    'Привет, мир!',
+    'Привіт, світе!',
   );
   assert.equal(bridge.endpoint(directory), null);
   writeFileSync(

@@ -99,10 +99,10 @@ test(
         '-NoProfile',
         '-NonInteractive',
         '-Command',
-        "[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false); [Console]::Out.Write('Prêt · Готово · 準備完了'); [Console]::Error.Write('Предупреждение');",
+        "[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false); [Console]::Out.Write('Prêt · Готово · 準備完了'); [Console]::Error.Write('Попередження');",
       ],
       { output: (line) => lines.push(line), timeoutMs: 10000 },
     );
-    assert.deepEqual(lines.sort(), ['Prêt · Готово · 準備完了', 'Предупреждение'].sort());
+    assert.deepEqual(lines.sort(), ['Prêt · Готово · 準備完了', 'Попередження'].sort());
   },
 );

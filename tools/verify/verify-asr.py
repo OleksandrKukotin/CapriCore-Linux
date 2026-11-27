@@ -4,7 +4,6 @@ import sys as _capri_sys
 from pathlib import Path as _CapriPath
 _capri_sys.path.insert(0, str(_CapriPath(__file__).resolve().parents[2]))
 import json
-import os
 import re
 import sys
 import threading
@@ -16,15 +15,13 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-if '--ru' in sys.argv:
-    os.environ['CAPRI_ASR_LANGUAGE'] = 'ru'
 from integrations.asr_runtime.model import Recognizer, SpeechDetector, settings
 from integrations.asr_runtime.recognition import RecognitionSession, RecognitionQueue
 
 config = settings()
 config['wakeWord']['enabled'] = False
 language = config['language']
-reference = ROOT / '.runtime/asr-verification' / ('russian-reference.wav' if language == 'ru' else 'english-reference.wav')
+reference = ROOT / '.runtime/asr-verification' / 'english-reference.wav'
 with wave.open(str(reference), 'rb') as source:
     assert source.getnchannels() == 1 and source.getsampwidth() == 2
     rate = source.getframerate()

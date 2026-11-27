@@ -164,7 +164,7 @@ try {
     }
   });
   assert.equal(invalid, true);
-  for (const locale of process.argv.includes('--en-only') ? ['en'] : ['en', 'ru']) {
+  for (const locale of process.argv.includes('--en-only') ? ['en'] : ['en', 'uk']) {
     await view.evaluate(async (locale) => {
       const snapshot = await window.capri.bootstrap();
       await window.capri.setLanguages(
@@ -174,8 +174,8 @@ try {
     }, locale);
     await view.waitForFunction((locale) => document.documentElement.lang === locale, locale);
     await view.waitForTimeout(150);
-    if (locale === 'ru')
-      assert.equal(await view.locator('#developer-panel h2').innerText(), 'Для разработчиков');
+    if (locale === 'uk')
+      assert.equal(await view.locator('#developer-panel h2').innerText(), 'Для розробників');
     for (const width of [680, 940]) {
       await application.evaluate(
         ({ BrowserWindow }, width) =>

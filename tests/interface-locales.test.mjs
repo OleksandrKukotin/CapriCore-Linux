@@ -110,7 +110,7 @@ test('UI language changes do not imply dialogue, recognition, voice or capture c
       false,
     );
   assert.equal(
-    languageBehaviorChanged(LANGUAGE_DEFAULTS, { ...LANGUAGE_DEFAULTS, conversation: 'ru' }),
+    languageBehaviorChanged(LANGUAGE_DEFAULTS, { ...LANGUAGE_DEFAULTS, conversation: 'uk' }),
     true,
   );
   assert.equal(
@@ -160,7 +160,7 @@ test('per-language catalogs ship separately and contain no foreign-language frag
 
 test('locale-aware validation rejects cross-language contamination but preserves source examples', () => {
   assert.throws(
-    () => validateLocaleTranslation('VOICE PENDING', 'ОЖИДАНИЕ ГОЛОСА', 'hi'),
+    () => validateLocaleTranslation('VOICE PENDING', 'ОЧІКУВАННЯ ГОЛОСУ', 'hi'),
     /Unexpected Cyrillic/,
   );
   assert.throws(
@@ -174,11 +174,11 @@ test('locale-aware validation rejects cross-language contamination but preserves
   );
   assert.equal(
     validateLocaleTranslation(
-      'Русский / speech pack pending',
-      'Русский / voice pack pending',
+      'Українська / speech pack pending',
+      'Українська / voice pack pending',
       'en',
     ),
-    'Русский / voice pack pending',
+    'Українська / voice pack pending',
   );
   assert.equal(
     validateLocaleTranslation('Unavailable — {device}', 'उपलब्ध नहीं — {device}', 'hi'),
@@ -346,7 +346,7 @@ test('locale preparation preserves numeric settings, product names and data slot
   assert.throws(() => validateTranslation('Microphone ({language})', 'Mikrofon'), /placeholders/);
   assert.throws(() => validateTranslation('More information', 'Aide</th>'), /markup/);
   assert.throws(
-    () => validateTranslation('Read SECURITY.md for details.', 'См. БЕЗОПАСНОСТЬ.md.'),
+    () => validateTranslation('Read SECURITY.md for details.', 'Див. БЕЗПЕКА.md.'),
     /filename/,
   );
   assert.throws(

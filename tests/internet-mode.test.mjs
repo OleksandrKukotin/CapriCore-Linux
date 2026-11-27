@@ -210,9 +210,9 @@ test('restored source titles are bounded plain text and opening uses only the st
     before,
     'Streaming text must not recreate focused source buttons',
   );
-  f.mode.ui.text = (value) => (value === 'Sources' ? 'Источники' : value);
+  f.mode.ui.text = (value) => (value === 'Sources' ? 'Джерела' : value);
   f.mode.renderSources(host, sources, { turnId: 'history-turn' });
-  assert.equal(host.children[0].textContent, 'Источники');
+  assert.equal(host.children[0].textContent, 'Джерела');
 });
 
 test('source controls require a saved turn and host failures restore the clicked button', async () => {

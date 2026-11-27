@@ -35,7 +35,7 @@ function fixture(options = {}) {
     token: () => 'fixture-loopback-token',
     persona: () => 'Public synthetic fixture persona.',
     store,
-    interfaceState: () => ({ languages: { conversation: 'ru' } }),
+    interfaceState: () => ({ languages: { conversation: 'uk' } }),
     fetchImpl: async (_url, request) => {
       requests.push(request);
       const text = 'The checked answer is 42.';
@@ -94,11 +94,11 @@ test('task-specific thinking briefing follows preparation, bypasses fast routing
       order.push('briefing');
       assert.deepEqual(Object.keys(request), ['text', 'language', 'signal']);
       assert.equal(request.text, 'Prove an equation.');
-      assert.equal(request.language, 'Russian');
+      assert.equal(request.language, 'Ukrainian');
       assert.equal(request.signal.aborted, false);
       return {
-        text: 'Проверю условия равенства.',
-        approach: 'Сопоставлю условия. Проверю граничные случаи.',
+        text: 'Перевірю умови рівності.',
+        approach: 'Зіставлю умови. Перевірю граничні випадки.',
       };
     },
     requestRouter: {
@@ -119,8 +119,8 @@ test('task-specific thinking briefing follows preparation, bypasses fast routing
   assert.equal(f.events.filter((event) => event.type === 'turn.preface').length, 1);
   assert.equal(f.events.at(-1).type, 'turn.completed');
   assert.equal(f.messages.at(-1).text, 'The checked answer is 42.');
-  assert.ok(!JSON.stringify(f.messages).includes('Проверю условия равенства.'));
-  assert.ok(!JSON.stringify(f.messages).includes('Сопоставлю условия.'));
+  assert.ok(!JSON.stringify(f.messages).includes('Перевірю умови рівності.'));
+  assert.ok(!JSON.stringify(f.messages).includes('Зіставлю умови.'));
   await f.send('Hello.', false);
   assert.equal(f.requests[1].headers['x-capri-thinking-once'], 'off');
 });

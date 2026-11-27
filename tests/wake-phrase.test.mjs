@@ -46,7 +46,6 @@ test('wake matcher tolerates phonetic and spacing errors but rejects ordinary ne
     'hey cappy',
     'hey caprice',
     'HeyCapri',
-    'эй капри',
   ]) {
     const match = findWakePhrase(phrase + ', play music.');
     assert.ok(match, phrase);
@@ -99,8 +98,6 @@ test('a bare Capri address tolerates ASR variants but does not match embedded me
     'cap rice',
     'cat free',
     'ka pri',
-    'Капри',
-    'кэппи',
   ]) {
     const match = findWakePhrase(name + ', play music.');
     assert.ok(match, name);
@@ -147,8 +144,6 @@ test('manual listening treats Capri as ordinary text across interim and final tr
   for (const phrase of [
     'Capri, play music.',
     'Hey Capri, tell me what Capri means.',
-    'Капри, расскажи о себе.',
-    'Эй Капри, какая сегодня погода?',
     'Tell me, hey Capri, how this works.',
   ]) {
     const wakes = [],
@@ -172,7 +167,7 @@ test('manual listening treats Capri as ordinary text across interim and final tr
 });
 
 test('a manually activated microphone sends the complete name-containing request without waking again', async () => {
-  for (const phrase of ['Hey Capri, play music.', 'Капри, расскажи про Капри.']) {
+  for (const phrase of ['Hey Capri, play music.']) {
     const f = await fixture();
     try {
       assert.equal(f.service.listenNow(), true);

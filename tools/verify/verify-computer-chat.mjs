@@ -74,7 +74,7 @@ try {
     assert.equal((await page.evaluate(() => window.__computerChatResult)).error, undefined);
   };
   const dialog = page.locator('#confirmation-dialog[open]');
-  await send('Включи режим полного управления компьютером.');
+  await send('Turn on full computer control mode.');
   await dialog.waitFor();
   assert.equal(
     await page.evaluate(() => window.capri.computerAccessStatus().then((s) => s.enabled)),

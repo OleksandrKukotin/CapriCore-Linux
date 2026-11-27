@@ -48,7 +48,7 @@ async function fixture(t, config = {}, submit) {
 test('mixed wake sends one addressed final reply without requiring a manual Send', async (t) => {
   for (const [phrase, expected] of [
     ['Capri, hello there', 'hello there'],
-    ['Капри, привет', 'привет'],
+    ['Капрі, привіт', 'привіт'],
   ]) {
     const f = await fixture(t);
     assert.equal(f.service.enableSystemAudioReview(f.sessionId, true), true);

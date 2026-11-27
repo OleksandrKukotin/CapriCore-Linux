@@ -14,7 +14,7 @@ test(
     const parent = path.join(root, '.runtime/test-data');
     await fs.mkdir(parent, { recursive: true });
     const folder = await fs.mkdtemp(path.join(parent, 'native-replace-'));
-    const target = path.join(folder, 'Текст с пробелами.txt'),
+    const target = path.join(folder, 'Текст із пробілами.txt'),
       source = path.join(folder, '.capri-fixture.tmp');
     t.after(async () => {
       if (!path.resolve(folder).startsWith(path.resolve(parent) + path.sep))

@@ -75,27 +75,27 @@ class RuntimeOptimizationTests(unittest.TestCase):
         self.assertIsNot(voice.reference, reference)
         self.assertIs(voice.reference['embedding'], reference['embedding'])
 
-    def test_russian_start_warms_only_the_selected_backend(self):
+    def test_multilingual_start_warms_only_the_selected_backend(self):
         with patch('integrations.voice_runtime.server.VoicePool') as pool, \
              patch('integrations.voice_runtime.server.selected_voice', return_value={'backend': 'chatterbox-multilingual'}), \
              patch('integrations.voice_runtime.compatibility.require_cuda') as preflight, \
              patch('torch.cuda.empty_cache'):
-            voice = load_and_warm({'fixture': True}, 'ru')
+            voice = load_and_warm({'fixture': True}, 'de')
             preflight.assert_called_once_with(torch)
             pool.assert_called_once_with({'fixture': True})
-            pool.return_value.generate.assert_called_once_with('Привет.', language='ru')
+            pool.return_value.generate.assert_called_once_with('Hallo.', language='de')
             self.assertIs(voice, pool.return_value)
 
     def test_chinese_extras_are_checked_before_ready_and_only_when_switching(self):
         pool = object.__new__(VoicePool)
         pool.config = {}
-        pool.kind, pool.language, pool.voice = 'multilingual-v3', 'ru', object()
+        pool.kind, pool.language, pool.voice = 'multilingual-v3', 'de', object()
         with patch('integrations.voice_runtime.multilingual.verified_model', side_effect=ValueError('Chinese model missing')):
             with self.assertRaisesRegex(ValueError, 'Chinese model missing'):
                 pool.prepare('zh')
-        self.assertEqual(pool.language, 'ru')
+        self.assertEqual(pool.language, 'de')
         with patch('integrations.voice_runtime.multilingual.verified_model') as verify:
-            pool.prepare('ru')
+            pool.prepare('de')
             verify.assert_not_called()
             pool.prepare('zh')
             pool.prepare('zh')

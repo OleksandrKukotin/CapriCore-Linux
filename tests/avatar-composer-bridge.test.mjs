@@ -55,7 +55,7 @@ test('pasted files carry only bounded basenames and copied byte views, including
     type: 'paste-files',
     files: [
       { name: 'Screenshot.png', bytes: source.subarray(1, 4) },
-      { name: 'Отчёт.txt', bytes: new Uint8Array() },
+      { name: 'Звіт.txt', bytes: new Uint8Array() },
       { name: 'unsupported.exe', bytes: new Uint8Array() },
     ],
     overflow: true,
@@ -65,7 +65,7 @@ test('pasted files carry only bounded basenames and copied byte views, including
     type: 'paste-files',
     files: [
       { name: 'Screenshot.png', bytes: new Uint8Array([1, 2, 3]) },
-      { name: 'Отчёт.txt', bytes: new Uint8Array() },
+      { name: 'Звіт.txt', bytes: new Uint8Array() },
       { name: 'unsupported.exe', bytes: new Uint8Array() },
     ],
     overflow: true,
@@ -186,7 +186,7 @@ test('published state includes only bounded presentation data and basename attac
       label: 'M'.repeat(200),
       devices: ['private'],
     },
-    labels: { send: 'Отправить', actionFailed: 'F'.repeat(300), unknown: 'never-publish' },
+    labels: { send: 'Надіслати', actionFailed: 'F'.repeat(300), unknown: 'never-publish' },
     locale: 'ru-RU',
     error: 'E'.repeat(500),
     status: 'S'.repeat(500),
@@ -208,7 +208,7 @@ test('published state includes only bounded presentation data and basename attac
   ]);
   assert.deepEqual(Object.keys(state.microphone), ['loading', 'listening', 'disabled', 'label']);
   assert.equal(state.microphone.label.length, 160);
-  assert.equal(state.labels.send, 'Отправить');
+  assert.equal(state.labels.send, 'Надіслати');
   assert.equal(state.labels.actionFailed.length, 200);
   assert.equal(state.locale, 'ru-RU');
   assert.equal(state.error.length, 400);

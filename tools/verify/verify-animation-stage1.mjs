@@ -253,8 +253,8 @@ try {
       status: 'streaming',
       createdAt: new Date(startEpoch).toISOString(),
     };
-    const textA = 'Дай секунду.';
-    const textB = 'Поняла, чум.';
+    const textA = 'Give me a second.';
+    const textB = 'Got it, choom.';
     const microphone = (enabled) => ({
       type: 'microphone.settings',
       status: enabled ? 'listening' : 'off',

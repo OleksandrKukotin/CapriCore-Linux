@@ -92,7 +92,7 @@ if (!process.versions.electron) {
   );
   process.exitCode = code || (report.passed ? 0 : 1);
 } else {
-  const { app, safeStorage, session } = await import('electron');
+  const { app, safeStorage } = await import('electron');
   const folder = process.env.CAPRI_VERIFY_PLAN_FOLDER;
   assert(folder && path.resolve(folder).startsWith(path.join(root, '.runtime') + path.sep));
   app.setName('Capri Plan Model Verification');
@@ -117,8 +117,6 @@ if (!process.versions.electron) {
       api = new InferenceApi({
         root: path.resolve(process.env.CAPRI_VERIFY_INSTALL),
         storage: credentialStorage(safeStorage),
-        proxySession: () =>
-          session.fromPartition('capri-plan-model-verification', { cache: false }),
       });
       assert.equal(
         api.config.enabled,
@@ -231,7 +229,7 @@ if (!process.versions.electron) {
         ],
       };
       const context = (observation, correction = '') => ({
-        originalOwnerGoal: 'Открой YouTube.',
+        originalOwnerGoal: 'Open YouTube.',
         language: 'ru',
         currentObservation: observation,
         actualSteps: history,

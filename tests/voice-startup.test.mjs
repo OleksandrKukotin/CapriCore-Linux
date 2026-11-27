@@ -9,10 +9,10 @@ test('cold voice startup remains pending past three minutes and accepts eventual
     sleep: async (ms) => {
       clock += ms;
     },
-    health: async () => (clock >= 220000 ? { ready: true, language: 'ru' } : null),
+    health: async () => (clock >= 220000 ? { ready: true, language: 'de' } : null),
     isRunning: () => true,
   });
-  assert.equal(result.language, 'ru');
+  assert.equal(result.language, 'de');
   assert.equal(clock, 220000);
 });
 

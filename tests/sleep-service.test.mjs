@@ -20,20 +20,15 @@ test('tap effects stay suppressed throughout sleep, disconnected resting visuals
   assert.equal(avatarTapsSleeping('awake', 'ready'), false);
 });
 
-test('sleep commands accept direct English and Russian requests, never quoted or negated instructions', () => {
+test('sleep commands accept direct English requests, never quoted or negated instructions', () => {
   for (const text of [
-    'Капри, иди спать!',
     'Capri, you can sleep.',
     "Capri, it's time to sleep",
     'Hey Capri, go to sleep, please.',
-    'Пора спать',
-    'Капри, можешь отдохнуть',
-    'пожалуйста, ложись спать',
   ])
     assert.equal(isSleepCommand(text), true, text);
   for (const text of [
     'Do not go to sleep',
-    'Капри, не иди спать',
     'What does go to sleep mean?',
     'Print "Capri, go to sleep"',
     'Tell me a sleep story',

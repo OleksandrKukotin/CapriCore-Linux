@@ -246,13 +246,13 @@ test('component repair releases its lock on invalid configuration and never inst
   };
   for (let attempt = 0; attempt < 2; attempt++) {
     await assert.rejects(
-      installSpeechComponents({ speech: 'ru', recognition: 'off' }, options),
+      installSpeechComponents({ speech: 'fr', recognition: 'off' }, options),
       /NVIDIA/,
     );
     assert.equal(existsSync(path.join(folder, '.runtime/installer/install.lock.json')), false);
   }
   writeFileSync(path.join(folder, 'config/companion-asr.json'), 'broken');
-  await assert.rejects(installSpeechComponents({ speech: 'ru', recognition: 'off' }, options));
+  await assert.rejects(installSpeechComponents({ speech: 'fr', recognition: 'off' }, options));
   assert.equal(existsSync(path.join(folder, '.runtime/installer/install.lock.json')), false);
 });
 test('recognition-only installation downloads the necessary recognizer without voice dependencies', async (t) => {
@@ -405,7 +405,7 @@ test('speech progress reconnects, cancellation stops the owned task, and retry c
         );
     },
   });
-  service.start({ speech: 'ru', recognition: 'off' });
+  service.start({ speech: 'fr', recognition: 'off' });
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(service.snapshot().phase, 'installing');
   assert.equal(service.busy('speech'), true);
@@ -415,7 +415,7 @@ test('speech progress reconnects, cancellation stops the owned task, and retry c
   await service.close();
   assert.equal(service.snapshot().phase, 'cancelled');
   assert.equal(prepared, 0);
-  service.start({ speech: 'ru', recognition: 'off' });
+  service.start({ speech: 'fr', recognition: 'off' });
   await service.task;
   assert.equal(service.snapshot().phase, 'ready');
   assert.equal(prepared, 1);
@@ -423,7 +423,7 @@ test('speech progress reconnects, cancellation stops the owned task, and retry c
   const status = path.join(folder, '.runtime/installer/speech-status.json');
   writeFileSync(
     status,
-    JSON.stringify({ phase: 'installing', selection: { speech: 'ru', recognition: 'off' } }),
+    JSON.stringify({ phase: 'installing', selection: { speech: 'fr', recognition: 'off' } }),
   );
   assert.equal(
     new SpeechInstallService({ root: folder, node: process.execPath }).snapshot().phase,

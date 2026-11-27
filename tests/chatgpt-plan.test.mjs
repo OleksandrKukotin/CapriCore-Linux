@@ -632,7 +632,7 @@ test('real intent classifier and image chat traverse the ChatGPT proxy with corr
     model: 'unused-local-name',
     fetchImpl: api.localFetch,
   });
-  for (const text of ['How are you doing?', 'Как у тебя дела?', 'Comment vas-tu ?'])
+  for (const text of ['How are you doing?', 'Comment vas-tu ?'])
     assert.deepEqual(await classify(text, { fullComputerAccess: true }), {
       intent: 'chat',
       usesPrevious: false,
@@ -682,7 +682,6 @@ test('Spotify commands traverse the real chat, JSON planner and ChatGPT Response
     const root = mkdtempSync(path.join(tmpdir(), 'capri-music-api-'));
     const plans = new Map([
       ['play something cool', { action: 'resume' }],
-      ['Включи какую-нибудь музыку', { action: 'resume' }],
       ['Mets de la musique sympa', { action: 'resume' }],
       ['Play Example Artist', { action: 'play', query: 'Example Artist' }],
       ['Turn Spotify down a little', { action: 'volume', delta: -10 }],
@@ -762,7 +761,6 @@ test('Spotify commands traverse the real chat, JSON planner and ChatGPT Response
     });
     for (const text of [
       'play something cool',
-      'Включи какую-нибудь музыку',
       'Play Example Artist',
       'Turn Spotify down a little',
       'Pause Spotify',
@@ -783,12 +781,11 @@ test('Spotify commands traverse the real chat, JSON planner and ChatGPT Response
     assert.deepEqual(await chat.prepareMusic('Mets de la musique sympa'), { action: 'resume' });
     assert.deepEqual(actions, [
       { action: 'resume' },
-      { action: 'resume' },
       { action: 'play', query: 'Example Artist' },
       { action: 'volume', delta: -10 },
       { action: 'pause' },
     ]);
-    assert.equal(requests.length, 7);
+    assert.equal(requests.length, 6);
     assert.ok(requests.every((request) => request.input.length === 2 && !request.tools));
     assert(!JSON.stringify(requests).includes('PRIVATE-PERSONALITY-CANARY'));
     assert.equal(auth.controllers.size, 0);

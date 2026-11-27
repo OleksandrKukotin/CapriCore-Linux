@@ -139,7 +139,7 @@ test('one editable Personality file reaches the next request without a second ch
   const workspace = folder();
   writeFileSync(path.join(workspace, 'SOUL.md'), 'A retired character that must be ignored.');
   const custom =
-    'A tender, mischievous partner in a moonlit romance.\nГовори тепло, используй необычные метафоры.';
+    'A tender, mischievous partner in a moonlit romance.\nГовори тепло, використовуй незвичні метафори.';
   assert.equal(savePersonality(workspace, custom), custom);
   assert.equal(readPersonality(workspace), custom);
   assert.ok(personaPrompt({ workspace }).startsWith(PERSONALITY_PROMPT_HEADER + '\n' + custom));

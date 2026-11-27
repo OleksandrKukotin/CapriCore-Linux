@@ -12,13 +12,13 @@ const breeze = { id: 'breeze-tts-2-q4-k', backend: 'breeze-tts' };
 const chatterbox = {
   id: 'multilingual',
   backend: 'chatterbox-multilingual-v3',
-  installLanguage: 'ru',
+  installLanguage: 'fr',
 };
 
 test('French multilingual downloads use French while English still requests shared multilingual weights', () => {
   assert.equal(voiceModelInstallLanguage(chatterbox, 'fr'), 'fr');
   assert.equal(voiceModelInstallLanguage(chatterbox, 'zh'), 'zh');
-  assert.equal(voiceModelInstallLanguage(chatterbox, 'en'), 'ru');
+  assert.equal(voiceModelInstallLanguage(chatterbox, 'en'), 'fr');
   assert.equal(voiceModelInstallLanguage({ backend: 'chatterbox-turbo' }, 'en'), 'en');
 });
 

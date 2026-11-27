@@ -129,14 +129,14 @@ test('confirm and approve consume only real unexpired voice-enabled proposals', 
       voice,
       execute: async () => ({ ok: true, count: ++calls }),
     });
-  for (const text of ['confirm', 'approve', 'подтверждаю', 'подтвердить']) {
+  for (const text of ['confirm', 'approve']) {
     assert.equal(await approvals.text(text), null);
     const result = propose();
     assert.match(result.instruction, /pending approval, not a failed tool call/);
     assert.equal((await approvals.text(text)).ok, true);
     assert.equal(await approvals.text(text), null);
   }
-  assert.equal(calls, 4);
+  assert.equal(calls, 2);
   propose(false);
   assert.match((await approvals.text('confirm')).confirmation, /buttons/);
   assert.ok(approvals.pending);
@@ -144,5 +144,5 @@ test('confirm and approve consume only real unexpired voice-enabled proposals', 
   propose();
   now += 90001;
   assert.equal(await approvals.text('approve'), null);
-  assert.equal(calls, 4);
+  assert.equal(calls, 2);
 });

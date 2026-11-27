@@ -8,7 +8,7 @@ import { privateLog } from '../packages/runtime/src/privacy-log.mjs';
 import { diagnosticState } from '../apps/desktop/diagnostics/state.mjs';
 import catalog from '../config/tts-catalog.json' with { type: 'json' };
 import {
-  RUSSIAN_QWEN_ID,
+  readVoiceSelections,
   selectedVoiceModel,
   VoiceCatalogService,
   voiceDataPath,
@@ -88,13 +88,13 @@ test('voice library persists independent supported languages and stops speech be
   const library = new VoiceCatalogService({ root, beforeChange: async () => stopped++ });
   assert.equal(library.snapshot().models.length, catalog.models.length);
   await library.select({ language: 'en', modelId: 'chatterbox-multilingual-v3' });
-  await library.select({ language: 'ru', modelId: 'chatterbox-multilingual-v3' });
+  await library.select({ language: 'de', modelId: 'chatterbox-multilingual-v3' });
   const restored = new VoiceCatalogService({ root }).snapshot();
   assert.equal(restored.selections.en, 'chatterbox-multilingual-v3');
-  assert.equal(restored.selections.ru, 'chatterbox-multilingual-v3');
+  assert.equal(restored.selections.de, 'chatterbox-multilingual-v3');
   assert.equal(stopped, 2);
   await assert.rejects(
-    library.select({ language: 'ru', modelId: 'chatterbox-turbo' }),
+    library.select({ language: 'de', modelId: 'chatterbox-turbo' }),
     /does not support/,
   );
   assert.throws(() => voiceDataPath(root, '../outside'), /Invalid/);
@@ -153,22 +153,21 @@ test('Qwen installs in its own runtime and selected CPU voices do not require th
     run: tools.execute,
   });
   assert.equal(
-    library.install({ modelId: 'qwen3-tts-0.6b-base', language: 'ru' }).phase,
+    library.install({ modelId: 'qwen3-tts-0.6b-base', language: 'de' }).phase,
     'installing',
   );
   await library.task;
   assert.equal(library.snapshot().phase, 'ready');
   assert.equal(library.busy(), false);
   assert.equal(tools.ran(/requirements-qwen-tts\.lock/).length, 1);
-  assert.equal(tools.ran(/^--russian$/).length, 0);
-  await library.select({ modelId: 'qwen3-tts-0.6b-base', language: 'ru' });
-  assert.equal(voiceBackendChanged(root, 'ru', 'en'), true);
-  assert.equal(voiceBackendChanged(root, 'en', 'ru'), true);
-  assert.equal(voiceBackendChanged(root, 'ru', 'off'), false);
+  await library.select({ modelId: 'qwen3-tts-0.6b-base', language: 'de' });
+  assert.equal(voiceBackendChanged(root, 'de', 'en'), true);
+  assert.equal(voiceBackendChanged(root, 'en', 'de'), true);
+  assert.equal(voiceBackendChanged(root, 'de', 'off'), false);
   await library.select({ modelId: 'qwen3-tts-0.6b-base', language: 'en' });
-  assert.equal(voiceBackendChanged(root, 'ru', 'en'), false);
+  assert.equal(voiceBackendChanged(root, 'de', 'en'), false);
   rmSync(path.join(root, '.runtime/voice-training-venv'), { recursive: true });
-  assert.equal(speechModelsInstalled(root, 'ru'), true);
+  assert.equal(speechModelsInstalled(root, 'de'), true);
   assert.equal(speechModelsInstalled(root, 'en'), true);
 });
 
@@ -200,67 +199,7 @@ test('voice installation checks free space and cancellation releases the shared 
   );
 });
 
-test('Russian LoRA requires its reference and accent files and keeps an independent voice selection', async (t) => {
-  const { root, write } = fixture(t);
-  const group = (name) => ({
-    directory: 'data/speech/' + name,
-    files: [{ file: 'fixture', bytes: 3 }],
-  });
-  const spec = { ...group('russian'), accent: group('accent'), pack: group('reference') };
-  const stages = [];
-  write('config/qwen-ru-voice.json', spec);
-  write('config/qwen-tts-upstream.json', group('qwen'));
-  write('data/speech/qwen/fixture', 'abc');
-  const tools = fakePythonToolchain(root, {
-    onRun: (_file, args) => {
-      if (args.includes('integrations.voice_runtime.qwen_provision')) {
-        assert.deepEqual(args.slice(-1), ['--russian']);
-        write('data/speech/russian/fixture', 'abc');
-        write('data/speech/accent/fixture', 'abc');
-      }
-    },
-  });
-  const library = new VoiceCatalogService({
-    root,
-    free: () => 20 * 1024 ** 3,
-    prepare: async () => {},
-    emit: ({ stage, progress }) => stages.push([stage, progress]),
-    findUv: tools.findUv,
-    run: tools.execute,
-  });
-  const model = () => library.snapshot().models.find((item) => item.id === RUSSIAN_QWEN_ID);
-  assert.deepEqual(model().languages, ['ru']);
-  assert.deepEqual(model().devices, ['cpu']);
-  assert.equal(voiceRuntimeKind(model()), 'qwen3-tts-ru-lora');
-  assert.throws(
-    () => library.install({ modelId: RUSSIAN_QWEN_ID, language: 'ru' }),
-    /Russian LoRA/,
-  );
-  write('data/speech/reference/fixture', 'abc');
-  library.install({ modelId: RUSSIAN_QWEN_ID, language: 'ru' });
-  await library.task;
-  assert.equal(library.snapshot().phase, 'ready');
-  assert.equal(model().installed, true);
-  await library.select({ modelId: 'qwen3-tts-0.6b-base', language: 'en' });
-  await library.select({ modelId: RUSSIAN_QWEN_ID, language: 'ru' });
-  assert.equal(new VoiceCatalogService({ root }).snapshot().selections.ru, RUSSIAN_QWEN_ID);
-  assert.equal(voiceBackendChanged(root, 'ru', 'en'), true);
-  assert.equal(speechModelsInstalled(root, 'ru'), true);
-  // NVIDIA Qwen wheels are still pinned for Windows only; the request fails before any work.
-  const commands = tools.commands.length;
-  library.install({ modelId: RUSSIAN_QWEN_ID, language: 'ru', cuda: true });
-  await library.task;
-  assert.equal(library.snapshot().phase, 'error');
-  assert.match(library.snapshot().error, /Accelerated Qwen voice/);
-  assert.equal(library.snapshot().russianQwenCudaReady, false);
-  assert.equal(tools.commands.length, commands);
-  write('data/speech/accent/fixture', 'incomplete');
-  assert.equal(model().installed, false);
-  assert.equal(speechModelsInstalled(root, 'ru'), false);
-  assert.equal(speechModelsInstalled(root, 'en'), true);
-});
-
-test('Qwen ROCm installs as a shared runtime without replacing CPU or CUDA', async (t) => {
+test('Qwen ROCm installs as a shared runtime without replacing the CPU runtime', async (t) => {
   const { root, write } = fixture(t);
   const model = catalog.models.find(({ id }) => id === 'qwen3-tts-0.6b-base');
   let gpu = 'AMD Radeon RX 7700 XT';
@@ -271,8 +210,6 @@ test('Qwen ROCm installs as a shared runtime without replacing CPU or CUDA', asy
   });
   write('data/speech/qwen/fixture', 'abc');
   write('.runtime/qwen-tts-venv/bin/python', 'CPU');
-  write('.runtime/qwen-tts-cuda-venv/bin/python', 'CUDA');
-  write('.runtime/qwen-tts-cuda-venv/cuda-ready.json', { schemaVersion: 1, backend: 'cu128' });
   const options = {
     root,
     hardware: async () => ({ gpus: [{ name: gpu }] }),
@@ -295,7 +232,7 @@ test('Qwen ROCm installs as a shared runtime without replacing CPU or CUDA', asy
   library.install(selection);
   await library.task;
   // ROCm Qwen wheels are still pinned for Windows only: refused before any work,
-  // leaving the CPU and CUDA runtimes as they were.
+  // leaving the CPU runtime as it was.
   assert.equal(installs, 0);
   assert.match(library.snapshot().error, /Accelerated Qwen voice/);
   assert.equal(library.snapshot().qwenRocmReady, false);
@@ -307,10 +244,8 @@ test('Qwen ROCm installs as a shared runtime without replacing CPU or CUDA', asy
   );
   assert.equal(voiceRuntime(root, model).backend, 'rocm');
   assert.equal(voiceRuntime(root, model, 'cpu').backend, 'cpu');
-  const russian = catalog.models.find(({ id }) => id === RUSSIAN_QWEN_ID);
-  assert.equal(voiceRuntime(root, russian).backend, 'cuda');
   assert.equal(
-    voiceRuntime(root, russian, 'rocm:1:0000000000000000').env.ROCM_SDK_TARGET_FAMILY,
+    voiceRuntime(root, model, 'rocm:1:0000000000000000').env.ROCM_SDK_TARGET_FAMILY,
     'custom',
   );
 });
@@ -330,7 +265,7 @@ test('Qwen failure diagnostics retain the stage and fixed reason without raw out
       throw error;
     },
   });
-  library.install({ modelId: 'qwen3-tts-0.6b-base', language: 'ru' });
+  library.install({ modelId: 'qwen3-tts-0.6b-base', language: 'de' });
   await library.task;
   const status = library.snapshot();
   assert.equal(status.phase, 'error');
@@ -461,7 +396,7 @@ test('voice switch failure preserves saved selection and missing weights remain 
   assert.deepEqual(library.snapshot().selections, {});
   write('data/speech/multilingual/weights.safetensors', 'corrupt length');
   await assert.rejects(
-    library.select({ language: 'ru', modelId: 'chatterbox-multilingual-v3' }),
+    library.select({ language: 'de', modelId: 'chatterbox-multilingual-v3' }),
     /Install/,
   );
 });
@@ -470,7 +405,7 @@ test('one-click training produces a preview candidate and applies only on explic
   const { root, write } = fixture(t);
   write('data/speech/voice-selections.json', {
     schemaVersion: 1,
-    languages: { en: 'qwen3-tts-0.6b-base', ru: 'chatterbox-multilingual-v3' },
+    languages: { en: 'qwen3-tts-0.6b-base', de: 'chatterbox-multilingual-v3' },
   });
   const phases = [];
   let stopped = 0;
@@ -494,7 +429,7 @@ test('one-click training produces a preview candidate and applies only on explic
   assert.equal(stopped, 2);
   assert.deepEqual(
     JSON.parse(readFileSync(path.join(root, 'data/speech/voice-selections.json'))).languages,
-    { en: 'chatterbox-turbo', ru: 'chatterbox-multilingual-v3' },
+    { en: 'chatterbox-turbo', de: 'chatterbox-multilingual-v3' },
   );
   assert.equal(
     JSON.parse(readFileSync(path.join(root, 'config/companion-voice.json'))).profileDir,
@@ -527,7 +462,7 @@ test('training cannot use unsupported model recipes or provisional datasets', (t
   const { root, write } = fixture(t);
   const service = new VoiceTrainingService({ root });
   assert.throws(
-    () => service.start({ modelId: 'chatterbox-multilingual-v3', language: 'ru' }),
+    () => service.start({ modelId: 'chatterbox-multilingual-v3', language: 'de' }),
     /compatible fine-tuning/,
   );
   write('config/voice-training.json', {
@@ -543,7 +478,7 @@ test('failed activation rolls the voice profile back and retains the candidate',
   const { root, write } = fixture(t);
   const previousSelections = {
     schemaVersion: 1,
-    languages: { en: 'qwen3-tts-0.6b-base', ru: 'chatterbox-multilingual-v3' },
+    languages: { en: 'qwen3-tts-0.6b-base', de: 'chatterbox-multilingual-v3' },
   };
   write('data/speech/voice-selections.json', previousSelections);
   const service = new VoiceTrainingService({
@@ -623,4 +558,15 @@ test('concurrent service instances cannot start a second training worker', async
   assert.throws(() => new VoiceTrainingService({ root }).start(), /already running/);
   finish();
   await service.task;
+});
+
+test('a saved voice for the retired Russian language is ignored instead of breaking voice settings', (t) => {
+  const { root, write } = fixture(t);
+  write('data/speech/voice-selections.json', {
+    schemaVersion: 1,
+    languages: { ru: 'chatterbox-multilingual-v3', de: 'chatterbox-multilingual-v3' },
+  });
+  assert.deepEqual(readVoiceSelections(root, catalog.models), {
+    de: 'chatterbox-multilingual-v3',
+  });
 });

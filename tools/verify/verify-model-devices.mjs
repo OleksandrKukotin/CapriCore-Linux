@@ -13,15 +13,15 @@ mkdirSync(parent, { recursive: true });
 const folder = mkdtempSync(path.join(parent, 'case-'));
 const css = pathToFileURL(path.join(root, 'apps/desktop/renderer/settings.css')).href;
 const module = pathToFileURL(path.join(root, 'apps/desktop/renderer/model-device-panel.mjs')).href;
-const ru = JSON.parse(readFileSync('apps/desktop/locales/ru.json', 'utf8')).messages;
+const uk = JSON.parse(readFileSync('apps/desktop/locales/uk.json', 'utf8')).messages;
 writeFileSync(
   path.join(folder, 'index.html'),
   `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="${css}"><style>
 body{background:#07131c;color:#d7eeed;font:14px 'Segoe UI',sans-serif;margin:0;padding:20px;box-sizing:border-box;--cyan:#8ef5ed;--danger:#ff6687}select{display:block;box-sizing:border-box;background:#0b222b;color:#d7eeed;border:1px solid #448f9c;padding:10px;margin:8px 0 12px}button{background:#0b222b;color:#8ef5ed;border:1px solid #448f9c;padding:10px 14px;cursor:pointer}button:disabled{opacity:.4;cursor:default}.settings-card{border:1px solid #448f9c;padding:16px}.settings-actions{display:flex;gap:8px;flex-wrap:wrap}.settings-help{font-size:12px;line-height:1.5;color:#9cb3b8}h3{color:#8ef5ed;margin-top:0}
 </style></head><body><main id="host"></main><script type="module">
 import {ModelDevicePanel} from ${JSON.stringify(module)};
-const dictionary=${JSON.stringify(ru)};window.locale='en';
-const ui={text:key=>window.locale==='ru'?(dictionary[key]??key):key};
+const dictionary=${JSON.stringify(uk)};window.locale='en';
+const ui={text:key=>window.locale==='uk'?(dictionary[key]??key):key};
 window.applied=[];const value={current:{language:'auto',voice:'cpu'},options:{language:[{id:'auto',name:'Automatic',available:true},{id:'cpu',name:'CPU',available:true},{id:'cuda:0:0123456789abcdef',name:'NVIDIA GPU',backend:'cuda',available:true},{id:'vulkan:1:fedcba9876543210',name:'AMD Radeon GPU',backend:'vulkan',available:true}],voice:[{id:'auto',name:'Automatic',available:true},{id:'cpu',name:'CPU',available:true},{id:'cuda:0:0123456789abcdef',name:'NVIDIA GPU',backend:'cuda',available:true},{id:'unavailable:amd',name:'AMD Radeon GPU',available:false,reason:'This GPU is not available in the installed voice runtime.'}]}};
 window.panel=new ModelDevicePanel({host:document.querySelector('#host'),ui,onError:error=>{throw Error(error)},api:{modelDevices:async()=>structuredClone(value),applyModelDevices:async input=>{window.applied.push(input);return true}}});
 window.value=value;window.ready=window.panel.refresh();
@@ -65,12 +65,12 @@ try {
       .evaluate((el) => el.classList.contains('model-device-error')),
   );
   await page.screenshot({ path: path.join(folder, 'unavailable.png') });
-  for (const locale of ['en', 'ru']) {
+  for (const locale of ['en', 'uk']) {
     await page.evaluate((locale) => {
       window.locale = locale;
       window.translate();
     }, locale);
-    if (locale === 'ru') assert.equal(await page.locator('h3').textContent(), 'Устройства моделей');
+    if (locale === 'uk') assert.equal(await page.locator('h3').textContent(), 'Пристрої моделей');
     for (const width of [420, 680]) {
       await application.evaluate(
         ({ BrowserWindow }, width) => BrowserWindow.getAllWindows()[0].setSize(width, 700),
@@ -111,11 +111,11 @@ try {
   await language.selectOption('npu-setup-vitis');
   assert.equal(
     await page.locator('#model-device-apply').textContent(),
-    'Настроить NPU и перезапустить',
+    'Налаштувати NPU та перезавантажити',
   );
   assert.match(await page.locator('#model-device-language-reason').textContent(), /Qwen 2\.5/);
   assert.equal(await page.locator('#model-device-npu-advanced').getAttribute('open'), null);
-  await page.screenshot({ path: path.join(folder, 'amd-npu-ru.png') });
+  await page.screenshot({ path: path.join(folder, 'amd-npu-uk.png') });
   await page.locator('#model-device-apply').click();
   assert.deepEqual(await page.evaluate(() => window.applied.at(-1)), {
     language: 'npu-setup-vitis',

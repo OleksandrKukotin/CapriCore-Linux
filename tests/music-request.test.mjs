@@ -18,7 +18,6 @@ test('YouTube Music routes only scoped player requests and respects the selected
     ['Search YouTube Music for C418', { action: 'search', query: 'C418' }],
     ['Play "Fire and Rain" on YouTube Music.', { action: 'play', query: 'Fire and Rain' }],
     ['Open YouTube Music and play Believer', { action: 'play', query: 'Believer' }],
-    ['Капри, включи Believer в YouTube Music.', { action: 'play', query: 'Believer' }],
     ['Pause YouTube Music', { action: 'pause' }],
     ['Resume on YT Music', { action: 'resume' }],
     ['Capri play the music via YouTube music.', { action: 'start' }],
@@ -32,7 +31,6 @@ test('YouTube Music routes only scoped player requests and respects the selected
       { action: 'play', query: 'Drayton by another artist' },
     ],
     ['Start playing music on YouTube Music', { action: 'start' }],
-    ['Включи мне любую музыку через YouTube Music', { action: 'start' }],
     ['Mets de la musique sur YouTube Music', { action: 'start' }],
     ['Pon algo de música en YouTube Music', { action: 'start' }],
     ['Toca alguma música no YouTube Music', { action: 'start' }],
@@ -45,8 +43,6 @@ test('YouTube Music routes only scoped player requests and respects the selected
     ['Increse the volume a bit', { action: 'volume', delta: 10 }],
     ['Increase the volume a bit', { action: 'volume', delta: 10 }],
     ['Could you lower the music volume by 15%, please?', { action: 'volume', delta: -15 }],
-    ['Увеличь громкость музыки на 20%', { action: 'volume', delta: 20 }],
-    ['Поставь громкость музыки на 55%', { action: 'volume', value: 55 }],
     ['What’s playing on YouTube Music right now?', { action: 'status' }],
     ['Play some good music', { action: 'start' }],
   ]) {
@@ -95,8 +91,6 @@ test('named Spotify playback preserves the owner query, never generated command 
   for (const text of [
     'Play Example Artist - Example Title on Spotify.',
     'Capri, could you please play Example Artist - Example Title?',
-    'Капри, включи Example Artist - Example Title в Spotify, пожалуйста.',
-    'Поставь в спотифай Example Artist - Example Title',
     'Play the track Example Artist - Example Title',
   ])
     assert.deepEqual(
@@ -123,7 +117,6 @@ test('named Spotify playback preserves the owner query, never generated command 
 test('a music topic can block implicit desktop escalation without claiming an execution request', () => {
   for (const text of [
     'Do you like this music?',
-    'Тебе нравится громкая музыка?',
     'Reproduce esta canción en Spotify.',
     'Spotifyのこの曲は好き？',
     'Do not play music.',
@@ -137,7 +130,6 @@ test('a music topic can block implicit desktop escalation without claiming an ex
     'Click the Spotify play button with the mouse.',
     'Play Spotify, then open Notepad and type a note.',
     'Play music and set a timer.',
-    'Используй полное управление компьютером и включи музыку.',
   ])
     assert.equal(dedicatedMusicContext(text), false, text);
 });
@@ -160,16 +152,8 @@ test('only positive playback, volume and current-player queries select the dedic
     'Show the current volume.',
     'What song is playing?',
     "What's playing in Spotify right now?",
-    'Открой Spotify и включи музыку Example Artist.',
-    'Капри, поставь песню в спотифай.',
-    'Можешь включить музыку?',
-    'Сделай музыку потише.',
-    'Чуть погромче, пожалуйста.',
-    'Проверь громкость Spotify.',
     'Mets de la musique sur Spotify.',
     'Peux-tu jouer Believer sur Spotify ?',
-    'Что сейчас играет?',
-    'Какая песня играет в Spotify?',
   ])
     assert.equal(dedicatedMusicRequest(text), true, text);
 });
@@ -194,10 +178,6 @@ test('music discussion, titles, prohibitions, unrelated meanings and unknown-lan
     'Increase the volume of a sphere.',
     'I track my exercise.',
     'What song is playing in this movie?',
-    'Тебе нравится эта музыка?',
-    'Тебе нравится громкая музыка?',
-    'Какая у тебя любимая песня?',
-    'Не включай музыку.',
     '¿Te gusta esta música de Spotify?',
     'Tu aimes cette chanson sur Spotify ?',
     'Ne joue pas cette chanson sur Spotify.',
@@ -216,7 +196,6 @@ test('GUI and mixed-app goals retain their general path and explicit computer mo
     'Click the Spotify play button with the mouse.',
     'Play Spotify, then open Notepad and type a note.',
     'Play music and set a timer.',
-    'Используй полное управление компьютером и включи музыку.',
   ])
     assert.equal(dedicatedMusicRequest(text), false, text);
 });

@@ -13,13 +13,13 @@ export const reasoningCases = Object.freeze([
       'If A stole it, only B tells the truth; each other culprit gives two true statements.',
   },
   {
-    id: 'logic-ru-card-rule',
-    language: 'ru',
+    id: 'logic-uk-card-rule',
+    language: 'uk',
     category: 'logic',
     kind: 'set',
     expected: ['A', 'D'],
     prompt:
-      'У каждой карточки с одной стороны число, с другой — цвет. Видны четыре карточки: A — 2, B — 3, C — красная, D — синяя. Нужно проверить правило: «Если число чётное, то обратная сторона красная». Какие карточки обязательно перевернуть, чтобы проверить правило? Укажи только буквы через запятую.',
+      'Кожна картка має з одного боку число, а з іншого — колір. Видно чотири картки: A — 2, B — 3, C — червона, D — синя. Потрібно перевірити правило: «Якщо число парне, то зворотний бік червоний». Які картки обов’язково треба перевернути, щоб перевірити правило? Вкажи лише літери через кому.',
     reference: 'Test the antecedent (A) and negated consequent (D), not the converse.',
   },
   {
@@ -74,13 +74,13 @@ export const reasoningCases = Object.freeze([
     reference: '7^4 = 1 mod 100 and 222 = 2 mod 4.',
   },
   {
-    id: 'math-ru-stars-bars',
-    language: 'ru',
+    id: 'math-uk-stars-bars',
+    language: 'uk',
     category: 'mathematics',
     kind: 'number',
     expected: '253',
     prompt:
-      'Сколько упорядоченных троек целых чисел (x,y,z) удовлетворяет x+y+z=30, x≥2, y≥3, z≥4?',
+      'Скільки впорядкованих трійок цілих чисел (x,y,z) задовольняють x+y+z=30, x≥2, y≥3, z≥4?',
     reference: 'Shift by (2,3,4); the nonnegative sum is 21, giving C(23,2)=253.',
   },
   {
@@ -134,13 +134,13 @@ export const reasoningCases = Object.freeze([
     reference: 'a=g(sin30-mu*cos30)=10(1/2-1/4)=5/2.',
   },
   {
-    id: 'physics-ru-circuit',
-    language: 'ru',
+    id: 'physics-uk-circuit',
+    language: 'uk',
     category: 'physics',
     kind: 'number',
     expected: '3',
     prompt:
-      'Резисторы 6 Ом и 3 Ом соединены параллельно. Эта пара последовательно соединена с резистором 2 Ом и подключена к идеальному источнику напряжения 12 В. Какой ток в амперах течёт через источник?',
+      'Резистори 6 Ом і 3 Ом з’єднані паралельно. Ця пара послідовно з’єднана з резистором 2 Ом і підключена до ідеального джерела напруги 12 В. Який струм в амперах тече через джерело?',
     reference: 'Parallel resistance 2 ohm; total resistance 4 ohm; I=12/4=3 A.',
   },
   {
