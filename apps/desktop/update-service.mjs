@@ -18,7 +18,7 @@ import {
   installedUpdateVersion,
   managedInstallation,
 } from '../../packages/updater/src/transaction.mjs';
-import { listUpdateReleases, githubCredential } from '../../packages/updater/src/github.mjs';
+import { listUpdateReleases } from '../../packages/updater/src/github.mjs';
 import {
   REPOSITORY,
   compareVersions,
@@ -56,7 +56,7 @@ export class UpdateService {
     state,
     node,
     emit = () => {},
-    credential = githubCredential,
+    credential = async () => null,
     releases = listUpdateReleases,
     startupTimeoutMs = 15000,
   }) {

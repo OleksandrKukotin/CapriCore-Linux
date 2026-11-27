@@ -10,7 +10,7 @@ import { voiceGpuSupported } from '../../runtime/src/hardware/voice-gpu.mjs';
 import { probeHardware } from '../../runtime/src/hardware/probe.mjs';
 import { findExecutable } from '../../runtime/src/host/paths.mjs';
 import { writeJsonAtomic } from '../../runtime/src/atomic-json.mjs';
-import { listReleases, githubCredential } from '../../updater/src/github.mjs';
+import { listReleases } from '../../updater/src/github.mjs';
 import { downloadUpdate } from '../../updater/src/download.mjs';
 import { compareVersions } from '../../updater/src/releases.mjs';
 import { noLinks, readJson, diskFree, assertDiskSpace } from './policy.mjs';
@@ -82,7 +82,7 @@ export async function installSpeechComponents(
     findUv,
     hardware = probeHardware,
     free = diskFree,
-    credential = githubCredential,
+    credential = async () => null,
     releases = listReleases,
     downloadPack = downloadUpdate,
     extract = extractZip,
