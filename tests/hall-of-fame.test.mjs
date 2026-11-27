@@ -33,5 +33,6 @@ test('the shipped roster is a static public snapshot with only approved fields',
     { name: 'Overyx', role: 'Developer' },
     { name: 'v1rch', role: 'Discord developer' },
     { name: 'Leberrr', role: 'Discord moderator' },
+    { name: 'kirn0al', role: 'Linux Netrunner' },
   ]);
 });
