@@ -313,10 +313,7 @@ try {
   await settings.waitForFunction(() => document.getElementById('hf-file').options.length === 0);
   assert.equal(await settings.locator('#hf-plan').isDisabled(), true);
   assert.equal(await settings.locator('#hf-install').isDisabled(), true);
-  assert.match(
-    await settings.locator('#hf-compatibility').innerText(),
-    /compatible runtime|совместим/i,
-  );
+  assert.match(await settings.locator('#hf-compatibility').innerText(), /compatible runtime/i);
   await settings
     .locator('#hf-query')
     .locator('..')

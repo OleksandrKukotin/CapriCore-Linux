@@ -166,12 +166,6 @@ test('visual search commands have their own path and leave real search requests 
     ['Use your wrist scanner', 'hang-wrist-scan'],
     ['Show me another hanging trick', 'hang-next'],
     ['Play a keytar riff', 'ledge-keytar'],
-    ['Капри, подтянись!', 'hang-pullup'],
-    ['Капри, можешь показать подтягивание?', 'hang-pullup'],
-    ['Ты можешь подтянуться, пожалуйста?', 'hang-pullup'],
-    ['Можешь, пожалуйста, подтянуться?', 'hang-pullup'],
-    ['Поиграй соло на кейтаре, Капри!', 'ledge-keytar'],
-    ['Покажи жестом на строку поиска', 'present'],
   ]) {
     assert.deepEqual(desktopAvatarCommand(text), { action: 'performance', performance }, text);
   }

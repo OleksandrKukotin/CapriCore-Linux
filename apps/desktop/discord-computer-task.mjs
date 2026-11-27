@@ -3,52 +3,22 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { DiscordGuiTask, discordTaskRequest, discordObservation } from './discord-application.mjs';
 
 const messages = {
-  clarify: [
-    'Укажи одно действие и точные названия сервера и канала Discord.',
-    'Specify one action and the exact Discord server and channel names.',
-  ],
-  failed: [
-    'Не удалось проверить действие в Discord. Проверь его состояние перед повтором.',
-    'The Discord action could not be verified. Check its current state before retrying.',
-  ],
-  changed: [
-    'Окно или результат Discord изменились во время проверки.',
-    'The Discord window or result changed during verification.',
-  ],
-  timeout: [
-    'Discord не подтвердил действие вовремя. Проверь его состояние перед повтором.',
-    'Discord did not verify the action in time. Check its current state before retrying.',
-  ],
-  limit: [
-    'Не удалось завершить действие Discord за отведённое число шагов.',
-    'The Discord task did not finish within its step limit.',
-  ],
-  blocked: [
-    'Не удалось однозначно определить нужный элемент Discord. Уточни сервер или канал либо открой его в Discord.',
+  clarify: 'Specify one action and the exact Discord server and channel names.',
+  failed: 'The Discord action could not be verified. Check its current state before retrying.',
+  changed: 'The Discord window or result changed during verification.',
+  timeout: 'Discord did not verify the action in time. Check its current state before retrying.',
+  limit: 'The Discord task did not finish within its step limit.',
+  blocked:
     'The intended Discord control is ambiguous or unavailable. Specify the server/channel or open it in Discord.',
-  ],
 };
 const currentMessages = {
-  unavailable: [
-    'Не удалось определить поле сообщения Discord. Открой нужный чат и попробуй снова.',
+  unavailable:
     'I could not identify the Discord message field. Open the intended chat and try again.',
-  ],
-  ambiguous: [
-    'Открыто несколько чатов Discord. Уточни, в какой написать: левый или правый.',
-    'Several Discord chats are open. Specify the intended chat: left or right.',
-  ],
-  draft: [
-    'Твой черновик в Discord сохранён. Проверь или сохрани его перед повторной попыткой.',
-    'Your Discord draft was kept. Review or save it before trying again.',
-  ],
-  changed: [
-    'Выбранный чат Discord изменился. Проверь нужный чат перед повторной попыткой.',
-    'The selected Discord chat changed. Check the intended chat before trying again.',
-  ],
-  unverified: [
-    'Отправку в Discord не удалось подтвердить. Проверь чат; повторять отправку я не буду.',
+  ambiguous: 'Several Discord chats are open. Specify the intended chat: left or right.',
+  draft: 'Your Discord draft was kept. Review or save it before trying again.',
+  changed: 'The selected Discord chat changed. Check the intended chat before trying again.',
+  unverified:
     'The Discord send could not be confirmed. Check the chat; I will not repeat the send.',
-  ],
 };
 const currentMessageKind = (reason) =>
   ({
@@ -81,7 +51,7 @@ export async function runDiscordComputerTask({
   signal?.throwIfAborted();
   const parsed = request ?? discordTaskRequest(goal);
   if (!parsed) return { handled: false };
-  const text = (kind) => messages[kind][language === 'ru' ? 0 : 1];
+  const text = (kind) => messages[kind];
   const failure = (kind, steps, status = 'incomplete', extra = {}) => {
     const currentKind =
       parsed.action === 'send_current_message' &&
@@ -91,7 +61,7 @@ export async function runDiscordComputerTask({
       success: false,
       status,
       steps,
-      summary: currentKind ? currentMessages[currentKind][language === 'ru' ? 0 : 1] : text(kind),
+      summary: currentKind ? currentMessages[currentKind] : text(kind),
       ...extra,
     };
   };

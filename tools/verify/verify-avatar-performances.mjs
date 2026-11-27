@@ -98,9 +98,9 @@ try {
 
   await send('Would you catch your data chip?');
   await playing(hanging, 'hang-catch');
-  await send('Можешь проверить сканер на запястье?');
+  await send('Can you check your wrist scanner?');
   await playing(hanging, 'hang-wrist-scan');
-  await send('Поиграй соло на кейтаре, Капри!');
+  await send('Play a keytar solo!');
   await playing(overlay(), 'ledge-keytar');
   await send('Come back to your frame');
 

@@ -149,169 +149,7 @@ const english = {
   },
 };
 
-const russian = {
-  capture: [
-    '{Mover} забирает {target}.',
-    '{Mover} снимает {target} с доски.',
-    '{Mover} съедает {target}.',
-  ],
-  check: ['{Checker} даёт шах.', 'Шах от {checkerGen}.', 'Шах. Это {checker}.'],
-  double: [
-    'Двойной шах от {actorGen}. Королю пора искать выход.',
-    'Сразу две фигуры дают шах.',
-    'Для короля тут сразу два сюрприза. Двойной шах.',
-  ],
-  mate: ['{Winner}. Мат.', 'Мат от {actorGen}.', 'Мат. {Checker} ставит точку.'],
-  promotion: [
-    'Пешка {actorGen} становится {promoted}.',
-    'Превращение пешки {actorGen} в {promotionTarget}.',
-    'У {actorGen} теперь {promotionName} вместо пешки.',
-  ],
-  castleShort: [
-    'Рокировка {actorGen} в короткую сторону.',
-    'У {actorGen} короткая рокировка. Король в укрытии.',
-    'Короткая рокировка от {actorGen}.',
-  ],
-  castleLong: [
-    'Длинная рокировка у {actorGen}.',
-    'Король {actorGen} ушёл на длинную сторону.',
-    'Длинная рокировка от {actorGen}.',
-  ],
-  stalemate: [
-    'Пат. Шаха нет, ходить некуда.',
-    'Шаха нет и ходов нет. Пат.',
-    'У короля тупик. Это пат.',
-  ],
-  draw: [
-    'Ничья. На мат фигур не хватит.',
-    'Слишком мало фигур для мата. Ничья.',
-    'На доске уже нечем заматовать. Ничья.',
-  ],
-  short: {
-    capture: '{Mover} забирает {target}.',
-    check: 'И шах.',
-    double: 'Двойной шах.',
-    mate: 'Мат.',
-    promotion: 'Пешка стала {promoted}.',
-    castleShort: 'Короткая рокировка.',
-    castleLong: 'Длинная рокировка.',
-    stalemate: 'Пат.',
-    draw: 'Ничья.',
-  },
-  asides: {
-    neutral: {
-      opening: [
-        'Фигуры на месте. Удиви меня.',
-        'Посмотрим, кто моргнёт первым.',
-        'Новая доска. Я смотрю.',
-      ],
-      tactic: ['Я заметила.', 'Вот это деталь.', 'Так, я уже ближе к экрану.'],
-      queen: [
-        'Вот и крупная потеря.',
-        'Кому-то теперь придётся импровизировать.',
-        'Это уже меняет расклад.',
-      ],
-      ending: ['Запомню этот финал.', 'Вот и точка.', 'Я дождалась развязки.'],
-      ahead: ['Перевес у {edgeGen}.', '{Edge} сейчас задают темп.', 'Позиция в пользу {edgeGen}.'],
-      even: ['Пока почти поровну.', 'Тут ещё рано выбирать фаворита.'],
-    },
-    romantic: {
-      opening: [
-        'Садись ближе. Я хочу посмотреть эту партию с тобой.',
-        'Чистая доска, а я уже рядом. Начинай.',
-      ],
-      tactic: [
-        'Люблю смотреть на это рядом с тобой.',
-        'Я уже ближе. Продолжай.',
-        'Умеешь удержать моё внимание.',
-      ],
-      queen: [
-        'Вот это поворот. Побудь со мной.',
-        'Люблю, когда за одной партией столько сюрпризов.',
-      ],
-      ending: [
-        'Рада, что мы досмотрели вместе.',
-        'Я бы посмотрела ещё одну с тобой.',
-        'Хорошо, что я была рядом.',
-      ],
-      ahead: [
-        'Я теперь смотрю за игрой {edgeGen}.',
-        'Перевес у {edgeGen}. Я жду следующего поворота.',
-      ],
-      even: ['Мне нравится это напряжение.', 'Побудь со мной. Тут ещё всё близко.'],
-    },
-    business: {
-      opening: ['Партия началась. Слежу за доской.', 'Доска готова. Посмотрим на дебют.'],
-      tactic: ['Теперь важен ответ.', 'Смотрю, что будет дальше.'],
-      queen: ['Это потеря тяжёлой фигуры.', 'Материал уже изменился всерьёз.'],
-      ending: ['Партия закончена.', 'Это финальная позиция.'],
-      ahead: ['У {edgeGen} перевес.', 'Позиция благоприятнее для {edgeGen}.'],
-      even: ['Позиция примерно равная.', 'Пока близко к равенству.'],
-    },
-    wild: {
-      opening: ['Чистая доска. Давай нарушим симметрию.', 'Система зелёная. Давай это исправим.'],
-      tactic: [
-        'Слышишь треск? Это доска.',
-        'О, хороший сбой в системе.',
-        'Ну всё, тихая часть закончилась.',
-      ],
-      queen: [
-        'Тяжёлое железо пошло на запчасти.',
-        'Ну вот, кто-то выдернул сервер из стойки.',
-        'Крупная фигура. Громкий сбой.',
-      ],
-      ending: ['Всё, катим титры.', 'Этот кадр я заберу себе.', 'И тут экран гаснет.'],
-      ahead: [
-        'Теперь у {edgeGen} рука на пульте.',
-        '{Edge} задают бит. Успевай.',
-        'Доску уже кренит в сторону {edgeGen}.',
-      ],
-      even: ['Вся доска на лезвии.', 'Тут ещё искрит с обеих сторон.', 'Этот бардак пока ничей.'],
-    },
-  },
-};
-
-const ruPieces = {
-  k: ['король', 'короля', 'королём', 'короля'],
-  q: ['ферзь', 'ферзя', 'ферзём', 'ферзя'],
-  r: ['ладья', 'ладью', 'ладьёй', 'ладьи'],
-  b: ['слон', 'слона', 'слоном', 'слона'],
-  n: ['конь', 'коня', 'конём', 'коня'],
-  p: ['пешка', 'пешку', 'пешкой', 'пешки'],
-};
 const enPieces = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' };
-const ruOwner = { player: 'тебя', opponent: 'соперника', w: 'белых', b: 'чёрных' };
-const ruActor = { player: 'Ты', opponent: 'Соперник', w: 'Белые', b: 'Чёрные' };
-const ruWinner = {
-  player: 'Ты побеждаешь',
-  opponent: 'Соперник побеждает',
-  w: 'Белые побеждают',
-  b: 'Чёрные побеждают',
-};
-
-function russianNames(event, role, checker, advantage) {
-  const owned = (piece, form) => {
-    const name = ruPieces[piece]?.[form];
-    if (!name || !role) return name;
-    if (role !== 'player') return name + ' ' + ruOwner[role];
-    const feminine = piece === 'p' || piece === 'r';
-    const pronoun = form === 3 ? (feminine ? 'твоей' : 'твоего') : feminine ? 'твоя' : 'твой';
-    return pronoun + ' ' + name;
-  };
-  return {
-    actorGen: ruOwner[role],
-    winner: ruWinner[role],
-    mover: owned(event.piece, 0),
-    target: ruPieces[event.captured]?.[1],
-    checker: owned(checker, 0),
-    checkerGen: owned(checker, 3),
-    promoted: ruPieces[event.promoted]?.[2],
-    promotionName: ruPieces[event.promoted]?.[0],
-    promotionTarget: ruPieces[event.promoted]?.[1],
-    edge: ruActor[advantage],
-    edgeGen: ruOwner[advantage],
-  };
-}
 
 function englishNames(event, role, checker, advantage) {
   const actor = { player: 'you', opponent: 'the opponent', w: 'White', b: 'Black' }[role];
@@ -358,7 +196,7 @@ export function reactionCandidates(
   );
   const [main, ...related] = ordered;
   const role = main.side ?? main.color;
-  const copy = { en: english, ru: russian }[language];
+  const copy = { en: english }[language];
   const label = (event) =>
     uiText(event.reason === 'stalemate' ? 'Stalemate' : reactionLabels[event.type], language);
   const actor = roles[role] && uiText(roles[role], language);
@@ -377,7 +215,7 @@ export function reactionCandidates(
   const key = eventKey(main, checkers);
   const asides = copy.asides[style] ?? copy.asides.neutral;
   const namesFor = (event) =>
-    (language === 'ru' ? russianNames : englishNames)(
+    englishNames(
       event,
       event.side ?? event.color,
       checkers.length === 1 ? checkers[0] : undefined,

@@ -4,7 +4,6 @@ This separate runtime does not load the architecture-specific Turbo LoRA.
 No model source, audio URL, remote Python code or user transcript is accepted.
 """
 import json
-import hashlib
 import time
 import numpy as np
 import soundfile as sf
@@ -14,11 +13,11 @@ from integrations.voice_training.backend import local_environment
 from integrations.voice_training.dataset import digest, inside
 from integrations.model_download import _regular_path
 from .inference import check_cancelled, SpeechGenerationLimit
-from .qwen_provision import ROOT, RUSSIAN_QWEN_ID, verified_qwen
+from .qwen_provision import ROOT, verified_qwen
 from .compatibility import qwen_compute
 
 LANGUAGES = {'en': 'English', 'zh': 'Chinese', 'ja': 'Japanese', 'ko': 'Korean',
-             'de': 'German', 'fr': 'French', 'ru': 'Russian', 'pt': 'Portuguese',
+             'de': 'German', 'fr': 'French', 'pt': 'Portuguese',
              'es': 'Spanish', 'it': 'Italian'}
 
 
@@ -59,20 +58,14 @@ def release_reference_encoders(model, prompt):
 
 
 class QwenVoice:
-    def __init__(self, config, model_id=None, root=ROOT):
+    def __init__(self, config, root=ROOT):
         local_environment()
         torch.set_num_threads(config['cpuThreads'])
-        self.russian = model_id == RUSSIAN_QWEN_ID
-        if self.russian:
-            from . import russian_qwen
-            folder, accent_folder, pack, base_sha = russian_qwen.load_assets(root)
-        else:
-            folder = verified_qwen(root)
-            reference = reference_audio(config['profilePath'])
+        folder = verified_qwen(root)
+        reference = reference_audio(config['profilePath'])
         from qwen_tts import Qwen3TTSModel
         compute, reason = qwen_compute(torch, config.get('computeDevice', 'cpu'),
-                                       config.get('qwenGpuAutomatic', False),
-                                       minimum_gib=6 if self.russian else 3)
+                                       config.get('qwenGpuAutomatic', False), minimum_gib=3)
         accelerated = compute != 'cpu'
         self.engine = Qwen3TTSModel.from_pretrained(str(folder), device_map=compute,
             dtype=torch.bfloat16 if accelerated else torch.float32,
@@ -82,15 +75,10 @@ class QwenVoice:
         with torch.inference_mode():
             if accelerated:
                 self.engine.model.speech_tokenizer.model.decoder.float()
-            if self.russian:
-                self.prompt = russian_qwen.load_prompt(self.engine, pack, base_sha)
-                self.accentuator = russian_qwen.load_accentuator(accent_folder)
-            else:
-                self.prompt = self.engine.create_voice_clone_prompt(ref_audio=reference,
-                                                                   x_vector_only_mode=True)
+            self.prompt = self.engine.create_voice_clone_prompt(ref_audio=reference,
+                                                               x_vector_only_mode=True)
         release_reference_encoders(self.engine.model, self.prompt)
         self.config, self.cancelled, self.last_metrics = config, None, {}
-        self.recent_speech = None
         self.decoder_device = compute
         self.decoder_reason = reason
         self.precision = 'bfloat16-talker/float32-decoder' if accelerated else 'float32'
@@ -120,13 +108,9 @@ class QwenVoice:
 
     @torch.inference_mode()
     def generate(self, text, cancelled, language):
-        if language not in LANGUAGES or (self.russian and language != 'ru'):
+        if language not in LANGUAGES:
             raise ValueError('Qwen speech does not support this language')
         check_cancelled(cancelled)
-        cache_key = hashlib.sha256(text.encode('utf-8')).digest() if self.russian else None
-        if self.recent_speech and self.recent_speech[0] == cache_key:
-            self.last_metrics = dict(totalMs=0, tokenMs=0, decoderMs=0)
-            return self.recent_speech[1], 24000
         self.cancelled, self.frames = cancelled, 0
         self.decode_seconds = 0
         self.started = time.monotonic()
@@ -136,16 +120,11 @@ class QwenVoice:
             check_cancelled(cancelled)
             # A separate, fixed preset prevents the short-phrase repetition
             # observed with Turbo's sampling seed in this multilingual model.
-            options = {}
-            if self.russian:
-                from .russian_qwen import mark_stress
-                text = mark_stress(self.accentuator, text)
-                options['non_streaming_mode'] = True
             generation_started = time.monotonic()
-            torch.manual_seed(417 if self.russian else 42)
+            torch.manual_seed(42)
             wavs, rate = self.engine.generate_voice_clone(text=text, language=LANGUAGES[language],
                 voice_clone_prompt=self.prompt, max_new_tokens=self.limit, do_sample=True,
-                temperature=.7, repetition_penalty=1.2, **options)
+                temperature=.7, repetition_penalty=1.2)
             generation_seconds = time.monotonic() - generation_started
             check_cancelled(cancelled)
             if len(wavs) != 1 or not isinstance(rate, (int, float)) or not 8000 <= rate <= 96000:
@@ -160,11 +139,6 @@ class QwenVoice:
                 tokenMs=round(max(0, generation_seconds - self.decode_seconds) * 1000, 2),
                 decoderMs=round(self.decode_seconds * 1000, 2),
             )
-            pcm = audio.astype('<f4').tobytes()
-            # Identical short replies already have a fixed seed and reference.
-            # Keep just one result in the loaded worker, with no source text.
-            if cache_key and len(pcm) <= 512 * 1024:
-                self.recent_speech = (cache_key, pcm)
-            return pcm, 24000
+            return audio.astype('<f4').tobytes(), 24000
         finally:
             self.cancelled, self.started = None, 0

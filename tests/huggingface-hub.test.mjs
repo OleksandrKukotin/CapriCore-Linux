@@ -54,7 +54,7 @@ function fixture({ show, metadata, running = [] } = {}) {
           metadata ?? {
             sha: revision,
             pipeline_tag: 'text-generation',
-            cardData: { language: ['en', 'ru'], license: 'apache-2.0' },
+            cardData: { language: ['en', 'de'], license: 'apache-2.0' },
             siblings: [{ rfilename: artifact.path, lfs: { size: bytes.length, sha256 } }],
           },
         );

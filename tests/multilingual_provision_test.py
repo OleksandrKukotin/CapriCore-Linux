@@ -12,7 +12,7 @@ spec.loader.exec_module(provisioner)
 
 class LanguageProvisionTests(unittest.TestCase):
     def test_selected_language_does_not_depend_on_unrelated_chinese_download(self):
-        for language in ('ru', 'de', 'ja', 'en'):
+        for language in ('uk', 'de', 'ja', 'en'):
             with patch.object(provisioner, 'provision') as models, patch.object(provisioner, 'provision_chinese') as chinese:
                 provisioner.main(['--component', 'tts', '--language', language])
                 models.assert_called_once_with('tts')

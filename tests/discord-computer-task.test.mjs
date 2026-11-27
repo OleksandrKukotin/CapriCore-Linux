@@ -49,12 +49,7 @@ function fixture(initial, mutate = () => {}) {
 }
 
 test('ordinary app opening and capability questions are not consumed; missing exact targets return clarification', async () => {
-  for (const goal of [
-    'Open Discord.',
-    'Открой дискорд',
-    'Can you control Discord?',
-    'Open Calculator.',
-  ]) {
+  for (const goal of ['Open Discord.', 'Can you control Discord?', 'Open Calculator.']) {
     const result = await runDiscordComputerTask({ goal });
     assert.deepEqual(result, { handled: false });
   }

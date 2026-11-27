@@ -2,81 +2,13 @@
 import { open, readdir } from 'node:fs/promises';
 import path from 'node:path';
 
-const russianSounds = {
-  а: 'a',
-  б: 'b',
-  в: 'v',
-  г: 'g',
-  д: 'd',
-  е: 'e',
-  ё: 'e',
-  ж: 'zh',
-  з: 'z',
-  и: 'i',
-  й: 'i',
-  к: 'k',
-  л: 'l',
-  м: 'm',
-  н: 'n',
-  о: 'o',
-  п: 'p',
-  р: 'r',
-  с: 's',
-  т: 't',
-  у: 'u',
-  ф: 'f',
-  х: 'h',
-  ц: 'ts',
-  ч: 'ch',
-  ш: 'sh',
-  щ: 'sh',
-  ъ: '',
-  ы: 'i',
-  ь: '',
-  э: 'e',
-  ю: 'u',
-  я: 'a',
-};
 const normalizeTitle = (title) =>
   title.normalize('NFKC').trim().toLowerCase().replace(/\s+/gu, ' ');
-export const romanizeSteamTitle = (title) =>
-  title.toLowerCase().replace(/[а-яё]/gu, (letter) => russianSounds[letter]);
-
-function titleSounds(title) {
-  const words = title.match(/[\p{L}\p{N}]+/gu) ?? [];
-  return words.map(
-    (word) =>
-      romanizeSteamTitle(word)
-        .replace(/ch(?=[aeiouy])/gu, 'h')
-        .replace(/ph/gu, 'f')
-        .replace(/c(?=[eiy])/gu, 's')
-        .replace(/c/gu, 'k')
-        .replace(/[aeiouy]/gu, '') || '?',
-  );
-}
-
 export function matchSteamTitle(title, games) {
   const requested = normalizeTitle(title);
-  const unique = ([first, ...others]) =>
-    first && others.every(({ appId }) => appId === first.appId) ? first : null;
   const exact = games.filter((game) => normalizeTitle(game.name) === requested);
-  if (exact.length) return unique(exact);
-  // Speech recognition can write a foreign title in Cyrillic. Only accept a
-  // unique match with the same word order, consonants and numbers.
-  if (!/[а-яё]/u.test(requested)) return null;
-  const sounds = titleSounds(requested);
-  const consonants = sounds.join('').replace(/[^a-z]/gu, '').length;
-  if (consonants < 4 || (consonants < 6 && !/\d/u.test(requested))) return null;
-  return unique(
-    games.filter((game) => {
-      const candidate = normalizeTitle(game.name);
-      return (
-        /[a-z]/u.test(candidate) &&
-        !/[а-яё]/u.test(candidate) &&
-        titleSounds(candidate).join(' ') === sounds.join(' ')
-      );
-    }),
-  );
+  const [first, ...others] = exact;
+  return first && others.every(({ appId }) => appId === first.appId) ? first : null;
 }
 
 async function readVdf(file, maxBytes) {

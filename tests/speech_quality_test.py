@@ -3,7 +3,7 @@ from integrations.speech_quality import word_error_rate,quality_status
 
 class SpeechQualityTests(unittest.TestCase):
     def test_unicode_words_and_punctuation(self):
-        self.assertEqual(word_error_rate('Привет, Капри!','привет капри'),0)
+        self.assertEqual(word_error_rate('Привіт, Капрі!','привіт капрі'),0)
         self.assertEqual(word_error_rate('quiet evening together','quiet morning together'),1/3)
         self.assertEqual(word_error_rate('hello','hello extra words'),2)
         self.assertEqual(word_error_rate('hello',''),1)

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "suite": "capri-dialogue-language-v1",
   "ollamaVersion": "0.40.10",
-  "corpusSha256": "f7a2e96dcf6c1501c177ba54b0b84c360bb39de0f31df4f9b76b6a29f964ebe3",
+  "corpusSha256": "ab6fc098ca33dc263144382ec51258387580fae0d2008a9283403ce8db0190a6",
   "contextTokens": 2048,
   "models": [
     {
@@ -115,7 +115,6 @@
     "pt": [1, 1, 2, 2, 2, 2],
     "pa": [0, 0, 0, 1, 1, 2],
     "ro": [0, 0, 1, 1, 0, 1],
-    "ru": [2, 1, 2, 2, 2, 2],
     "sa": [0, 0, 0, 1, 0, 1],
     "sr": [0, 1, 2, 2, 2, 2],
     "sn": [0, 0, 0, 0, 0, 0],
@@ -205,7 +204,6 @@
     "pl": ["quality", "gemma4-e2b", "desktop", "ministral-3-3b", "minimal"],
     "pt": ["quality", "gemma4-e2b", "desktop", "ministral-3-3b"],
     "pa": ["gemma4-e2b"],
-    "ru": ["quality", "gemma4-e2b", "desktop", "ministral-3-3b", "minimal"],
     "sr": ["quality", "gemma4-e2b", "desktop", "ministral-3-3b"],
     "sd": ["quality"],
     "si": ["quality", "gemma4-e2b"],

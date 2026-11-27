@@ -14,9 +14,7 @@ const commandText = (text) =>
     .replace(/[.!?,;:]+$/g, '')
     .trim();
 const microphoneOff = (text) =>
-  /^(stop listening|microphone off|turn off (?:the )?microphone|не слушай|выключи микрофон|прекрати слушать)$/i.test(
-    commandText(text),
-  );
+  /^(stop listening|microphone off|turn off (?:the )?microphone)$/i.test(commandText(text));
 const startupMessages = Object.freeze({
   ASR_START_PYTHON: 'Install the selected recognition pack first.',
   ASR_START_MODEL: 'Install the selected recognition pack first.',
@@ -521,10 +519,9 @@ export class MicrophoneService {
     const addressed = address?.exact && !text.slice(0, address.start).trim();
     const handsFree = capture.conversationMode && !addressed;
     if (addressed) text = address.body;
-    const stoppingSpeech =
-      /^(stop|stop capri|stop talking|be quiet|quiet capri|стоп|хватит|замолчи)$/iu.test(
-        commandText(text),
-      );
+    const stoppingSpeech = /^(stop|stop capri|stop talking|be quiet|quiet capri)$/iu.test(
+      commandText(text),
+    );
     if (
       !capture.systemAudioReview &&
       this.config.bargeIn &&

@@ -280,26 +280,26 @@ try {
     'Settings, Local model and API actions open the intended pages; Finish cleans up the tour',
   );
 
-  await setLanguage('ru');
+  await setLanguage('uk');
   await launcher.click();
   await page.waitForSelector('#capri-guide[data-view="menu"]:not([hidden])');
-  const russianMenu = await guide.innerText();
-  assert.notEqual(russianMenu, englishMenu);
-  assert.match(russianMenu, /[а-яё]{5}/iu);
+  const ukrainianMenu = await guide.innerText();
+  assert.notEqual(ukrainianMenu, englishMenu);
+  assert.match(ukrainianMenu, /[а-яіїєґ’']{5}/iu);
   await start.click();
   await showStep('overview', ['#portrait-panel', '#avatar-viewport', '#handle']);
   assert.notEqual(await title.innerText(), overview);
-  assert.match(await description.innerText(), /[а-яё]{5}/iu);
+  assert.match(await description.innerText(), /[а-яіїєґ’']{5}/iu);
   await setLanguage('en');
   await showStep('overview', ['#portrait-panel', '#avatar-viewport', '#handle']);
   assert.equal(await title.innerText(), overview);
   assert.equal(await guide.getAttribute('lang'), 'en');
-  await setLanguage('ru');
+  await setLanguage('uk');
   await showStep('overview', ['#portrait-panel', '#avatar-viewport', '#handle']);
-  assert.equal(await guide.getAttribute('lang'), 'ru');
-  assert.match(await description.innerText(), /[а-яё]{5}/iu);
-  for (const button of [next, back, skip]) assert.match(await button.textContent(), /[а-яё]/iu);
-  await page.screenshot({ path: path.join(folder, 'guide-ru.png') });
+  assert.equal(await guide.getAttribute('lang'), 'uk');
+  assert.match(await description.innerText(), /[а-яіїєґ’']{5}/iu);
+  for (const button of [next, back, skip]) assert.match(await button.textContent(), /[а-яіїєґ]/iu);
+  await page.screenshot({ path: path.join(folder, 'guide-uk.png') });
   const originalBounds = await application.evaluate(({ BrowserWindow }) => {
     const window = BrowserWindow.getAllWindows().find((view) =>
       view.webContents.getURL().endsWith('/index.html'),

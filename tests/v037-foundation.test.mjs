@@ -53,7 +53,7 @@ test(
   { skip: process.platform !== 'win32' },
   () => {
     const folder = mkdtempSync(path.join(parent, 'discovery-')),
-      valid = path.join(folder, 'Прежняя Capri');
+      valid = path.join(folder, 'Попередня Capri');
     mkdirSync(valid);
     writeFileSync(
       path.join(valid, '.capri-install.json'),

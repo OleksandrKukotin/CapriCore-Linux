@@ -6,68 +6,45 @@ export function isSettingsWindowTitle(title, localizedTitles = []) {
   const value = normalized(title);
   return (
     localizedTitles.some((label) => normalized(label) === value) ||
-    /^(?:(?:the|your|her|capri(?:['’]s)?)\s+)?settings(?:\s+capri)?$/u.test(value) ||
-    /^(?:(?:твои|твоих|свои|своих)\s+)?настро(?:йки|ек)(?:\s+(?:capri|капри))?$/u.test(value)
+    /^(?:(?:the|your|her|capri(?:['’]s)?)\s+)?settings(?:\s+capri)?$/u.test(value)
   );
 }
 
 const performanceCommands = [
   [
     'hang-next',
-    /^(?:(?:do|show(?: me)?|perform) (?:a|another|one more) (?:hanging|ledge) trick|(?:покажи|сделай)(?: ещё| еще)? (?:один )?трюк на весу)$/iu,
+    /^(?:(?:do|show(?: me)?|perform) (?:a|another|one more) (?:hanging|ledge) trick)$/iu,
   ],
   [
     'hang-pullup',
     /^(?:(?:(?:do|perform|try|show(?: me)?) )?(?:a |the |some |one |a few |another )?(?:hanging )?(?:pull[ -]?ups?|chin[ -]?ups?)(?: (?:animation|on the (?:ledge|edge|window)|while hanging))?|pull yourself up)$/iu,
   ],
   [
-    'hang-pullup',
-    /^(?:подтянись|подтянуться|(?:(?:сделай|сделать|покажи(?: мне)?|показать(?: мне)?) )?(?:(?:одно|несколько) )?подтягивани[еяй])(?: на (?:краю|перекладине))?$/iu,
-  ],
-  [
     'hang-catch',
-    /^(?:(?:catch|toss and catch|flip and catch) (?:(?:a|the|that|your) )?(?:data )?chip|(?:поймай|поймать|подбрось и поймай|подбросить и поймать) чип)$/iu,
+    /^(?:(?:catch|toss and catch|flip and catch) (?:(?:a|the|that|your) )?(?:data )?chip)$/iu,
   ],
   [
     'hang-wrist-scan',
-    /^(?:(?:use|open|check|activate|show(?: me)?) (?:(?:your|the) )?wrist scanner|(?:проверь|проверить|включи|включить|покажи|показать) (?:наручный )?сканер(?: на запястье)?)$/iu,
+    /^(?:(?:use|open|check|activate|show(?: me)?) (?:(?:your|the) )?wrist scanner)$/iu,
   ],
   [
     'ledge-keytar',
-    /^(?:play (?:(?:a|another) keytar (?:riff|solo)|(?:some |the |your )?keytar)|(?:сыграй|сыграть|поиграй|поиграть)(?: (?:риф|соло))? на (?:кейтаре|китаре))$/iu,
+    /^(?:play (?:(?:a|another) keytar (?:riff|solo)|(?:some |the |your )?keytar))$/iu,
   ],
-  [
-    'lean',
-    /^(?:lean (?:on|against) (?:the |this )?(?:(?:active|current) )?window(?: edge)?|обопрись на (?:край )?окн[оа])$/iu,
-  ],
-  [
-    'peek',
-    /^(?:peek (?:over|around|under|from behind) (?:the |this )?(?:window|window edge)|выгляни из-за края окна)$/iu,
-  ],
-  [
-    'read',
-    /^(?:mime reading|pretend to read) (?:the )?(?:search|address) (?:bar|box|field)$|^сделай вид,? что читаешь строку поиска$/iu,
-  ],
+  ['lean', /^(?:lean (?:on|against) (?:the |this )?(?:(?:active|current) )?window(?: edge)?)$/iu],
+  ['peek', /^(?:peek (?:over|around|under|from behind) (?:the |this )?(?:window|window edge))$/iu],
+  ['read', /^(?:mime reading|pretend to read) (?:the )?(?:search|address) (?:bar|box|field)$/iu],
   [
     'tap',
-    /^(?:mime tapping|pretend to tap) (?:on )?(?:the )?(?:search|address) (?:bar|box|field)$|^сделай вид,? что постукиваешь по строке поиска$/iu,
+    /^(?:mime tapping|pretend to tap) (?:on )?(?:the )?(?:search|address) (?:bar|box|field)$/iu,
   ],
   [
     'search',
-    /^(?:mime (?:searching|typing)|pretend to (?:search|type)) (?:in|on|using) (?:the )?(?:search|address) (?:bar|box|field)$|^изобрази поиск в строке поиска$/iu,
+    /^(?:mime (?:searching|typing)|pretend to (?:search|type)) (?:in|on|using) (?:the )?(?:search|address) (?:bar|box|field)$/iu,
   ],
-  [
-    'field-lean',
-    /^(?:lean (?:on|against) (?:the )?(?:search|address) (?:bar|box|field)|обопрись на строку поиска)$/iu,
-  ],
-  [
-    'field-perch',
-    /^(?:(?:sit|perch) on (?:the )?(?:search|address) (?:bar|box|field)|сядь на строку поиска)$/iu,
-  ],
-  [
-    'present',
-    /^(?:(?:present|point to) (?:the )?(?:search|address) (?:bar|box|field)|покажи жестом на строку поиска)$/iu,
-  ],
+  ['field-lean', /^(?:lean (?:on|against) (?:the )?(?:search|address) (?:bar|box|field))$/iu],
+  ['field-perch', /^(?:(?:sit|perch) on (?:the )?(?:search|address) (?:bar|box|field))$/iu],
+  ['present', /^(?:(?:present|point to) (?:the )?(?:search|address) (?:bar|box|field))$/iu],
 ];
 
 /** The avatar's own movement and gesture commands run before desktop tools or inference. */
@@ -78,16 +55,13 @@ export function desktopAvatarCommand(text) {
     .replace(/\s+/gu, ' ')
     .trim()
     .replace(/[.!?…]+$/u, '')
-    .replace(/^(?:(?:hey|hi|эй|привет)[\s,]+)?(?:capri|капри)[\s,:!]+/iu, '')
-    .replace(/,\s*(?:capri|капри)$/iu, '')
-    .replace(/^(?:please|пожалуйста)[,\s]+/iu, '')
-    .replace(/(?:,?\s+please|,?\s+пожалуйста)$/iu, '')
+    .replace(/^(?:(?:hey|hi)[\s,]+)?(?:capri)[\s,:!]+/iu, '')
+    .replace(/,\s*(?:capri)$/iu, '')
+    .replace(/^(?:please)[,\s]+/iu, '')
+    .replace(/(?:,?\s+please)$/iu, '')
     .trim();
   if (
     /^(?:(?:can|could|would) you )?(?:wave(?: at me| hello| to me)?|give me a wave)$/iu.test(
-      command,
-    ) ||
-    /^(?:помаши|махни|(?:можешь|могла бы) помахать)(?: мне(?: рукой)?| рукой(?: мне)?)?$/iu.test(
       command,
     ) ||
     /^(?:fais-moi (?:signe|coucou)(?: de la main)?|fais coucou|saluda con la mano|acena(?: para mim)?|winke?(?: mir)?(?: zu)?)$/iu.test(
@@ -96,7 +70,7 @@ export function desktopAvatarCommand(text) {
   )
     return { action: 'wave' };
   const act = command.replace(
-    /^(?:(?:can|could|would|will) you[, ]+(?:please[, ]+)?|how about |(?:(?:ты )?можешь(?: ли ты)?|(?:не )?могла бы ты|давай)[, ]+(?:пожалуйста[, ]+)?)\s*/iu,
+    /^(?:(?:can|could|would|will) you[, ]+(?:please[, ]+)?|how about )\s*/iu,
     '',
   );
   const performance = performanceCommands.find(([, pattern]) => pattern.test(act));
@@ -104,24 +78,15 @@ export function desktopAvatarCommand(text) {
   if (
     /^(?:return|go back|come back|teleport back) (?:(?:to|into) (?:your|the) (?:frame|window)|home)$/iu.test(
       command,
-    ) ||
-    /^(?:вернись|возвращайся|телепортируйся обратно)(?: (?:обратно )?(?:в (?:сво[еёю] )?(?:окно|окошко|рамку)|к себе|домой|на место))?$/iu.test(
-      command,
     )
   )
     return { action: 'return' };
   const perch = command.match(
-    /^(?:(?:sit|perch) on (?:top of )?(?:the )?(?:(?:active|current) )?window|(?:сядь|присядь|посиди) на (?:(?:край|верх) )?(?:(?:активное|активном|текущее|текущем) )?окн[ое])(?:\s+(.*))?$/iu,
+    /^(?:(?:sit|perch) on (?:top of )?(?:the )?(?:(?:active|current) )?window)(?:\s+(.*))?$/iu,
   );
   if (perch) {
     const title = (perch[1] ?? '').replace(/^[«"']|[»"']$/gu, '').slice(0, 160);
-    const aliases = [
-      [/^(?:гугл )?хрома?$/iu, 'chrome'],
-      [/^блокнота?$/iu, 'notepad'],
-      [/^дискорда?$/iu, 'discord'],
-      [/^проводника?$/iu, 'explorer'],
-    ];
-    return { action: 'perch', title: aliases.find(([name]) => name.test(title))?.[1] ?? title };
+    return { action: 'perch', title };
   }
   const named = command.match(/^(?:sit|perch) on (?:top of )?(?:the )?(.+?) window$/iu);
   if (named) return { action: 'perch', title: named[1].slice(0, 160) };

@@ -895,10 +895,10 @@ export const coreGuides = {
       '#voice-model-details',
       [
         'Check voice hardware requirements',
-        'Check CPU and GPU requirements for the selected voice. When available, install NVIDIA or AMD acceleration or select the suggested CPU-compatible voice.',
+        'Check CPU and GPU requirements for the selected voice. When available, install AMD acceleration or select the suggested CPU-compatible voice.',
       ],
       {
-        help: '#voice-model-cuda, #voice-model-rocm, #voice-model-cpu-alternative',
+        help: '#voice-model-rocm, #voice-model-cpu-alternative',
       },
     ],
     [

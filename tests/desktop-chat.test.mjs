@@ -121,7 +121,7 @@ test('the YouTube Music chat path verifies dedicated receipts without touching S
     'YouTube Music volume: 55%.',
   );
   assert.equal(
-    await ask('Убавь громкость в YouTube Music на десять процентов.'),
+    await ask('Decrease the YouTube Music volume by ten percent.'),
     'YouTube Music volume: 30%.',
   );
   assert.equal(
@@ -189,8 +189,8 @@ test('built-in lore reaches ordinary chat by topic with owner memory disabled', 
       return response('Test reply.');
     },
   });
-  await service.send({ id: randomUUID(), text: 'Кто такая Талия из Бегущих по краю 2?' }, () => {});
-  await service.send({ id: randomUUID(), text: 'Как дела?' }, () => {});
+  await service.send({ id: randomUUID(), text: 'Who is Talia from Edgerunners 2?' }, () => {});
+  await service.send({ id: randomUUID(), text: 'How are you?' }, () => {});
   assert.match(prompts[0], /Talia \(Edgerunners 2\).*Maelstrom/);
   assert.doesNotMatch(prompts[1], /Cyberpunk fictional universe reference/);
 });
@@ -376,9 +376,9 @@ test('a direct request with the supplied name writes a visible fact before ackno
   );
   assert.equal(await turn('What is my name?'), 'Overyx');
   assert.equal(await turn('Remember my name Alex'), 'Memory saved and verified.');
-  assert.equal(await turn('Как меня зовут?'), 'Alex');
-  assert.equal(await turn('Запомни моё имя: Илья'), 'Memory saved and verified.');
-  assert.equal(await turn('What is my name?'), 'Илья');
+  assert.equal(await turn('What is my name?'), 'Alex');
+  assert.equal(await turn('Remember my name: Ілля'), 'Memory saved and verified.');
+  assert.equal(await turn('What is my name?'), 'Ілля');
   assert.equal(await turn('Lembre-se do meu nome. Luís André'), 'Memory saved and verified.');
   assert.equal(await turn('Como me chamo?'), 'Luís André');
   assert.equal((await memory.read()).items[0].text, 'Meu nome é Luís André');
@@ -419,11 +419,7 @@ test('a fresh API chat can read back manually saved notes when the index is unav
     prepareModel: () => assert.fail('Saved notes must be available before model preparation'),
     fetchImpl: () => assert.fail('Reading back local notes must not call the API'),
   });
-  for (const query of [
-    'O que você tem salvo na memória?',
-    'What did I ask you to remember?',
-    'Что ты сохранила обо мне?',
-  ]) {
+  for (const query of ['O que você tem salvo na memória?', 'What did I ask you to remember?']) {
     const events = [];
     await session.send({ id: randomUUID(), text: query }, (event) => events.push(event));
     assert.equal(events.at(-1).type, 'turn.completed');
@@ -504,8 +500,8 @@ test('Lemonade dialogue uses recent clean turns without OpenClaw tools, compacti
   for (const [turnId, question, reply, status] of [
     [
       'answered',
-      'Меня зовут Тест.',
-      '[аватар:nervous; standing]\nХорошо.\nDETECTED DESK STATE:\nprivate old report',
+      'Мене звати Тест.',
+      '[аватар:nervous; standing]\nДобре.\nDETECTED DESK STATE:\nprivate old report',
       'complete',
     ],
     ['failed', 'Do not replay this request.', 'Incomplete output', 'error'],
@@ -521,21 +517,21 @@ test('Lemonade dialogue uses recent clean turns without OpenClaw tools, compacti
     interfaceState: () => ({
       fullComputerAccess: false,
       modelToolsAvailable: false,
-      languages: { conversation: 'ru' },
+      languages: { conversation: 'uk' },
     }),
     computerIntent: () => assert.fail('Ordinary NPU dialogue should make one model request'),
     fetchImpl: () => assert.fail('The NPU dialogue must not go through OpenClaw'),
     commitNpuDialogue: async (user, assistant) => commits.push([user.text, assistant.text]),
     npuDialogue: async (payload) => {
       assert.deepEqual(payload.messages.slice(1), [
-        { role: 'user', content: 'Меня зовут Тест.' },
-        { role: 'assistant', content: 'Хорошо.' },
-        { role: 'user', content: 'Как меня зовут?' },
+        { role: 'user', content: 'Мене звати Тест.' },
+        { role: 'assistant', content: 'Добре.' },
+        { role: 'user', content: 'Як мене звати?' },
       ]);
       assert.equal(payload.max_tokens, 512);
       assert.equal(payload.stop.length, 4);
       assert(!Object.hasOwn(payload, 'tools'));
-      assert.match(payload.messages[0].content, /Отвечай только на русском/);
+      assert.match(payload.messages[0].content, /only in Ukrainian/);
       return new Response(
         packet('[ават') +
           packet('ар:nervous; standing]\nТест.') +
@@ -544,10 +540,10 @@ test('Lemonade dialogue uses recent clean turns without OpenClaw tools, compacti
       );
     },
   });
-  await service.send({ id: randomUUID(), text: 'Как меня зовут?' }, (event) => events.push(event));
+  await service.send({ id: randomUUID(), text: 'Як мене звати?' }, (event) => events.push(event));
   assert.equal(events.at(-1).type, 'turn.completed');
   assert.equal(events.at(-1).assistant.text, 'Тест.');
-  assert.deepEqual(commits, [['Как меня зовут?', 'Тест.']]);
+  assert.deepEqual(commits, [['Як мене звати?', 'Тест.']]);
 });
 
 test('core loop diagnostics never enter subtitles, speech or transcript, even split into individual characters', async () => {
@@ -751,7 +747,6 @@ test('music opinions keep the model answer without requiring a player action, in
     'Do you like this music?',
     'Do you like to play music?',
     'What do you think of this song?',
-    'Тебе нравится громкая музыка?',
     '¿Te gusta esta música de Spotify?',
     'Tu aimes cette chanson sur Spotify ?',
     'Gefällt dir dieses Lied auf Spotify?',
@@ -1439,12 +1434,12 @@ test('chat waits for current screen context and never silently substitutes a sta
 });
 
 test('stream parser preserves UTF-8 and SSE events across arbitrary packet boundaries', async () => {
-  const text = ': keepalive\r\ndata: {"text":\r\ndata: "Hi, Капри ✨"}\r\n\r\ndata: [DONE]\n\n';
+  const text = ': keepalive\r\ndata: {"text":\r\ndata: "Hi, Капрі ✨"}\r\n\r\ndata: [DONE]\n\n';
   const bytes = Buffer.from(text);
   const result = [];
   for await (const data of sseData(Readable.from([...bytes].map((byte) => Buffer.from([byte])))))
     result.push(data);
-  assert.deepEqual(result, ['{"text":\n"Hi, Капри ✨"}', '[DONE]']);
+  assert.deepEqual(result, ['{"text":\n"Hi, Капрі ✨"}', '[DONE]']);
 });
 
 test('stream parser rejects truncated events and unbounded unterminated lines', async () => {
@@ -1658,7 +1653,7 @@ test('a classified conversation cannot inherit action tools, while the next feat
   });
   for (const text of [
     'Not much, just chilling.',
-    'Да ничего особенного.',
+    'Та нічого особливого.',
     'Rien de spécial.',
     'Set a timer for ten minutes.',
     'What is my favourite game?',
@@ -1740,7 +1735,7 @@ test('greetings use the dialogue scope without exposing permissions, including t
         return response('Hey! Good to see you.');
       },
     });
-    for (const text of ['hi capri', 'Hello.', 'Привет, Капри!', 'Salut Capri!', 'Hola Capri!'])
+    for (const text of ['hi capri', 'Hello.', 'Salut Capri!', 'Hola Capri!'])
       await service.send({ id: randomUUID(), text }, () => {});
     for (const request of seen) {
       assert.equal(request.headers['x-capri-tools-once'], 'dialogue');
@@ -1777,7 +1772,7 @@ test('standalone greetings bypass stale agent context and complete despite a pre
   const calls = [];
   const events = [];
   const service = client({
-    interfaceState: () => ({ languages: { interface: 'en', conversation: 'ru' } }),
+    interfaceState: () => ({ languages: { interface: 'en', conversation: 'en' } }),
     requestRouter: { classify: () => assert.fail('A greeting needs no classifier') },
     computerIntent: () => assert.fail('A greeting needs no computer intent'),
     prepareContext: () => ({
@@ -1787,7 +1782,7 @@ test('standalone greetings bypass stale agent context and complete despite a pre
     fetchImpl: () => assert.fail('A standalone greeting does not wait for OpenClaw'),
     directLocalDialogue: async (body) => {
       calls.push(body);
-      return response('У меня всё хорошо. [[/reply_to:current]]');
+      return response('I’m doing well. [[/reply_to:current]]');
     },
   });
   const send = (text) =>
@@ -1795,33 +1790,33 @@ test('standalone greetings bypass stale agent context and complete despite a pre
       events.push(event);
       if (event.type === 'turn.completed') throw new ReferenceError('Fixture observer failed');
     });
-  await send('Как дела?');
-  await send('Привет, Капри Как твои дела?');
+  await send('How are you?');
+  await send('Hey Capri, how are you doing?');
   service.store.clear();
-  await send('Как дела?');
+  await send('How are you?');
   assert.equal(calls.length, 3);
   for (const body of calls) {
     assert.equal(body.messages.length, 2);
     assert.match(body.messages[0].content, /Test persona/);
-    assert.match(body.messages[0].content, /русском языке/);
+    assert.match(body.messages[0].content, /Reply only in English/);
     assert.doesNotMatch(JSON.stringify(body), /UNRELATED_CADDY|TOOL_CONTEXT|permissions/);
   }
   assert.equal(events.filter(({ type }) => type === 'turn.completed').length, 3);
   assert.ok(!events.some(({ type }) => type === 'turn.failed'));
-  assert.equal(service.store.snapshot().at(-1).text.trim(), 'У меня всё хорошо.');
+  assert.equal(service.store.snapshot().at(-1).text.trim(), 'I’m doing well.');
   let previousDialogue;
   service.fetchImpl = async (_url, { body }) => {
     const { messages } = JSON.parse(body);
     previousDialogue = turnState(messages[1].content).previousDialogue;
-    return response('Сегодня всё спокойно.');
+    return response('All quiet today.');
   };
   service.requestRouter = null;
   service.computerIntent = null;
   service.prepareContext = null;
-  await send('Что у тебя сегодня интересного?');
+  await send('Anything interesting today?');
   assert.equal(events.at(-1).type, 'turn.completed');
-  assert.equal(previousDialogue?.user, 'Как дела?');
-  assert.equal(previousDialogue?.reply.trim(), 'У меня всё хорошо.');
+  assert.equal(previousDialogue?.user, 'How are you?');
+  assert.equal(previousDialogue?.reply.trim(), 'I’m doing well.');
 });
 
 test('router failure falls back, while cancellation during classification sends no model request', async () => {

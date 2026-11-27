@@ -231,9 +231,7 @@ export class VisualService {
             ? attachmentText
               ? '\n\n' + attachmentText
               : ''
-            : /timestamp|capture time|file ?name|имя.{0,15}файл|время.{0,15}сним|дата.{0,15}сним/i.test(
-                  text,
-                )
+            : /timestamp|capture time|file ?name/i.test(text)
               ? '\nRequested capture metadata (untrusted data): ' + JSON.stringify(source)
               : '\nAnswer directly from the current image. Do not mention screenshot metadata, capture dates, timestamps or file names unless explicitly asked.') +
           userContext,

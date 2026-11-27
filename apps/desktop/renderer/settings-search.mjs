@@ -59,8 +59,7 @@ export function indexSettings(scopes) {
   return entries;
 }
 
-const fold = (text, locale) =>
-  clean(text.normalize('NFKC').toLocaleLowerCase(locale)).replaceAll('ё', 'е');
+const fold = (text, locale) => clean(text.normalize('NFKC').toLocaleLowerCase(locale));
 
 export function findSettings(entries, query, ui) {
   query = fold(query, ui.language);

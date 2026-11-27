@@ -51,13 +51,13 @@ function fixture(t) {
   return { root, file, worker, child, children, environments, argumentsBySpawn };
 }
 
-test('Russian speech recognition does not report truncated Parakeet files as installed', (t) => {
+test('Multilingual speech recognition does not report truncated Parakeet files as installed', (t) => {
   const { root, file } = fixture(t);
   const vad = detector.files.model;
   file(path.join(settings.vad.modelDir, vad.file), Buffer.alloc(vad.bytes));
   for (const { file: name } of candidates.asr.files)
     file(path.join(candidates.asr.directory, name), 'incomplete');
-  assert.equal(recognitionModelsInstalled(root, 'ru', settings), false);
+  assert.equal(recognitionModelsInstalled(root, 'uk', settings), false);
 });
 
 test('slow native dependencies can finish after the Python startup deadline', async (t) => {

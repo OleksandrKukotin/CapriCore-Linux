@@ -16,10 +16,10 @@ import { root } from '../packages/runtime/src/index.mjs';
 
 test('emoji sequences are removed without deleting ordinary numbers or punctuation', () => {
   const text =
-    'Hello 👋🏽✨! Family 👩‍👩‍👧‍👦, flag 🇬🇧, key 1️⃣. English and русский; 4070, 12 GB, #42 — "okay"...';
+    'Hello 👋🏽✨! Family 👩‍👩‍👧‍👦, flag 🇬🇧, key 1️⃣. English and українська; 4070, 12 GB, #42 — "okay"...';
   assert.equal(
     withoutEmoji(text),
-    'Hello ! Family , flag , key . English and русский; 4070, 12 GB, #42 — "okay"...',
+    'Hello ! Family , flag , key . English and українська; 4070, 12 GB, #42 — "okay"...',
   );
   for (let size = 1; size < 20; size++) {
     const filter = new EmojiFreeStream();

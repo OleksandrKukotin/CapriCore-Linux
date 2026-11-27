@@ -9,7 +9,6 @@ import {
   readSteamLibraries,
   readSteamManifest,
   resolveSteamLibraryGame,
-  romanizeSteamTitle,
 } from './steam-library.mjs';
 
 const normalized = (text) =>
@@ -39,9 +38,8 @@ const decodeTitle = (text) =>
   });
 
 export async function findSteamStoreGame(title, signal, fetchImpl = fetch) {
-  const terms = new Set([normalized(title), romanizeSteamTitle(normalized(title))]);
   const games = await Promise.all(
-    [...terms].map(async (term) => {
+    [normalized(title)].map(async (term) => {
       const url = new URL('https://store.steampowered.com/search/suggest');
       url.search = new URLSearchParams({ term, f: 'games', l: 'english', cc: 'US' });
       try {
@@ -72,8 +70,7 @@ export async function findSteamStoreGame(title, signal, fetchImpl = fetch) {
   return matchSteamTitle(title, games.flat());
 }
 
-const installLabel =
-  /^(?:install|download|установить|установка|скачать|installer|instalar|installieren)$/iu;
+const installLabel = /^(?:install|download|installer|instalar|installieren)$/iu;
 const role = (target, suffix) => target.role?.endsWith('.' + suffix);
 const unique = ([first, ...others]) => (others.length ? null : (first ?? null));
 
@@ -84,11 +81,9 @@ function steamDownloadAction(view, game, drive) {
   const windowTitle = normalized(view.window.untrustedTitle);
   const dialog =
     view.window.modal ||
-    /^(?:install|installation|установка|установить|installer|instalar)(?:\s|:|$)/iu.test(
-      windowTitle,
-    );
+    /^(?:install|installation|installer|instalar)(?:\s|:|$)/iu.test(windowTitle);
   const confirmedTitle =
-    equalName(windowTitle.replace(/^(?:install|установка|установить)\s*[:—–-]?\s*/iu, '')) ||
+    equalName(windowTitle.replace(/^(?:install)\s*[:—–-]?\s*/iu, '')) ||
     targets.some((target) => equalName(target.untrustedLabel));
   const action = unique(
     targets.filter(
@@ -268,59 +263,24 @@ export function createSteamGameTask({
   };
 }
 
-export function steamTaskReply({ status, name, drive }, language) {
+export function steamTaskReply({ status, name, drive }) {
   const disk = drive ? ` ${drive}:` : '';
   const messages = {
-    steam_started: [`Запустила ${name} через Steam.`, `${name} is running.`],
-    steam_already_running: [`${name} уже запущена.`, `${name} is already running.`],
-    steam_launch_unconfirmed: [
-      `Отправила команду запуска ${name}, но окно игры не появилось. Проверь, ждёт ли Steam первого запуска или обновления.`,
-      `I sent the launch command for ${name}, but its game window hasn’t appeared. Check Steam for a first-run prompt or update.`,
-    ],
-    steam_client_missing: [
-      'Не удалось найти установленный Steam.',
-      'I couldn’t find Steam on this PC.',
-    ],
-    steam_client_unavailable: [
-      'Steam не принял команду. Проверь, открывается ли клиент.',
-      'Steam didn’t accept the command. Check that the client opens.',
-    ],
-    steam_game_not_found: [
-      'Не удалось однозначно найти игру. Скажи точное название из библиотеки Steam.',
+    steam_started: `${name} is running.`,
+    steam_already_running: `${name} is already running.`,
+    steam_launch_unconfirmed: `I sent the launch command for ${name}, but its game window hasn’t appeared. Check Steam for a first-run prompt or update.`,
+    steam_client_missing: 'I couldn’t find Steam on this PC.',
+    steam_client_unavailable: 'Steam didn’t accept the command. Check that the client opens.',
+    steam_game_not_found:
       'I couldn’t identify the game. Give me the exact title from your Steam library.',
-    ],
-    steam_not_installed: [
-      `Steam ещё не установил ${name}.`,
-      `${name} isn’t installed in Steam yet.`,
-    ],
-    steam_library_missing: [
-      `На диске${disk} нет библиотеки Steam. Добавь её через «Настройки → Хранилище».`,
-      `Steam has no library on drive${disk}. Add one in Settings → Storage.`,
-    ],
-    steam_install_unavailable: [
-      `Не нашла кнопку установки ${name} в библиотеке. Проверь, доступна ли игра в твоём аккаунте Steam.`,
-      `I couldn’t find Install for ${name} in the library. Check that it’s available on your Steam account.`,
-    ],
-    steam_install_needs_confirmation: [
-      `Проверь окно установки ${name}${drive ? `, выбери диск${disk}` : ''} и нажми «Установить».`,
-      `Check the install dialog for ${name}${drive ? `, select drive${disk}` : ''}, then click Install.`,
-    ],
-    steam_download_other_drive: [
-      `Steam уже начал установку ${name} на другом диске. Проверь загрузки Steam.`,
-      `Steam already has ${name} queued on another drive. Check Steam Downloads.`,
-    ],
-    steam_download_unconfirmed: [
-      `Steam пока не подтвердил загрузку ${name}. Проверь очередь загрузок.`,
-      `Steam hasn’t confirmed the download for ${name}. Check Steam Downloads.`,
-    ],
-    steam_download_started: [
-      `Steam начал загрузку ${name}${drive ? ` на диск${disk}` : ''}.`,
-      `Steam is downloading ${name}${drive ? ` to drive${disk}` : ''}.`,
-    ],
-    steam_installed: [
-      `Steam установил ${name}${drive ? ` на диск${disk}` : ''}.`,
-      `Steam installed ${name}${drive ? ` on drive${disk}` : ''}.`,
-    ],
+    steam_not_installed: `${name} isn’t installed in Steam yet.`,
+    steam_library_missing: `Steam has no library on drive${disk}. Add one in Settings → Storage.`,
+    steam_install_unavailable: `I couldn’t find Install for ${name} in the library. Check that it’s available on your Steam account.`,
+    steam_install_needs_confirmation: `Check the install dialog for ${name}${drive ? `, select drive${disk}` : ''}, then click Install.`,
+    steam_download_other_drive: `Steam already has ${name} queued on another drive. Check Steam Downloads.`,
+    steam_download_unconfirmed: `Steam hasn’t confirmed the download for ${name}. Check Steam Downloads.`,
+    steam_download_started: `Steam is downloading ${name}${drive ? ` to drive${disk}` : ''}.`,
+    steam_installed: `Steam installed ${name}${drive ? ` on drive${disk}` : ''}.`,
   };
-  return messages[status][language === 'ru' ? 0 : 1];
+  return messages[status];
 }

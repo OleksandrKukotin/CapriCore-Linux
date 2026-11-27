@@ -13,11 +13,10 @@ const reference = [...lore.world, ...lore.characters].map((entry) => ({
   keys: entry.aliases.map(normalize),
 }));
 const self = lore.characters.find(({ name }) => name === 'Capri (Capricorn)');
-const selfName = /^(?:capri|капри|カプリ|卡普里)$/u;
+const selfName = /^(?:capri|カプリ|卡普里)$/u;
 const selfTopic =
-  /(?:\b(?:who are you|your origins?|your (?:backstory|past)|who is capri|qui es tu|quién eres|chi sei|quem é você|wer bist du)\b|кто ты(?: такая)?|откуда ты|тво[ёе] прошлое|тво[яю] истори[яю]|кто такая капри|истори[яию] капри|происхождение капри|あなたは誰|你是谁)/u;
-const vTopic =
-  /(?:\b(?:cyberpunk|phantom liberty|night city)\b|киберпанк|фантом либерти|призрачная свобода|найт сити)/u;
+  /(?:\b(?:who are you|your origins?|your (?:backstory|past)|who is capri|qui es tu|quién eres|chi sei|quem é você|wer bist du)\b|あなたは誰|你是谁)/u;
+const vTopic = /\b(?:cyberpunk|phantom liberty|night city)\b/u;
 
 /** Release data stays available across conversations and owner memory resets. */
 export function cyberpunkLoreContext(query) {
@@ -26,7 +25,7 @@ export function cyberpunkLoreContext(query) {
   if (!input) return '';
   const padded = ' ' + input + ' ';
   const aboutCapri = selfTopic.test(input);
-  const aboutV = vTopic.test(input) && (padded.includes(' v ') || padded.includes(' ви '));
+  const aboutV = vTopic.test(input) && padded.includes(' v ');
   const ranked = reference
     .map((entry) => {
       const matched = entry.keys.filter((key) => {

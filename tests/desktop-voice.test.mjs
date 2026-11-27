@@ -164,11 +164,11 @@ test('speaker volume ramps up to twice the level or down to silence independentl
 });
 
 test('English-only TTS reports unsupported text before synthesis without failing the text reply', async () => {
-  assert.equal(speechLanguageMismatch('Привет, как дела?', 'en'), true);
-  assert.equal(speechLanguageMismatch('Привет, как дела?', 'ru'), false);
+  assert.equal(speechLanguageMismatch('Привіт, як справи?', 'en'), true);
+  assert.equal(speechLanguageMismatch('Привіт, як справи?', 'uk'), false);
   assert.equal(speechLanguageMismatch('Hey choom. Café at midnight?', 'en'), false);
   const { voice, events, requests } = service();
-  turn(voice, 'mismatch', 'Привет, как дела?');
+  turn(voice, 'mismatch', 'Привіт, як справи?');
   await until(() => events.some((event) => event.type === 'voice.generated'));
   assert.equal(requests.length, 0);
   const warning = events.find((event) => event.type === 'voice.warning');
@@ -184,7 +184,7 @@ test('English-only TTS reports unsupported text before synthesis without failing
 
 test('mixed replies keep the English sentences in order and show a single warning per turn', async () => {
   const { voice, events, requests } = service();
-  turn(voice, 'mixed', 'I am doing fine. Привет, как дела? До встречи. Happy to see you.');
+  turn(voice, 'mixed', 'I am doing fine. Привіт, як справи? До зустрічі. Happy to see you.');
   await until(() => events.some((event) => event.type === 'voice.generated'));
   assert.deepEqual(
     requests.map(({ text }) => text),
@@ -242,7 +242,7 @@ test('missing multilingual weights retain a specific repair message and diagnost
     url: 'http://127.0.0.1:8101',
     headers: () => ({}),
     emit: (event) => events.push(event),
-    language: 'ru',
+    language: 'de',
     fetchImpl: async () =>
       new Response(JSON.stringify({ error: 'model_missing', component: 'tts' }), { status: 503 }),
   });

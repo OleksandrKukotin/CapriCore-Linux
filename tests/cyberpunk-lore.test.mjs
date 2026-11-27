@@ -10,10 +10,7 @@ import {
 } from '../apps/desktop/character-portraits.mjs';
 
 test('fictional lore is retrieved on demand, in any chat, without owner memory', () => {
-  assert.equal(cyberpunkLoreContext('Привет, Капри!'), '');
   assert.equal(cyberpunkLoreContext('Summarize the calendar for 2020.'), '');
-  assert.match(cyberpunkLoreContext('Капри, кто ты?'), /Capricorn.*Soulkiller/);
-  assert.match(cyberpunkLoreContext('Расскажи про Талию из Бегущих по краю 2'), /Talia.*Maelstrom/);
   assert.match(cyberpunkLoreContext('What happened in Cyberpunk RED?'), /2045/);
   assert.match(
     cyberpunkLoreContext('Who is V in Cyberpunk 2077?'),

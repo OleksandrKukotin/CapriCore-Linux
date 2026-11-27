@@ -13,7 +13,6 @@ const PROVIDER_URLS = new Map([
   ['claude', 'https://api.anthropic.com/v1'],
   ['openrouter', 'https://openrouter.ai/api/v1'],
   ['huggingface', 'https://router.huggingface.co/v1'],
-  ['proxyapi', 'https://api.proxyapi.ru/v1'],
   ['deepseek', 'https://api.deepseek.com'],
   ['gemini', 'https://generativelanguage.googleapis.com/v1beta/openai'],
   ['lemonade', 'http://127.0.0.1:13305/api/v1'],
@@ -23,7 +22,6 @@ function providerDisplayName(hostname) {
   if (hostname === 'api.anthropic.com') return 'Claude';
   if (hostname === new URL(PROVIDER_URLS.get('openrouter')).hostname) return 'OpenRouter';
   if (hostname === new URL(PROVIDER_URLS.get('huggingface')).hostname) return 'Hugging Face';
-  if (hostname === new URL(PROVIDER_URLS.get('proxyapi')).hostname) return 'ProxyAPI';
   if (hostname === new URL(PROVIDER_URLS.get('deepseek')).hostname) return 'DeepSeek';
   if (hostname === new URL(PROVIDER_URLS.get('gemini')).hostname) return 'Google Gemini';
   return hostname;
@@ -76,7 +74,6 @@ export class InferencePanel {
         <option value="claude" data-untranslated>Claude API</option>
         <option value="openrouter" data-untranslated>OpenRouter</option>
         <option value="huggingface" data-untranslated>Hugging Face</option>
-        <option value="proxyapi" data-untranslated>ProxyAPI</option>
         <option value="deepseek" data-untranslated>DeepSeek</option>
         <option value="gemini" data-untranslated>Google Gemini</option>
         <option value="lemonade">Lemonade (local)</option>
@@ -563,7 +560,7 @@ export class InferencePanel {
         ? 'Phi-4-mini-instruct-NPU'
         : preset === 'huggingface'
           ? 'organization/model-name'
-          : ['openrouter', 'proxyapi'].includes(preset)
+          : preset === 'openrouter'
             ? 'provider/model-name'
             : 'model-id',
     );

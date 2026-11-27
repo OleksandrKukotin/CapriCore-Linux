@@ -108,7 +108,7 @@ function fixture(options = {}) {
     persona: () => 'Synthetic local persona.',
     store,
     interfaceState: () => ({
-      languages: { conversation: 'ru' },
+      languages: { conversation: 'uk' },
       screenObservation: { summary: 'PRIVATE_SCREEN_OBSERVATION' },
       knowledgeContext: 'PRIVATE_MEMORY_CONTEXT',
       userToolContext: 'PRIVATE_FILE_CONTEXT',
@@ -154,7 +154,7 @@ test('registered turn skills preserve opt-in, source isolation, and correlated e
   const requests = [];
   core.register(webSearchSkill, {
     searchWeb: async (query, { language, signal }) => {
-      assert.equal(language, 'ru');
+      assert.equal(language, 'uk');
       assert.equal(signal.aborted, false);
       requests.push(['web', query]);
       return searchResult();
@@ -162,7 +162,7 @@ test('registered turn skills preserve opt-in, source isolation, and correlated e
   });
   core.register(reasoningSkill, {
     prepareThinking: async ({ text, language, signal }) => {
-      assert.equal(language, 'Russian');
+      assert.equal(language, 'Ukrainian');
       assert.equal(signal.aborted, false);
       requests.push(['reasoning', text]);
       return { text: 'I’ll check the evidence.', approach: 'Compare public sources.' };
@@ -220,14 +220,14 @@ test('registered turn skills preserve opt-in, source isolation, and correlated e
   const signal = new AbortController().signal;
   const web = await f.chat.prepareWebSearch(
     { id: visualId, text: visualText },
-    { language: 'ru', source: 'visual-turn', signal, emit: (event) => visualProgress.push(event) },
+    { language: 'uk', source: 'visual-turn', signal, emit: (event) => visualProgress.push(event) },
   );
   const visual = new VisualService({
     url: 'http://127.0.0.1:11434',
     model: 'fixture',
     persona: () => 'Synthetic fixture.',
     avatars: [],
-    languages: () => ({ conversation: 'ru' }),
+    languages: () => ({ conversation: 'uk' }),
     rpc: { call: async () => ({ messages: [] }) },
     skills: core,
     fetchImpl: async (_url, request) => {
@@ -273,7 +273,7 @@ test('enabled search receives only the current query, language and cancellation 
     searchWeb: async (query, options) => {
       assert.equal(query, question);
       assert.deepEqual(Object.keys(options).toSorted(), ['language', 'signal']);
-      assert.equal(options.language, 'ru');
+      assert.equal(options.language, 'uk');
       assert(options.signal instanceof AbortSignal);
       assert.equal(options.signal.aborted, false);
       assert(!JSON.stringify([query, options]).includes('PRIVATE_'));
@@ -348,7 +348,7 @@ test('ordinary Internet questions never invoke a desktop intent model, even with
       });
       for (const question of [
         'What date did the Austrian painter enter art school?',
-        'Какого числа австрийский художник поступил в художественную школу?',
+        'Якого числа австрійський художник вступив до художньої школи?',
         'Quelle est la date de création de cette école ?',
         'Wann wurde diese Kunstschule gegründet?',
         '¿En qué fecha se fundó esta escuela?',
@@ -556,7 +556,7 @@ test('Lemonade and visual inference receive the same untrusted current evidence 
   const signal = new AbortController().signal;
   const result = await prepareInternetSearch({
     query: 'Compare the fixture.',
-    language: 'ru',
+    language: 'uk',
     signal,
     search: async () => searchResult(),
   });
@@ -578,7 +578,7 @@ test('Lemonade and visual inference receive the same untrusted current evidence 
     input: { id: 'direct', text: 'Compare the fixture.', thinking: false },
     history: [],
     persona: 'Fixture.',
-    languages: { conversation: 'ru' },
+    languages: { conversation: 'uk' },
     observation: '',
     webContext: result.context,
   });

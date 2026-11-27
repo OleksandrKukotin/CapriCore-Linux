@@ -28,8 +28,7 @@ const foldSearch = (text, locale) =>
     .toLocaleLowerCase(locale)
     .normalize('NFD')
     .replace(/(\p{Script=Latin})\p{M}+/gu, '$1')
-    .normalize('NFC')
-    .replaceAll('ё', 'е');
+    .normalize('NFC');
 
 function setBox(element, left, top, width, height) {
   for (const [name, value] of Object.entries({ left, top, width, height })) {

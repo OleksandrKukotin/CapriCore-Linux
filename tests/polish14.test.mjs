@@ -344,8 +344,8 @@ test('wake voice preparation uses the selected speech language, caches PCM and n
     emit: (e) => events.push(e),
     assertIdle() {},
     prepareVoice: async () => {},
-    wakeLanguage: () => 'ru',
-    translateWake: (phrase) => (phrase === 'Mhm?' ? 'М-м?' : 'Слушаю.'),
+    wakeLanguage: () => 'uk',
+    translateWake: (phrase) => (phrase === 'Mhm?' ? 'М-м?' : 'Слухаю.'),
     voiceUrl: 'http://127.0.0.1:' + server.address().port,
     voiceHeaders: () => ({}),
   });
@@ -353,10 +353,10 @@ test('wake voice preparation uses the selected speech language, caches PCM and n
   await handlers.get('capri:wake-prepare')();
   await handlers.get('capri:wake-prepare')();
   assert.equal(requests, 1);
-  assert.equal(body.language, 'ru');
-  assert.equal(body.text, 'Слушаю.');
+  assert.equal(body.language, 'uk');
+  assert.equal(body.text, 'Слухаю.');
   assert.equal(handlers.get('capri:wake-audio')().pcm, true);
-  assert.equal(handlers.get('capri:wake-audio')().text, 'Слушаю.');
+  assert.equal(handlers.get('capri:wake-audio')().text, 'Слухаю.');
   assert(events.some((e) => e.type === 'wake.audio-ready'));
 
   const preview = handlers.get('capri:wake-preview');
@@ -368,7 +368,7 @@ test('wake voice preparation uses the selected speech language, caches PCM and n
   assert.deepEqual(await preview(draft), sample);
   assert.equal(requests, 2);
   assert.equal(value.wakePhrase, 'Listening.');
-  assert.equal(handlers.get('capri:wake-audio')().text, 'Слушаю.');
+  assert.equal(handlers.get('capri:wake-audio')().text, 'Слухаю.');
 });
 
 test('fresh microphone pause is one second and settings initially match companion height', () => {

@@ -2,7 +2,7 @@
 
 ## Optional fast automatic recognition, 31 October 2026
 
-Languages now offers **Fast auto / English, Russian and European languages** separately from all-language Whisper automatic detection. It uses the existing pinned CPU Parakeet v3 ONNX model, with no draft or second-pass correction. English-only Parakeet v2 remains available and defaults are unchanged. The installer for this option downloads only its missing ASR dependencies and Parakeet assets, not Whisper. [NVIDIA's model card](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) lists the supported 25 languages; this does not mean arbitrary-language recognition.
+Languages now offers **Fast auto / English and European languages** separately from all-language Whisper automatic detection. It uses the existing pinned CPU Parakeet v3 ONNX model, with no draft or second-pass correction. English-only Parakeet v2 remains available and defaults are unchanged. The installer for this option downloads only its missing ASR dependencies and Parakeet assets, not Whisper. [NVIDIA's model card](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) lists the supported 25 languages; this does not mean arbitrary-language recognition.
 
 Four-thread CPU checks of public and synthetic recordings gave 327 ms for 6.625 seconds of English and 295 ms for 6.36 seconds of Russian with Parakeet v3. Whisper automatic detection took 6,408 ms and 5,861 ms respectively. English v2 took 350 ms. These small warm-decoding measurements exclude endpoint pause, startup and microphone conditions.
 

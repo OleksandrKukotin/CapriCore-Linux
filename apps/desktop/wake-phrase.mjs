@@ -1,5 +1,5 @@
 /** Attention gate over accurate Parakeet results; no inference or recordings here. */
-const greetings = new Set(['hey', 'hay', 'hi', 'эй', 'хей', 'хэй', 'эи', 'хеи', 'хэи']);
+const greetings = new Set(['hey', 'hay', 'hi', 'гей', 'хей']);
 const weakGreetings = new Set(['a', 'ay', 'eh', 'he', 'okay', 'ok']);
 const tokens = (text) =>
   [...text.matchAll(/[\p{L}\p{N}]+/gu)].slice(0, 256).map((match) => ({
@@ -12,13 +12,12 @@ function phonetic(word) {
   const cyrillic = {
     к: 'k',
     а: 'a',
-    э: 'a',
     е: 'e',
     п: 'p',
     р: 'r',
     и: 'i',
+    і: 'i',
     й: 'i',
-    ы: 'i',
     ф: 'f',
   };
   return [...word]
@@ -89,7 +88,7 @@ export function findWakePhrase(text, relaxed = false) {
   for (let i = 0; i < parts.length; i++) {
     let greeting = parts[i].word,
       compound;
-    for (const prefix of ['hey', 'hay', 'эй', 'эи'])
+    for (const prefix of ['hey', 'hay', 'гей', 'хей'])
       if (greeting.startsWith(prefix) && greeting.length > prefix.length)
         compound = nameMatch(greeting.slice(prefix.length), relaxed);
     if (compound)

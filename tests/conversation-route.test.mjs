@@ -12,14 +12,9 @@ test('social route restricts greetings without swallowing commands or ambiguous 
   for (const text of [
     'Hello.',
     'How are you doing?',
-    'Как дела?',
     'Comment vas-tu ?',
     'Say hello briefly.',
     'Hey Capri, how are you?',
-    'Привет, Капри!',
-    'Привет, Капри Как твои дела?',
-    'Привет, Капри!\nКак твои дела?',
-    'Капри, как дела?',
     'Salut Capri!',
     'Hola Capri!',
     'Hallo Capri.',
@@ -30,8 +25,6 @@ test('social route restricts greetings without swallowing commands or ambiguous 
   for (const text of [
     'Hello, open Firefox',
     'How are you? Open Firefox.',
-    'Как дела у таймера?',
-    'Привет, Капри! Как твои дела? Открой браузер.',
     'Hey Capri, play music',
     'yes',
     'remember my name',

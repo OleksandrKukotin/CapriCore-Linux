@@ -124,7 +124,7 @@ test('an 8K attachment turn preserves the question and safety rules while budget
     model: 'test',
     params: { num_ctx: 8192 },
     sessionKey: 'test',
-    persona: () => 'Описание'.repeat(1800),
+    persona: () => 'Описання'.repeat(1800),
     avatars: [],
     rpc: {
       call: async () => ({ messages: Array(6).fill({ role: 'user', content: 'а'.repeat(1200) }) }),

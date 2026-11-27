@@ -28,33 +28,6 @@
         "style": "neutral",
         "text": "I Really Want to Stay at Your House is a song by Rosa Walton."
       }
-    ],
-    "ru": [
-      {
-        "id": "neutral",
-        "style": "neutral",
-        "text": "Эй, чумба, я рядом. Давай спокойно проведём этот вечер вместе."
-      },
-      {
-        "id": "warm",
-        "style": "warm",
-        "text": "Не торопись. Я могу просто побыть рядом и послушать тебя."
-      },
-      {
-        "id": "playful",
-        "style": "playful",
-        "text": "Звучит как маленькая авантюра. Ты же знаешь, мне немного любопытно."
-      },
-      {
-        "id": "numbers",
-        "style": "neutral",
-        "text": "Встреча назначена на двадцать шестое октября, в половине десятого утра."
-      },
-      {
-        "id": "music",
-        "style": "neutral",
-        "text": "Давай послушаем песню Розы Уолтон, а потом немного поболтаем."
-      }
     ]
   },
   "requiredHumanReview": [

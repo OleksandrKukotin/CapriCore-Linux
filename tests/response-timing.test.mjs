@@ -128,7 +128,7 @@ test('the provider tap handles split UTF-8 and reports server timing without exp
   const events = [];
   const tap = new ProviderTimingTap((stage, metrics) => events.push({ stage, ...metrics }));
   const bytes = Buffer.from(
-    JSON.stringify({ message: { content: 'Приватный ответ' } }) +
+    JSON.stringify({ message: { content: 'Приватна відповідь' } }) +
       '\n' +
       JSON.stringify({
         done: true,
@@ -150,7 +150,7 @@ test('the provider tap handles split UTF-8 and reports server timing without exp
   );
   assert.equal(events[2].promptEvalMs, 3);
   assert.equal(events[2].promptTokens, 55);
-  assert(!JSON.stringify(events).includes('Приватный'));
+  assert(!JSON.stringify(events).includes('Приватна'));
   assert.equal(tap.pending, '');
 });
 

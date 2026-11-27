@@ -50,7 +50,6 @@ const record = (task, step, before) => task.record(step, { ok: true }, before);
 
 test('Discord requests require an owner action and preserve exact EN/RU names and message content', () => {
   assert.equal(discordTaskRequest('Open Discord.'), null);
-  assert.equal(discordTaskRequest('Открой дискорд'), null);
   assert.equal(
     discordTaskRequest(
       'Send message "＄100  café" in Discord channel #general on server "Friends".',
@@ -88,10 +87,6 @@ test('Discord requests require an owner action and preserve exact EN/RU names an
   );
   assert.deepEqual(
     discordTaskRequest('Can you join Discord voice channel "General" on server "Friends"?'),
-    request('join_voice', 'voice'),
-  );
-  assert.deepEqual(
-    discordTaskRequest('В дискорде зайди в голосовой канал «General» на сервере «Friends».'),
     request('join_voice', 'voice'),
   );
   assert.deepEqual(

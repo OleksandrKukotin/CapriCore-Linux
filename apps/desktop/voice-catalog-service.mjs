@@ -36,8 +36,7 @@ import {
   saveBreezeProfile,
 } from './breeze-voice.mjs';
 
-export const RUSSIAN_QWEN_ID = 'qwen3-tts-1.7b-capri-ru';
-const qwenGpuVersions = { cuda: 'cu128', rocm: 'rocm7.2.1' };
+const qwenGpuVersions = { rocm: 'rocm7.2.1' };
 const voiceDefaults = {
   en: 'chatterbox-turbo',
   multilingual: 'chatterbox-multilingual-v3',
@@ -66,7 +65,6 @@ function qwenGpuRuntime(root, backend) {
 }
 
 export function voiceRuntimeKind(model) {
-  if (model.id === RUSSIAN_QWEN_ID) return 'qwen3-tts-ru-lora';
   if (model.backend === 'chatterbox-turbo') return 'turbo';
   if (model.backend === 'qwen3-tts') return 'qwen3-tts';
   if (model.backend === 'breeze-tts') return 'breeze-tts';
@@ -81,20 +79,12 @@ function voiceFilesInstalled(root, spec) {
   });
 }
 
-function qwenVoiceSpec(configRoot, model) {
-  return readJson(
-    path.join(
-      configRoot,
-      'config',
-      model.id === RUSSIAN_QWEN_ID ? 'qwen-ru-voice.json' : 'qwen-tts-upstream.json',
-    ),
+/** Whether the one Qwen voice model's pinned files are installed. */
+export function qwenVoiceFilesInstalled(root, configRoot) {
+  return voiceFilesInstalled(
+    root,
+    readJson(path.join(configRoot, 'config', 'qwen-tts-upstream.json')),
   );
-}
-
-export function qwenVoiceFilesInstalled(root, configRoot, model) {
-  const spec = qwenVoiceSpec(configRoot, model);
-  const groups = model.id === RUSSIAN_QWEN_ID ? [spec, spec.accent, spec.pack] : [spec];
-  return groups.every((group) => voiceFilesInstalled(root, group));
 }
 
 function installFailure(error, stage) {
@@ -103,10 +93,6 @@ function installFailure(error, stage) {
   const codes = [
     [/does not match pinned Python|pinned Python.*unavailable/i, 'CAPRI_VOICE_PYTHON_VERSION'],
     [/reference voice.*missing|reference voice.*original Setup/i, 'CAPRI_VOICE_REFERENCE_MISSING'],
-    [
-      /NVIDIA acceleration packages could not be downloaded or verified/i,
-      'CAPRI_VOICE_CUDA_DOWNLOAD',
-    ],
     [/AMD ROCm packages could not be downloaded or verified/i, 'CAPRI_VOICE_ROCM_DOWNLOAD'],
     [/speech dependencies could not be installed/i, 'CAPRI_VOICE_DEPENDENCIES'],
     [/speech runtime verification failed/i, 'CAPRI_VOICE_RUNTIME_VERIFICATION'],
@@ -130,6 +116,10 @@ export function voiceDataPath(root, relative) {
   return file;
 }
 
+// Languages CapriCore-Linux no longer supports. Their saved voice choices are
+// dropped, not treated as an invalid file, so the next save cleans them up.
+const RETIRED_VOICE_LANGUAGES = new Set(['ru']);
+
 export function readVoiceSelections(root, models) {
   const file = voiceDataPath(root, 'data/speech/voice-selections.json');
   if (!existsSync(file)) return {};
@@ -141,11 +131,14 @@ export function readVoiceSelections(root, models) {
     Array.isArray(value.languages)
   )
     throw new Error('The saved voice selection is invalid.');
-  for (const [language, modelId] of Object.entries(value.languages)) {
+  const languages = Object.fromEntries(
+    Object.entries(value.languages).filter(([language]) => !RETIRED_VOICE_LANGUAGES.has(language)),
+  );
+  for (const [language, modelId] of Object.entries(languages)) {
     if (!models.some((model) => model.id === modelId && model.languages.includes(language)))
       throw new Error('The saved voice selection needs a compatible model.');
   }
-  return value.languages;
+  return languages;
 }
 
 export function selectedVoiceModel(root, language, configRoot = root) {
@@ -170,7 +163,6 @@ export function voiceRuntimes(root, model) {
       },
     ];
   return [
-    ...(model.id === RUSSIAN_QWEN_ID ? [qwenGpuRuntime(root, 'cuda')] : []),
     qwenGpuRuntime(root, 'rocm'),
     {
       backend: 'cpu',
@@ -282,7 +274,6 @@ export class VoiceCatalogService {
       ...this.value,
       phase: this.applying ? 'applying' : this.value.phase,
       selections,
-      russianQwenCudaReady: Boolean(qwenGpuRuntime(this.root, 'cuda')),
       qwenRocmReady: Boolean(qwenGpuRuntime(this.root, 'rocm')),
       qwenRocmSupported: this.qwenRocmSupported === true,
       breezeSupported,
@@ -354,7 +345,7 @@ export class VoiceCatalogService {
     this.emit({ type: 'voice-catalog.status', ...value });
     return value;
   }
-  install({ modelId, language, cuda = false, rocm = false, acceptLicense = false } = {}) {
+  install({ modelId, language, rocm = false, acceptLicense = false } = {}) {
     if (this.busy()) throw new Error('Wait for the voice operation to finish.');
     const model = this.models.find(
       (item) => item.id === modelId && item.languages.includes(language),
@@ -368,26 +359,12 @@ export class VoiceCatalogService {
     }
     if (!model || model.backend !== 'qwen3-tts')
       throw new Error('Use Install and enable in Languages for the Chatterbox voice models.');
-    if (
-      typeof cuda !== 'boolean' ||
-      typeof rocm !== 'boolean' ||
-      (cuda && rocm) ||
-      (cuda && (modelId !== RUSSIAN_QWEN_ID || !this.installed(model)))
-    )
-      throw new Error('Install the Russian Qwen voice before adding NVIDIA acceleration.');
+    if (typeof rocm !== 'boolean') throw new Error('Invalid voice acceleration request.');
     if (rocm && !this.installed(model))
       throw new Error('Download the Qwen voice model before installing AMD ROCm acceleration.');
-    const acceleration = cuda ? 'cuda' : rocm ? 'rocm' : null;
+    const acceleration = rocm ? 'rocm' : null;
     if (this.root !== this.configRoot)
       throw new Error('Installation is unavailable in interface verification.');
-    if (modelId === RUSSIAN_QWEN_ID) {
-      let included = false;
-      try {
-        included = voiceFilesInstalled(this.root, qwenVoiceSpec(this.configRoot, model).pack);
-      } catch {}
-      if (!included)
-        throw new Error('Run the Capri test installer that includes the Russian LoRA voice.');
-    }
     const cache = voiceDataPath(this.root, '.runtime/installer');
     mkdirSync(cache, { recursive: true });
     const unlock = installationLock(cache);
@@ -407,7 +384,6 @@ export class VoiceCatalogService {
       phase: 'installing',
       installingModelId: modelId,
       installingLanguage: language,
-      cuda,
       rocm,
       stage: 'python',
       progress: null,
@@ -441,7 +417,7 @@ export class VoiceCatalogService {
             } catch {}
           },
         });
-        await setup.qwen({ russian: modelId === RUSSIAN_QWEN_ID, cuda, rocm });
+        await setup.qwen({ rocm });
         signal.throwIfAborted();
         if (!this.installed(model) || (acceleration && !qwenGpuRuntime(this.root, acceleration)))
           throw new Error('Voice installation could not be verified.');
@@ -464,13 +440,9 @@ export class VoiceCatalogService {
         else if (rocm && !this.qwenRocmSupported)
           message = 'AMD ROCm acceleration requires a supported Radeon GPU.';
         else if (acceleration && this.value.stage?.startsWith(`${acceleration}-`))
-          message = rocm
-            ? 'Could not download or verify AMD ROCm packages. Retry to resume the download.'
-            : 'Could not download or verify NVIDIA packages. Retry to resume the download.';
+          message = 'Could not download or verify AMD ROCm packages. Retry to resume the download.';
         else if (acceleration && this.value.stage === 'verify')
-          message = rocm
-            ? 'Could not start AMD ROCm acceleration. Check your Radeon GPU and AMD driver.'
-            : 'Could not start NVIDIA acceleration. Check your GPU and NVIDIA driver.';
+          message = 'Could not start AMD ROCm acceleration. Check your Radeon GPU and AMD driver.';
         this.publish({
           phase: controller.signal.aborted ? 'cancelled' : 'error',
           stage: null,
@@ -505,7 +477,6 @@ export class VoiceCatalogService {
       installingModelId: model.id,
       installingLanguage: language,
       progress: null,
-      cuda: false,
       rocm: false,
       error: null,
       errorCode: null,

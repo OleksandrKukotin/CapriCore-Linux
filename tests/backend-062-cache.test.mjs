@@ -37,12 +37,12 @@ test('cached catalog copies cannot mutate permissions and external changes inval
 });
 test('stream size counters reset between complete events and still reject oversized fragmented events', async () => {
   async function* body() {
-    for (let i = 0; i < 100; i++) yield new TextEncoder().encode('data: Привет\r\n\r\n');
+    for (let i = 0; i < 100; i++) yield new TextEncoder().encode('data: Привіт\r\n\r\n');
   }
   const rows = [];
   for await (const row of sseData(body())) rows.push(row);
   assert.equal(rows.length, 100);
-  assert(rows.every((row) => row === 'Привет'));
+  assert(rows.every((row) => row === 'Привіт'));
   async function* huge() {
     for (let i = 0; i < 20000; i++)
       yield new TextEncoder().encode('data: ' + 'x'.repeat(1000) + '\n');

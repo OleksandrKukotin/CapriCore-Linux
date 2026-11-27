@@ -686,9 +686,7 @@ export class ChatService {
       controller,
       dedicatedMusic: !input.mode && (youtubeMusicTurn || dedicatedMusicRequest(input.text)),
       musicPlayer: youtubeMusicTurn ? 'youtube-music' : undefined,
-      verbose: /(?:\b(?:explain|describe|why|details)\b|объясни|расскажи|почему|подробн)/iu.test(
-        input.text,
-      ),
+      verbose: /\b(?:explain|describe|why|details)\b/iu.test(input.text),
     };
     const user = {
       id: randomUUID(),
@@ -939,14 +937,9 @@ export class ChatService {
           }
           const language = state.languages?.conversation ?? 'en';
           if (noteRequest.refused)
-            return finish(
-              language === 'ru'
-                ? 'Я не сохраняю пароли и ключи доступа в памяти.'
-                : 'I can’t save passwords or access keys in memory.',
-            );
+            return finish('I can’t save passwords or access keys in memory.');
           if (noteRequest.missingName) {
             const prompt = {
-              ru: 'Какое имя мне запомнить? Скажи «Запомни моё имя: Алекс».',
               pt: 'Que nome devo guardar? Diga “Lembre-se do meu nome: Alex”.',
               'pt-BR': 'Que nome devo guardar? Diga “Lembre-se do meu nome: Alex”.',
             };
@@ -970,9 +963,7 @@ export class ChatService {
               return finish(
                 uiText(noteRequest.named ? 'Memory saved and verified.' : 'Done.', language),
               );
-            return finish(
-              language === 'ru' ? 'Не удалось сохранить заметку.' : 'The note could not be saved.',
-            );
+            return finish('The note could not be saved.');
           })();
         },
         callClarification: () => {

@@ -108,7 +108,7 @@ environment under `.runtime/`:
 node tools/setup/setup.mjs recognition [en|fast-multi|multi]
 node tools/setup/setup.mjs voice [--profile auto|legacy|blackwell|amd]
 node tools/setup/setup.mjs multilingual --language <code>
-node tools/setup/setup.mjs qwen [--russian]
+node tools/setup/setup.mjs qwen
 node tools/setup/setup.mjs router
 ```
 
@@ -141,7 +141,6 @@ connections.
 | Provider preset                     | API base URL                                               |
 | ----------------------------------- | ---------------------------------------------------------- |
 | OpenRouter                          | `https://openrouter.ai/api/v1`                             |
-| ProxyAPI                            | `https://api.proxyapi.ru/v1`                               |
 | DeepSeek                            | `https://api.deepseek.com`                                 |
 | Google Gemini                       | `https://generativelanguage.googleapis.com/v1beta/openai/` |
 | Hugging Face Inference Providers    | `https://router.huggingface.co/v1`                         |

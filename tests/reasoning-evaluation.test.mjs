@@ -15,7 +15,7 @@ test('reasoning bank has eighteen unique balanced questions across seven languag
     'es',
     'fr',
     'ja',
-    'ru',
+    'uk',
     'zh',
   ]);
   for (const category of ['logic', 'mathematics', 'physics'])

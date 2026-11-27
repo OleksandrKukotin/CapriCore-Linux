@@ -87,11 +87,11 @@ try {
   for (const id of providerFields) assert.equal(await page.locator('#api-' + id).isEnabled(), true);
   await page.locator('#api-model').fill('old-provider/model');
   await page.locator('#api-key').fill('local-ui-test');
-  await page.locator('#api-provider').selectOption('proxyapi');
-  assert.equal(await page.locator('#api-url').inputValue(), 'https://api.proxyapi.ru/v1');
+  await page.locator('#api-provider').selectOption('huggingface');
+  assert.equal(await page.locator('#api-url').inputValue(), 'https://router.huggingface.co/v1');
   assert.equal(await page.locator('#api-model').inputValue(), '');
   assert.equal(await page.locator('#api-key').inputValue(), '');
-  await page.locator('#api-key').fill('proxyapi-test');
+  await page.locator('#api-key').fill('huggingface-test');
   await page.locator('#api-url').fill('https://custom.example/v1');
   assert.equal(await page.locator('#api-provider').inputValue(), 'custom');
   assert.equal(await page.locator('#api-key').inputValue(), '');
@@ -125,7 +125,7 @@ try {
     assert.equal(await keyState.getAttribute('placeholder'), 'Encrypted');
     assert.equal(await keyState.evaluate((field) => field.readOnly), true);
   };
-  await addConnection('Fixture One', 'proxyapi', 'fixture/one');
+  await addConnection('Fixture One', 'huggingface', 'fixture/one');
   await addConnection('Fixture Two', 'openrouter', 'fixture/two');
   assert.equal(await page.locator('.api-connection').count(), 2);
   assert.equal(await page.locator('#api-local').count(), 0);

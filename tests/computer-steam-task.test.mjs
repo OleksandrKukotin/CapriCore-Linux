@@ -13,7 +13,7 @@ import { steamGameCommand } from '../apps/desktop/steam-task-state.mjs';
 import { createSteamGameTask, findSteamStoreGame } from '../apps/desktop/steam-game-task.mjs';
 
 const reported =
-  'Привет. Короче, открой Стим, найди там портал 2. Если он не скачан, нажми скачать и установи на Z. Если нет, нажми Играть';
+  'Open Steam, find Portal 2. If it is not installed, install it on drive Z. Otherwise, press Play.';
 const game = { appId: '620', name: 'Portal 2' };
 
 async function fixture(t) {
@@ -68,15 +68,15 @@ test('the full spoken request preserves the conditional install and drive; mixed
     run: true,
   });
   assert.equal(computerModeRequest(reported), null);
-  assert.deepEqual(parse(reported), { name: 'портал 2', installIfMissing: true, drive: 'Z' });
+  assert.deepEqual(parse(reported), { name: 'Portal 2', installIfMissing: true, drive: 'Z' });
+  assert.equal(parse(reported + ', then open Discord'), null);
+  assert.equal(parse(reported.replace('Open Steam', 'Do not open Steam')), null);
   assert.deepEqual(
     parse(
       'Open Steam, find Portal 2. If it is not installed, install it on drive D:. Otherwise, press Play.',
     ),
     { name: 'Portal 2', installIfMissing: true, drive: 'D' },
   );
-  assert.equal(parse(reported + ', потом открой Discord'), null);
-  assert.equal(parse(reported.replace('открой Стим', 'не открывай Стим')), null);
   assert.deepEqual(parse('Launch Portal 2 through Steam.'), {
     name: 'Portal 2',
     installIfMissing: false,
@@ -87,7 +87,7 @@ test('the Steam store resolver checks app ID and matches the exact title without
   const reply = (displayName, id, hrefId = id) =>
     `<a data-ds-appid="${id}" href="https://store.steampowered.com/app/${hrefId}/G/"><div class="match_name">${displayName}</div></a>`;
   const terms = [];
-  const result = await findSteamStoreGame('портал 2', new AbortController().signal, async (url) => {
+  const result = await findSteamStoreGame('Portal 2', new AbortController().signal, async (url) => {
     assert.equal(url.hostname, 'store.steampowered.com');
     const query = url.searchParams.get('term');
     terms.push(query);
@@ -99,11 +99,11 @@ test('the Steam store resolver checks app ID and matches the exact title without
         : '',
     );
   });
-  assert.deepEqual(new Set(terms), new Set(['портал 2', 'portal 2']));
+  assert.deepEqual(terms, ['portal 2']);
   assert.deepEqual(result, game);
 });
 
-test('the exact reported request launches the installed Portal 2 by AppID before the general planner', async (t) => {
+test('a spoken conditional request launches the installed Portal 2 by AppID before the general planner', async (t) => {
   const f = await fixture(t);
   await f.manifest(4);
   const calls = [];
@@ -128,7 +128,7 @@ test('the exact reported request launches the installed Portal 2 by AppID before
     },
     applications: {},
     plan: () => assert.fail('The general planner must not get this Steam task'),
-    language: () => 'ru',
+    language: () => 'en',
     audit: (value) => {
       audit = value;
     },
@@ -150,7 +150,7 @@ test('the exact reported request launches the installed Portal 2 by AppID before
     verified: true,
     steps: 1,
     status: 'completed',
-    summary: 'Запустила Portal 2 через Steam.',
+    summary: 'Portal 2 is running.',
   });
   assert.deepEqual(calls, ['steam://rungameid/620']);
   assert.equal(audit.lastOutcome.reason, 'steam_started');

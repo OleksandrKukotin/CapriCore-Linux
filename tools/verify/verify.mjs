@@ -107,13 +107,13 @@ try {
 
   const code = `capri-${randomBytes(4).toString('hex')}`;
   const first = await ask(
-    `Это техническая проверка контекста. Код тестового объекта: ${code}. Ответь кратко, что приняла код. Ничего не сохраняй в файлы.`,
+    `This is a technical context check. The test object code is ${code}. Briefly confirm that you received the code. Do not save anything to files.`,
     { channel: 'webchat' },
   );
-  assert.match(first.answer, /[А-Яа-яЁё]/);
-  record('Local Russian text reply', first);
+  assert.match(first.answer, /[A-Za-z]/);
+  record('Local text reply', first);
   const continuity = await ask(
-    'Назови код тестового объекта из предыдущего сообщения. Ответь только кодом.',
+    'Name the test object code from the previous message. Reply with the code only.',
     { channel: 'telegram' },
   );
   assert.ok(continuity.answer.includes(code), `Cross-interface context lost: ${continuity.answer}`);
@@ -122,7 +122,7 @@ try {
   await stopManaged(rt.logPrefix);
   await startGateway(rt);
   const restored = await ask(
-    'Повтори код тестового объекта из нашего разговора. Ответь только кодом.',
+    'Repeat the test object code from our conversation. Reply with the code only.',
   );
   assert.ok(
     restored.answer.includes(code),
@@ -132,7 +132,7 @@ try {
 
   const durable = `PROJECT-${randomBytes(4).toString('hex').toUpperCase()}`;
   const saved = await ask(
-    `Запомни долговременный факт: название моего тестового проекта — ${durable}. Сейчас обязательно используй инструмент write или edit, чтобы записать этот факт в MEMORY.md. Это разрешённая запись в твою память. Затем кратко подтверди сохранение.`,
+    `Remember a long-term fact: my test project is called ${durable}. You must now use the write or edit tool to record this fact in MEMORY.md. This is an authorized write to your memory. Then briefly confirm it was saved.`,
   );
   assert.ok(
     (memoryText(rt.workspace) + memoryText(path.join(rt.workspace, 'memory'))).includes(durable),
@@ -143,7 +143,7 @@ try {
   await stopManaged(rt.logPrefix);
   await startGateway(rt);
   const recalled = await ask(
-    'Как называется мой тестовый проект? Найди сохранённое название в долговременной памяти.',
+    'What is my test project called? Find the saved name in long-term memory.',
     { sessionKey: `agent:capri:verification-fresh-${stamp}` },
   );
   assert.ok(
@@ -155,13 +155,13 @@ try {
   const image = pngFixture();
   writeFileSync(path.join(folder, 'vision-fixture.png'), image);
   const vision = await ask(
-    'Назови цвета и формы двух фигур на изображении, слева направо. Ответь кратко по-русски.',
+    'Name the colours and shapes of the two figures in the image, from left to right. Answer briefly.',
     { image, sessionKey: `agent:capri:verification-image-${stamp}` },
   );
-  assert.match(vision.answer, /красн/i);
-  assert.match(vision.answer, /син/i);
-  assert.match(vision.answer, /квадрат/i);
-  assert.match(vision.answer, /круг|окружност/i);
+  assert.match(vision.answer, /\bred\b/i);
+  assert.match(vision.answer, /\bblue\b/i);
+  assert.match(vision.answer, /\bsquare\b/i);
+  assert.match(vision.answer, /\bcircle\b/i);
   record('Image reaches Qwen and is understood correctly', vision);
 
   const search = await request(`${rt.gatewayUrl}/tools/invoke`, {

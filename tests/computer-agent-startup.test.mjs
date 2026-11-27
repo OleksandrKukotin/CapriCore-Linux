@@ -120,7 +120,6 @@ function fixture({
 test('an explicit launch works when Capri is the only available window, including Spanish and French requests', async () => {
   for (const goal of [
     'Open Spotify.',
-    'Открой Spotify.',
     'Abre Spotify.',
     'Por favor, inicia Spotify.',
     'Ouvre Spotify.',

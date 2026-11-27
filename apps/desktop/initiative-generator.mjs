@@ -121,7 +121,7 @@ export function initiativeGenerator({
       throw new Error('Invalid optional comment');
     if (
       candidate.category === 'spontaneous' &&
-      /(?:welcome back|back (?:again|in the loop)|(?:you|i|I)['’]?ve (?:returned|been waiting)|вернул(?:ся|ась)|возвращени|ждал[аи]? тебя|событи[яй].{0,16}систем|system event|metadata)/iu.test(
+      /(?:welcome back|back (?:again|in the loop)|(?:you|i|I)['’]?ve (?:returned|been waiting)|system event|metadata)/iu.test(
         result.text,
       )
     )

@@ -103,8 +103,6 @@ test('explicit current/left/right owner text preserves exact quoted, colon and b
     ['Send "left or right" in the right Discord chat.', 'right', 'left or right'],
     ['Write right in the current Discord chat.', 'current', 'right'],
     ['Send in the left Discord chat: Hello, choom!', 'left', 'Hello, choom!'],
-    ['Напиши привет в открытый чат Дискорда справа.', 'right', 'привет'],
-    ['Отправь «Привет!» в текущий чат Discord.', 'current', 'Привет!'],
     ['Écris «salut» dans le chat à droite de Discord.', 'right', 'salut'],
     ['Schreibe "hallo" im aktuellen Discord Chat.', 'current', 'hallo'],
   ];
@@ -118,7 +116,6 @@ test('explicit current/left/right owner text preserves exact quoted, colon and b
     'opening an app is not a current-chat reference',
   );
   assert.equal(discordCurrentMessageParts('Write hi in the solar chat in Discord.'), null);
-  assert.equal(discordCurrentMessageParts('Напиши привет в правила чата Discord.'), null);
 });
 
 test('sending requires actual owner intent and exact text, never drafts, negation, translated commands or screen suggestions', () => {

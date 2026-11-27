@@ -41,7 +41,7 @@ For repeatable command checks, run `powershell.exe -NoProfile -ExecutionPolicy B
 
 - `node --test tests/microphone.test.mjs tests/wake-phrase.test.mjs` checks accurate-only routing, activation, echo filtering, status, duplicate results, shared sending, capture lifecycle and permissions.
 - `.runtime/asr-venv/Scripts/python.exe -m unittest discover -s tests -p '*asr*test.py' -v` checks silence, bounds, internal wake probes, resumed-speech invalidation, cancellation and failure without weaker fallback.
-- `.runtime/asr-venv/Scripts/python.exe scripts/verify-asr.py` uses a public reference with an inserted one-second hesitation. `--ru` verifies the installed optional Russian preview. Reports: `logs/asr-en-verification.json` and `logs/asr-ru-verification.json`.
+- `.runtime/asr-venv/Scripts/python.exe scripts/verify-asr.py` uses a public reference with an inserted one-second hesitation. Report: `logs/asr-en-verification.json`.
 - `npm run verify:microphone` checks real CPU ASR, AudioWorklet, IPC, final-only UI, shared-session delivery and device release using Electron's fake microphone and isolated history.
 - `npm run verify:wake` checks the name, feedback and expansion from core with generated/public audio. It never uses the owner's physical microphone or Qwen.
 - `npm run verify:audio-inputs` checks device selection and persistence in an isolated profile.

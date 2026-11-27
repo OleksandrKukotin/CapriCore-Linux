@@ -139,7 +139,7 @@ function parseResults(html, provider, accepts) {
 
 const wikipediaLanguages = new Set([
   'en',
-  'ru',
+  'uk',
   'de',
   'fr',
   'ja',

@@ -429,9 +429,7 @@ export function observationText(value, question = '') {
       ? {
           summary: String(o.summary).slice(0, foregroundEvidenceLimit),
           kind: o.kind,
-          ...(/timestamp|capture time|file ?name|имя.{0,15}файл|время.{0,15}сним|дата.{0,15}сним/i.test(
-            question,
-          )
+          ...(/timestamp|capture time|file ?name/i.test(question)
             ? {
                 source: String(o.label).slice(0, 160),
                 capturedAt: new Date(o.capturedAt).toISOString(),

@@ -9,7 +9,7 @@
  *   node tools/setup/setup.mjs voice [--profile auto|legacy|blackwell|amd] [--dependencies-only] [--plan-only]
  *   node tools/setup/setup.mjs multilingual [--language all|<code>]
  *   node tools/setup/setup.mjs multilingual-voice [--language all|<code>]
- *   node tools/setup/setup.mjs qwen [--russian] [--dependencies-only]
+ *   node tools/setup/setup.mjs qwen [--dependencies-only]
  *
  * Progress goes to stdout as JSON lines ({"stage":...}); tool output to stderr.
  */
@@ -29,7 +29,6 @@ const { values, positionals } = parseArgs({
     language: { type: 'string', default: 'all' },
     'dependencies-only': { type: 'boolean', default: false },
     'plan-only': { type: 'boolean', default: false },
-    russian: { type: 'boolean', default: false },
   },
 });
 const [component, argument] = positionals;
@@ -57,7 +56,7 @@ try {
       setup.voice({ profile: values.profile, dependenciesOnly, planOnly: values['plan-only'] }),
     multilingual: () => setup.multilingual(values.language),
     'multilingual-voice': () => setup.multilingualVoice(values.language),
-    qwen: () => setup.qwen({ russian: values.russian, dependenciesOnly }),
+    qwen: () => setup.qwen({ dependenciesOnly }),
   };
   if (!tasks[component]) {
     console.error(`Usage: node tools/setup/setup.mjs <${Object.keys(tasks).join('|')}> [options]`);

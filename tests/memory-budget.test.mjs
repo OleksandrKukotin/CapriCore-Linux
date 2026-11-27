@@ -125,7 +125,7 @@ test('each selection changes the appropriate memory pool; unknown capacity stays
       voiceMode: 'bundled',
       recognition: true,
       router: true,
-      conversationLanguage: 'ru',
+      conversationLanguage: 'uk',
     },
     hardware,
   );
@@ -185,7 +185,7 @@ test('optimized 32K voice planning follows CPU decoder fallback rather than fals
     recognition: true,
     router: true,
     voiceMode: 'bundled',
-    conversationLanguage: 'ru',
+    conversationLanguage: 'uk',
   };
   const h = {
     ramBytes: 64 * 2 ** 30,
@@ -223,7 +223,7 @@ test(
           voiceMode: 'bundled',
           recognition: true,
           router: true,
-          conversationLanguage: 'ru',
+          conversationLanguage: 'uk',
         },
         h: hardware,
       },
@@ -242,10 +242,9 @@ test(
       },
       { s: { ...selection, voiceMode: 'bundled' }, h: { ...hardware, gpus: [] } },
       { s: { ...selection, voiceMode: 'qwen' }, h: hardware },
-      { s: { ...selection, voiceMode: 'qwen-ru', conversationLanguage: 'ru' }, h: hardware },
       { s: { ...selection, profile: 'quality', voiceMode: 'bundled' }, h: hardware },
       {
-        s: { ...selection, profile: 'quality', voiceMode: 'bundled', conversationLanguage: 'ru' },
+        s: { ...selection, profile: 'quality', voiceMode: 'bundled', conversationLanguage: 'uk' },
         h: hardware,
       },
     ];

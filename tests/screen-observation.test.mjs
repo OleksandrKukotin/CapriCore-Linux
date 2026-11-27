@@ -75,7 +75,7 @@ test('foreground screen context uses the post-submission frame even while typing
 test('reading a live screen preserves long, ordered text in its original language', async () => {
   const transcription = Array.from(
     { length: 88 },
-    (_, i) => `Строка ${i + 1}: сумма * 2 = 300.00 ₽`,
+    (_, i) => `Рядок ${i + 1}: сума * 2 = 300.00 ₴`,
   ).join('\n');
   assert.ok(transcription.length > 2400);
   const model = screenObserverModel({
@@ -98,7 +98,7 @@ test('reading a live screen preserves long, ordered text in its original languag
     captureId: 'lease',
     png: Buffer.from('generated fixture'),
     signal: new AbortController().signal,
-    question: 'Прочитай весь текст на экране',
+    question: 'Прочитай весь текст на екрані',
   });
   assert.equal(context.observation.summary, transcription);
   assert.ok(observationText(context).includes(JSON.stringify(transcription)));

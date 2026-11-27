@@ -67,24 +67,9 @@ function fixture(observations, mutate = () => ({ ok: true }), options = {}) {
 }
 
 test('only an explicit call request enters the specialized computer route and keeps the exact draft', () => {
-  const join = 'Капри, подключись к этому созвону в Тимс.';
+  const join = 'Capri, join this call in Teams.';
   assert.deepEqual(callTaskRequest(join), { action: 'join', client: 'teams' });
   assert.deepEqual(computerModeRequest(join), { enabled: true, run: true });
-  assert.deepEqual(
-    callTaskRequest('Could you please write “Привет, everyone!” in the call chat?'),
-    {
-      action: 'draft',
-      client: null,
-      text: 'Привет, everyone!',
-      sendRequested: false,
-    },
-  );
-  assert.deepEqual(callTaskRequest('Отправь в чат встречи в Google Meet: Привет, я Capri!'), {
-    action: 'draft',
-    client: 'meet',
-    text: 'Привет, я Capri!',
-    sendRequested: true,
-  });
   for (const text of [
     'Do not join this meeting.',
     'How do I join this meeting?',
@@ -93,6 +78,15 @@ test('only an explicit call request enters the specialized computer route and ke
   ])
     assert.equal(callTaskRequest(text), null, text);
   assert.equal(callTaskRequest('Send hello in the call chat.').action, 'clarify');
+  assert.deepEqual(
+    callTaskRequest('Could you please write “Привіт, everyone!” in the call chat?'),
+    {
+      action: 'draft',
+      client: null,
+      text: 'Привіт, everyone!',
+      sendRequested: false,
+    },
+  );
 });
 
 test('a typed call command waits for Capri to lose focus and then checks the selected meeting once', async () => {
@@ -158,7 +152,7 @@ test('a call request from a model, unverified tab, draft address, or live mic ca
 });
 
 test('requested sending ends with a verified draft, never a Send click or key press', async () => {
-  const exact = 'Привет от Capri!';
+  const exact = 'Привіт від Capri!';
   const f = fixture(
     [
       view([hangup, button('chat', 'In-call messages')]),

@@ -26,7 +26,7 @@ def main():
     output = ROOT / '.runtime/qwen-smoke'
     output.mkdir(parents=True, exist_ok=True)
     result = {'loadSeconds': round(time.monotonic()-began, 2), 'samples': []}
-    phrases = [('en', 'Hey choom. I am here with you.'), ('ru', 'Привет. Я рядом с тобой.')]
+    phrases = [('en', 'Hey choom. I am here with you.')]
     if args.all_languages:
         phrases += [('zh', '你好，我在这里。'), ('ja', 'こんにちは。'), ('ko', '안녕하세요.'),
                     ('de', 'Hallo. Ich bin hier.'), ('fr', 'Bonjour. Je suis ici.'),

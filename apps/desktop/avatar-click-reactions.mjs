@@ -77,7 +77,6 @@ const spokenCues = {
   pl: ['Jak miło.', 'Spokojnie.', 'Hm?', 'Tak?', 'Ręce przy sobie.'],
   pt: ['Que fofo.', 'Com calma.', 'Hm?', 'Sim?', 'Tira a mão.'],
   'pt-BR': ['Que fofo.', 'Calma aí.', 'Hm?', 'Oi?', 'Tira a mão.'],
-  ru: ['Мило.', 'Полегче.', 'М?', 'Да?', 'Руки прочь.'],
   es: ['Qué lindo.', 'Con calma.', '¿Hm?', '¿Sí?', 'No me toques.'],
   sw: ['Inapendeza.', 'Polepole.', 'Hmm?', 'Naam?', 'Usiniguse.'],
   sv: ['Vad gulligt.', 'Ta det lugnt.', 'Hm?', 'Ja?', 'Händerna bort.'],
@@ -122,7 +121,6 @@ const distinctiveScripts = {
   hi: /\p{Script=Devanagari}/u,
   ja: /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u,
   ko: /\p{Script=Hangul}/u,
-  ru: /\p{Script=Cyrillic}/u,
   ta: /\p{Script=Tamil}/u,
   te: /\p{Script=Telugu}/u,
   th: /\p{Script=Thai}/u,
@@ -213,7 +211,6 @@ export function avatarClickGenerator({
     if (!text || current.id !== language.id || current.name !== language.name) return '';
     const script = distinctiveScripts[language.id];
     if (script && !script.test(text)) {
-      if (awakened && language.id === 'ru') return 'Эй, ты меня разбудил!';
       return avatarClickCue(
         awakened ? 'boundary' : tone,
         mood === 'reserved' ? 'annoyed' : mood,

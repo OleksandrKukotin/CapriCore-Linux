@@ -553,11 +553,6 @@ test('the final proxy error boundary never trusts API-shaped provider prose', as
       'API connection failed. Check the provider URL and network.',
     ],
     ['API key is missing.', {}, 'API key is missing.'],
-    [
-      'API connection to ProxyAPI timed out before HTTPS. Check your VPN or proxy route.',
-      {},
-      'API connection to ProxyAPI timed out before HTTPS. Check your VPN or proxy route.',
-    ],
   ]) {
     api.upstream = async () => {
       throw Object.assign(new Error(message), fields);
@@ -797,8 +792,12 @@ test('Hugging Face inference uses its router and preserves the selected provider
   );
   assert.ok((await api.testProfile(id)).elapsedMs >= 0);
 });
-test('ProxyAPI uses the unified endpoint and forwards streaming tool calls with a full model ID', async (t) => {
-  const provider = { ...config, baseUrl: 'https://api.proxyapi.ru/v1', model: 'openai/gpt-5-mini' };
+test('an OpenAI-compatible provider forwards streaming tool calls with a full model ID', async (t) => {
+  const provider = {
+    ...config,
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: 'openai/gpt-5-mini',
+  };
   const tool = {
     type: 'function',
     function: { name: 'calculator', parameters: { type: 'object' } },
@@ -813,7 +812,7 @@ test('ProxyAPI uses the unified endpoint and forwards streaming tool calls with 
   const { api } = await fixture(
     t,
     async (url, options) => {
-      assert.equal(url, 'https://api.proxyapi.ru/v1/chat/completions');
+      assert.equal(url, 'https://openrouter.ai/api/v1/chat/completions');
       assert.equal(options.headers.authorization, 'Bearer ' + key);
       const payload = JSON.parse(options.body);
       assert.equal(payload.model, 'openai/gpt-5-mini');
@@ -837,51 +836,6 @@ test('ProxyAPI uses the unified endpoint and forwards streaming tool calls with 
   const [event, end] = (await response.text()).trim().split('\n\n');
   assert.deepEqual(JSON.parse(event.slice('data: '.length)), packet);
   assert.equal(end, 'data: [DONE]');
-});
-
-test('ProxyAPI uses the configured system proxy, keeps direct routes, and reports connect timeouts', async () => {
-  const root = mkdtempSync(path.join(os.tmpdir(), 'capri-proxyapi-'));
-  const provider = apiSettings({ ...config, baseUrl: 'https://api.proxyapi.ru/v1' });
-  const calls = [];
-  let route = 'PROXY proxy.example:8080';
-  const proxySession = {
-    resolveProxy: async (url) => {
-      assert.equal(url, 'https://api.proxyapi.ru/v1/chat/completions');
-      return route;
-    },
-    fetch: async (_url, options) => {
-      calls.push('proxy');
-      assert.equal(options.credentials, 'omit');
-      assert.equal(options.cache, 'no-store');
-      assert.equal(options.redirect, 'error');
-      assert.equal(options.headers.authorization, 'Bearer ' + key);
-      return Response.json({});
-    },
-  };
-  const api = new InferenceApi({
-    root,
-    storage,
-    config: provider,
-    proxySession: () => proxySession,
-    fetchImpl: async () => {
-      calls.push('direct');
-      throw new TypeError('fetch failed', {
-        cause: Object.assign(new Error('unpublished details'), { code: 'UND_ERR_CONNECT_TIMEOUT' }),
-      });
-    },
-  });
-  const send = (signal = AbortSignal.timeout(1000), settings = provider) =>
-    api.upstream({ messages: [], stream: false }, signal, settings, key);
-  await (await send()).response.body.cancel();
-  route = 'DIRECT';
-  await assert.rejects(send(), /ProxyAPI timed out before HTTPS.*VPN/);
-  await assert.rejects(send(undefined, config), /API connection failed.*UND_ERR_CONNECT_TIMEOUT/);
-  proxySession.resolveProxy = () => new Promise(() => {});
-  const controller = new AbortController();
-  const pending = send(controller.signal);
-  controller.abort();
-  await assert.rejects(pending, /cancelled or timed out/);
-  assert.deepEqual(calls, ['proxy', 'direct', 'direct']);
 });
 
 test('damaged API settings request repair without replacing the owner file or selecting local inference', () => {

@@ -234,7 +234,7 @@ test('accelerated Qwen voice is switched off until Linux wheels are pinned', asy
   const root = folder();
   const tools = fakePythonToolchain(root);
   const setup = speechSetup({ root, execute: tools.execute, findUv: tools.findUv });
-  await assert.rejects(setup.qwen({ russian: true, cuda: true }), {
+  await assert.rejects(setup.qwen({ rocm: true }), {
     code: 'CAPRI_PLATFORM_UNAVAILABLE',
   });
   assert.equal(tools.commands.length, 0);

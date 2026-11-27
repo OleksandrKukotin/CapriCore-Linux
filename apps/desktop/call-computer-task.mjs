@@ -1,28 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { once } from 'node:events';
 
-const client = String.raw`(google meet|meet|teams|microsoft teams|гугл мит|тимс)`;
+const client = String.raw`(google meet|meet|teams|microsoft teams)`;
 const englishChat = String.raw`(?:the\s+|this\s+|current\s+)?(?:call|meeting)\s+chat`;
-const russianChat = String.raw`чат\s+(?:(?:этого|текущего)\s+)?(?:звонка|созвона|встречи)`;
 const join = new RegExp(
-  String.raw`^(?:join\s+(?:(?:this|the|my|current|open)\s+){0,2}(?:call|meeting)(?:\s+(?:in|on)\s+${client})?|(?:подключись|присоединись)\s+к\s+(?:(?:этому|текущему|открытому|этой|текущей|открытой)\s+)?(?:звонку|созвону|встрече)(?:\s+в\s+${client})?)[.!?]?$`,
+  String.raw`^(?:join\s+(?:(?:this|the|my|current|open)\s+){0,2}(?:call|meeting)(?:\s+(?:in|on)\s+${client})?)[.!?]?$`,
   'iu',
 );
 const draft = new RegExp(
-  String.raw`^(type|draft|write|send|post|введи|набери|напиши|отправь)\s+(?:(?:(?:in|into|to|в)\s+)?(?:${englishChat}|${russianChat})(?:\s+(?:in|on|в)\s+${client})?\s*:\s*([^\r\n]+)|(?:"([^"\r\n]+)"|“([^”\r\n]+)”|«([^»\r\n]+)»)\s+(?:in|into|to|в)\s+(?:${englishChat}|${russianChat})(?:\s+(?:in|on|в)\s+${client})?[.!?]?)$`,
+  String.raw`^(type|draft|write|send|post)\s+(?:(?:(?:in|into|to)\s+)?${englishChat}(?:\s+(?:in|on)\s+${client})?\s*:\s*([^\r\n]+)|(?:"([^"\r\n]+)"|“([^”\r\n]+)”|«([^»\r\n]+)»)\s+(?:in|into|to)\s+${englishChat}(?:\s+(?:in|on)\s+${client})?[.!?]?)$`,
   'iu',
 );
 const chatAction = new RegExp(
-  String.raw`^(?:type|draft|write|send|post|введи|набери|напиши|отправь)\s+[^\r\n]*(?:${englishChat}|${russianChat}|${client}\s+chat)`,
+  String.raw`^(?:type|draft|write|send|post)\s+[^\r\n]*(?:${englishChat}|${client}\s+chat)`,
   'iu',
 );
 const stripRequest = (text) =>
   text
     .trim()
-    .replace(/^(?:(?:hey\s+)?capri|капри)[,\s:]+/iu, '')
-    .replace(/^(?:(?:can|could|would)\s+you\s+|(?:можешь|можете)\s+)/iu, '')
-    .replace(/^(?:please|пожалуйста)[,\s]+/iu, '');
-const meetingClient = (name) => (/teams|тимс/iu.test(name) ? 'teams' : 'meet');
+    .replace(/^(?:(?:hey\s+)?capri)[,\s:]+/iu, '')
+    .replace(/^(?:(?:can|could|would)\s+you\s+)/iu, '')
+    .replace(/^(?:please)[,\s]+/iu, '');
+const meetingClient = (name) => (/teams/iu.test(name) ? 'teams' : 'meet');
 
 export function callTaskRequest(text) {
   if (typeof text !== 'string') return null;
@@ -43,7 +42,7 @@ export function callTaskRequest(text) {
       action: 'draft',
       client: name ? meetingClient(name) : null,
       text: literal,
-      sendRequested: /^(?:send|post|отправь)$/iu.test(verb),
+      sendRequested: /^(?:send|post)$/iu.test(verb),
     };
   }
   return chatAction.test(request) ? { action: 'clarify' } : null;
@@ -72,19 +71,13 @@ function meetingTab(view) {
   return null;
 }
 
-const joinButton =
-  /^(?:join now|ask to join|присоединиться|присоединиться сейчас|попросить присоединиться|запросить подключение)$/iu;
-const joinRequest = /^(?:ask to join|попросить присоединиться|запросить подключение)$/iu;
-const hangUp =
-  /^(?:leave(?: call| meeting)?|hang up|покинуть (?:встречу|звонок)|завершить (?:вызов|звонок))(?:\s*\([^)]*\))?$/iu;
-const micOff =
-  /^(?:turn on microphone|unmute microphone|unmute|включить микрофон)(?:\s*\([^)]*\))?$/iu;
-const cameraOff =
-  /^(?:turn on camera|start video|включить камеру|включить видео)(?:\s*\([^)]*\))?$/iu;
-const openChat =
-  /^(?:chat|show chat|open chat|in-call messages|чат|показать чат|открыть чат|сообщения в чате)$/iu;
-const composer =
-  /^(?:send a message(?: to everyone)?|type a message|write a message|отправить сообщение(?: всем)?|введите сообщение|написать сообщение)$/iu;
+const joinButton = /^(?:join now|ask to join)$/iu;
+const joinRequest = /^(?:ask to join)$/iu;
+const hangUp = /^(?:leave(?: call| meeting)?|hang up)(?:\s*\([^)]*\))?$/iu;
+const micOff = /^(?:turn on microphone|unmute microphone|unmute)(?:\s*\([^)]*\))?$/iu;
+const cameraOff = /^(?:turn on camera|start video)(?:\s*\([^)]*\))?$/iu;
+const openChat = /^(?:chat|show chat|open chat|in-call messages)$/iu;
+const composer = /^(?:send a message(?: to everyone)?|type a message|write a message)$/iu;
 
 const match = (view, names, editable = false) =>
   view.targets.filter(
@@ -106,9 +99,7 @@ export function callTaskNeedsOwner(language) {
     verified: false,
     steps: 0,
     summary:
-      language === 'ru'
-        ? 'Попроси меня напрямую подключиться к открытой встрече или укажи точный текст черновика в кавычках.'
-        : 'Ask me directly to join the open call or give me the exact text in quotation marks for a meeting chat draft.',
+      'Ask me directly to join the open call or give me the exact text in quotation marks for a meeting chat draft.',
   };
 }
 
@@ -128,34 +119,22 @@ export async function waitForCallForeground(window, { signal, onWaiting, timeout
   }
 }
 
-export async function runCallComputerTask(
-  task,
-  { observe, input, wait, waitForForeground, russian },
-) {
-  const result = (status, en, ru) => ({
+export async function runCallComputerTask(task, { observe, input, wait, waitForForeground }) {
+  const result = (status, summary) => ({
     ok: status === 'completed',
     status,
     verified: status === 'completed',
-    summary: russian ? ru : en,
+    summary,
   });
   const targetMissing = () =>
     result(
       'needs_user',
       'After asking me, switch to the open Google Meet or Teams meeting tab within five seconds.',
-      'После запроса переключись на открытую вкладку встречи Google Meet или Teams в течение пяти секунд.',
     );
   const draftReady = () =>
     task.sendRequested
-      ? result(
-          'needs_user',
-          'The draft is ready. Review it and click Send in the meeting chat.',
-          'Черновик готов. Проверь его и нажми «Отправить» в чате встречи.',
-        )
-      : result(
-          'completed',
-          'I entered the draft in the meeting chat.',
-          'Я ввела черновик в чат встречи.',
-        );
+      ? result('needs_user', 'The draft is ready. Review it and click Send in the meeting chat.')
+      : result('completed', 'I entered the draft in the meeting chat.');
   if (!(await waitForForeground())) return targetMissing();
   let view;
   try {
@@ -169,23 +148,14 @@ export async function runCallComputerTask(
   const inMeeting = (current) => meetingTab(current)?.key === tab.key;
   if (task.action === 'join') {
     if (match(view, hangUp).length === 1)
-      return result(
-        'completed',
-        'The meeting tab is already in the call.',
-        'Вкладка встречи уже подключена к звонку.',
-      );
+      return result('completed', 'The meeting tab is already in the call.');
     const buttons = match(view, joinButton);
     if (buttons.length !== 1)
-      return result(
-        'needs_user',
-        'I could not identify a single Join button in the meeting.',
-        'Я не смогла однозначно найти кнопку подключения к встрече.',
-      );
+      return result('needs_user', 'I could not identify a single Join button in the meeting.');
     if (match(view, micOff).length !== 1 || match(view, cameraOff).length !== 1)
       return result(
         'needs_user',
         'Turn off the microphone and camera in the meeting preview first.',
-        'Сначала выключи микрофон и камеру на экране входа во встречу.',
       );
     const [button] = buttons;
     const clicked = await input({ action: 'click', targetId: button.targetId });
@@ -194,32 +164,19 @@ export async function runCallComputerTask(
         view = await observe();
         if (!inMeeting(view)) return targetMissing();
         if (match(view, hangUp).length === 1)
-          return result(
-            'completed',
-            'The meeting tab is now in the call.',
-            'Вкладка встречи подключена к звонку.',
-          );
+          return result('completed', 'The meeting tab is now in the call.');
         if (i < 4) await wait();
       }
       if (joinRequest.test(button.untrustedLabel.trim()))
-        return result(
-          'needs_user',
-          'I clicked Ask to join. Admission is still unverified.',
-          'Я нажала кнопку запроса на вход. Подключение пока не подтверждено.',
-        );
+        return result('needs_user', 'I clicked Ask to join. Admission is still unverified.');
     }
-    return result(
-      'incomplete',
-      'I could not verify that the meeting tab joined the call.',
-      'Я не смогла подтвердить подключение к звонку.',
-    );
+    return result('incomplete', 'I could not verify that the meeting tab joined the call.');
   }
 
   if (match(view, hangUp).length !== 1)
     return result(
       'needs_user',
       'Join the meeting before asking me to draft a message in its chat.',
-      'Подключись к встрече, прежде чем просить меня написать черновик в её чат.',
     );
   if (!match(view, composer, true).length) {
     const buttons = match(view, openChat);
@@ -231,18 +188,13 @@ export async function runCallComputerTask(
   }
   const fields = match(view, composer, true);
   if (fields.length !== 1)
-    return result(
-      'needs_user',
-      'Open the meeting chat so I can identify its message field.',
-      'Открой чат встречи, чтобы я могла найти поле сообщения.',
-    );
+    return result('needs_user', 'Open the meeting chat so I can identify its message field.');
   const [field] = fields;
   if (field.untrustedValue === task.text) return draftReady();
   if (field.untrustedValue !== '')
     return result(
       'needs_user',
       'The meeting chat already has a draft. Clear it first if you want me to replace it.',
-      'В чате встречи уже есть черновик. Очисти его, если хочешь заменить текст.',
     );
   const typed = await input({ action: 'enter_text', targetId: field.targetId, text: task.text });
   if (typed?.ok && typed.submitted === false) {
@@ -259,6 +211,5 @@ export async function runCallComputerTask(
   return result(
     'incomplete',
     'I could not verify the meeting chat draft. Check the message field before retrying.',
-    'Я не смогла проверить черновик. Проверь поле сообщения перед повторной попыткой.',
   );
 }

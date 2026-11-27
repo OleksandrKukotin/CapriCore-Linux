@@ -6,7 +6,6 @@ import classifier from '../../../config/request-router-upstream.json' with { typ
 import candidates from '../../../config/multilingual-candidates.json' with { type: 'json' };
 import speech from '../../../config/multilingual-runtime.json' with { type: 'json' };
 import qwenVoice from '../../../config/qwen-tts-upstream.json' with { type: 'json' };
-import russianVoice from '../../../config/qwen-ru-voice.json' with { type: 'json' };
 
 const MiB = 2 ** 20;
 const modelBytes = ({ files }) =>
@@ -20,7 +19,7 @@ export function estimateSpeechStorage(
   { recognition = 'off', speechLanguage = 'off', router = false, voiceMode },
   { rocmVoice = false } = {},
 ) {
-  const qwen = voiceMode === 'qwen' || voiceMode === 'qwen-ru';
+  const qwen = voiceMode === 'qwen';
   const voice = speechLanguage !== 'off' && !qwen;
   let downloadBytes = 0;
   let extraBytes = storage.reserveMiB * MiB;
@@ -42,10 +41,7 @@ export function estimateSpeechStorage(
   }
   if (qwen) {
     addPackages(storage.qwenVoice);
-    downloadBytes +=
-      voiceMode === 'qwen-ru'
-        ? modelBytes(russianVoice) + modelBytes(russianVoice.accent)
-        : modelBytes(qwenVoice);
+    downloadBytes += modelBytes(qwenVoice);
   } else if (voice) {
     addPackages(rocmVoice ? storage.rocmVoice : storage.cudaVoice);
     const multilingual = speechLanguage === 'pt-BR' ? speech['tts-pt-br'] : speech.tts;

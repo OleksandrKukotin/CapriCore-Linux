@@ -10,10 +10,8 @@ test('standalone math accepts complete scientific expressions while preserving f
     ['Calculate 3**4 + factorial(6) - sqrt(949)', '3**4 + factorial(6) - sqrt(949)'],
     ['Calculate 6!', '6!'],
     ['Use calculator and calculate sqrt(5352) - ln(5)', 'sqrt(5352) - ln(5)'],
-    ['Используй калькулятор и посчитай 424-55^4', '424-55^4'],
     ['6!!', '6!!'],
     ['Find log(8, 2) using the calculator.', 'log(8, 2)'],
-    ['Капри, посчитай nthRoot(125, 3) + 2² на калькуляторе', 'nthRoot(125, 3) + 2²'],
     ['Please calculate (2 + 3) * (7 - 4) with calculator?', '(2 + 3) * (7 - 4)'],
     ['sqrt(25)!', 'sqrt(25)!'],
     ['sin(pi/2) + log1p(1)', 'sin(pi/2) + log1p(1)'],
@@ -86,8 +84,6 @@ test('ordinary Spotify playback stays narrow even when the integration is disabl
     'Can you open my Spotify and turn on some music like Example Artist?',
     'play music on Spotify',
     'Start some music in Spotify.',
-    'Открой Spotify и включи музыку Example Artist.',
-    'Капри, поставь песню в спотифай.',
   ];
   for (const fullComputerAccess of [false, true])
     for (const spotify of [
@@ -125,14 +121,9 @@ test('computer access questions and repeated-permission complaints stay conversa
     'Could you please explain full computer control?',
     'Can you control my PC?',
     'Do you have access to my computer?',
-    'Ты умеешь управлять моим компьютером?',
     'Capri, tell me what full computer access means.',
     'Stop repeating that full computer access is off.',
     'Why do you keep saying "enable full computer access"?',
-    'Почему ты повторяешь, что полный доступ к компьютеру выключен?',
-    'Я не просил включить полный доступ к компьютеру.',
-    'Что такое полное управление компьютером?',
-    'Можешь объяснить полное управление компьютером?',
   ];
   for (const fullComputerAccess of [false, true])
     for (const text of discussions)
@@ -150,9 +141,6 @@ test('access discussion narrowing preserves genuine polite commands and mixed ap
     'Open Chrome and explain what full computer access means.',
     'Why is full computer access off? Enable it and open Chrome.',
     'What does full computer access do? Could you please open Chrome?',
-    'Капри, можешь включить полный доступ к компьютеру?',
-    'Открой Chrome через полное управление компьютером.',
-    'Капри, отзови полный доступ к компьютеру.',
   ];
   for (const fullComputerAccess of [false, true])
     for (const text of requests)
@@ -168,8 +156,6 @@ test('mentioning music, player names or song titles does not require a Spotify a
     'What do you think of this song?',
     'My favorite song is Next to Me.',
     'This playlist makes me happy.',
-    'Тебе нравится эта музыка?',
-    'Тебе нравится громкая музыка?',
     '¿Te gusta esta música de Spotify?',
     'Tu aimes cette chanson sur Spotify ?',
     'Gefällt dir dieses Lied auf Spotify?',

@@ -42,7 +42,7 @@ class LanguagesTest(unittest.TestCase):
                 self.assertEqual(native.call_args.kwargs['features'].shape[-1], expected)
 
     def test_backend_selection(self):
-        for language,engine in [('en','parakeet-tdt-0.6b-v2'),('ru','parakeet-tdt-0.6b-v3'),('de','parakeet-tdt-0.6b-v3'),('ja','whisper-large-v3-turbo'),('ar','whisper-large-v3-turbo'),('auto','whisper-large-v3-turbo')]:
+        for language,engine in [('en','parakeet-tdt-0.6b-v2'),('uk','parakeet-tdt-0.6b-v3'),('de','parakeet-tdt-0.6b-v3'),('ja','whisper-large-v3-turbo'),('ar','whisper-large-v3-turbo'),('auto','whisper-large-v3-turbo')]:
             with patch.dict(os.environ,{'CAPRI_ASR_LANGUAGE':language}):
                 value=settings();self.assertEqual(value['language'],language);self.assertEqual(value['engine'],engine)
                 if engine == 'parakeet-tdt-0.6b-v3':
@@ -51,7 +51,7 @@ class LanguagesTest(unittest.TestCase):
             with self.assertRaises(ValueError):settings()
 
     def test_native_recovery_keeps_the_language_and_model_with_a_conservative_decoder(self):
-        for language in ['en', 'ru', 'ja', 'auto', 'auto-europe']:
+        for language in ['en', 'uk', 'ja', 'auto', 'auto-europe']:
             with patch.dict(os.environ, {'CAPRI_ASR_LANGUAGE': language, 'CAPRI_ASR_SAFE_STARTUP': '0'}):
                 original = settings()
             with patch.dict(os.environ, {'CAPRI_ASR_LANGUAGE': language, 'CAPRI_ASR_SAFE_STARTUP': '1',

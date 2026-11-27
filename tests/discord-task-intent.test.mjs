@@ -80,7 +80,6 @@ test('only explicitly requested Discord operations pass, with names resolved fro
 test('explicit send commands preserve original literal text across supported languages', () => {
   for (const goal of [
     'Send "Hello! 👋" in Discord.',
-    'Отправь «Hello! 👋» в Дискорде.',
     'Envoie «Hello! 👋» sur Discord.',
     'Schreibe "Hello! 👋" in Discord.',
     'Envía "Hello! 👋" en Discord.',
@@ -92,7 +91,6 @@ test('explicit send commands preserve original literal text across supported lan
     'أرسل «Hello! 👋» في ديسكورد.',
     'Discord\'da "Hello! 👋" yaz.',
     'Could you send "Hello! 👋" in Discord?',
-    'Можешь отправить «Hello! 👋» в Дискорде?',
     'Peux-tu envoyer «Hello! 👋» sur Discord ?',
     'Kannst du "Hello! 👋" in Discord senden?',
     'Puedes enviar "Hello! 👋" en Discord?',
@@ -108,13 +106,6 @@ test('explicit send commands preserve original literal text across supported lan
 
 test('join, leave, navigation, read and channel listing are checked in common interface languages', () => {
   const goals = [
-    [
-      'Подключись к голосовому каналу в Дискорде.',
-      'Выйди из голосового канала в Дискорде.',
-      'Открой канал в Дискорде.',
-      'Прочитай сообщения в Дискорде.',
-      'Покажи каналы в Дискорде.',
-    ],
     [
       'Rejoins le salon vocal sur Discord.',
       'Quitte le salon vocal sur Discord.',
@@ -205,8 +196,6 @@ test('capability questions, quotations and descriptions never authorize an accou
     'I want to join General in Discord.',
     'Discord can join General voice channel.',
     'Tell me whether you can join General in Discord.',
-    'Переведи «Подключись к голосовому каналу General в Discord».',
-    'Как подключиться к голосовому каналу General в Дискорде?',
     'Comment rejoindre General sur Discord ?',
     'Wie tritt man General in Discord bei?',
     '¿Cómo puedo unirme a General en Discord?',
@@ -229,8 +218,6 @@ test('negative and draft-only instructions block sending, and replies cannot be 
     'Send "Hello" in Discord, but do not press Enter.',
     'Draft "Hello" in Discord.',
     'Write "Hello" in Discord without sending.',
-    'Не отправляй «Hello» в Дискорде.',
-    'Напиши черновик «Hello» в Дискорде.',
     'Ne poste pas «Hello» sur Discord.',
     'Schreibe "Hello" als Entwurf in Discord.',
     'No envíes "Hello" en Discord.',
@@ -293,7 +280,6 @@ test('only a single unquoted operation can use the fast path', () => {
   for (const goal of [
     'Join channel "Research and Development" on server "Friends & family" in Discord.',
     'Send "Read this; then reply and leave" in Discord.',
-    'Отправь «прочитай и затем ответь» в Дискорде.',
     'Join General in Discord.',
   ])
     assert.equal(discordSingleOperationGoal(goal), true, goal);
@@ -306,8 +292,6 @@ test('only a single unquoted operation can use the fast path', () => {
     'Join General in Discord, open Notepad.',
     'Join General in Discord. Open Notepad.',
     'Join General in Discord, turn on the microphone.',
-    'Подключись к General в Дискорде и открой Блокнот.',
-    'Подключись к General в Дискорде, потом открой Блокнот.',
     'Rejoins General sur Discord puis ouvre le Bloc-notes.',
     'Rejoins General sur Discord ensuite ouvre le Bloc-notes.',
     'Entra en General en Discord luego abre el Bloc de notas.',
@@ -346,13 +330,13 @@ test('explicit destination names bind to the same operation with exact NFC ident
     null,
   );
   permitted(
-    'Подключись к голосовому каналу «Общий» на сервере «Друзья» в Дискорде.',
+    'Join the voice channel «Загальний» on server «Друзі» in Discord.',
     'join_voice',
-    { channel: 'Общий', server: 'Друзья' },
+    { channel: 'Загальний', server: 'Друзі' },
     null,
   );
   denied(
-    'Подключись к голосовому каналу «Общий» на сервере «Друзья» в Дискорде.',
+    'Join the voice channel «Загальний» on server «Друзі» in Discord.',
     'join_voice',
     { channel: 'Other', server: 'Strangers' },
     null,
@@ -403,7 +387,6 @@ test('missing and current destinations bind to the observed native Discord view 
   denied('List channels on the current Discord server.', 'list_channels', { server: 'Strangers' });
   denied('List channels in Discord.', 'list_channels', {}, null);
   for (const goal of [
-    'Подключись к текущему голосовому каналу в Дискорде.',
     'Rejoins le salon vocal actuel sur Discord.',
     'Tritt dem aktuellen Sprachkanal in Discord bei.',
     'Únete al canal de voz actual en Discord.',

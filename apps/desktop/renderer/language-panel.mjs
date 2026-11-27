@@ -317,7 +317,7 @@ export class LanguagePanel {
     this.populate('recognition', [
       ['follow', this.ui.text('Automatic')],
       ['auto', this.ui.text('Auto-detect / Whisper')],
-      ['auto-europe', this.ui.text('Fast auto / English, Russian and European languages')],
+      ['auto-europe', this.ui.text('Fast auto / English and European languages')],
       ['off', this.ui.text('Microphone unavailable')],
       ...LANGUAGE_PACKS.map((p) => [
         p.id,
