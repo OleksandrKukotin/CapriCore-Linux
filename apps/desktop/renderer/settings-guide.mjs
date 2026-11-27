@@ -4,19 +4,6 @@ import { SETTINGS_SECTIONS, SKILL_BY_SECTION } from './settings-registry.mjs';
 
 const sections = new Map(SETTINGS_SECTIONS.map(([id, label, panel]) => [id, { label, panel }]));
 const completionKey = 'capri.settings.guides.v1';
-const copy = {
-  ru: {
-    open: (section) => `Гайд по разделу «${section}»`,
-    topic: (title) => `${title} (гайд)`,
-    step: (current, total) => `Шаг ${current} из ${total}`,
-    close: 'Закрыть гайд',
-    back: 'Назад',
-    skip: 'Пропустить шаг',
-    next: 'Далее',
-    done: 'Завершить',
-    error: 'Не удалось открыть гайд. Попробуй ещё раз.',
-  },
-};
 
 function completedSections() {
   try {
@@ -37,7 +24,7 @@ const pendingGuideLocales = new Map();
 const guideLocaleRetryAfter = new Map();
 
 async function loadGuideLocale(locale) {
-  if (locale === 'en' || locale === 'ru' || guideLocales.has(locale)) return;
+  if (locale === 'en' || guideLocales.has(locale)) return;
   if ((guideLocaleRetryAfter.get(locale) ?? 0) > Date.now()) return;
   if (!pendingGuideLocales.has(locale)) {
     const pending = fetch(`/locales/guide-${locale}.json`)
@@ -68,13 +55,6 @@ export function settingsGuideSteps(section, content) {
       'The switch beside the tab name turns the skill on or off. “Show button in Capri’s toolbar” controls its shortcut at the top of the main window. Hiding the shortcut leaves the skill enabled.' +
         (composer
           ? ' Show button in the message bar independently controls the shortcut beside the field where you type.'
-          : ''),
-    ],
-    [
-      'Выбери, где показывать кнопку',
-      'Тумблер рядом с названием вкладки включает и выключает навык. «Показывать кнопку в верхней панели Capri» управляет кнопкой вверху главного окна. Если скрыть кнопку, навык останется включённым.' +
-        (composer
-          ? ' «Показывать кнопку в строке ввода» отдельно управляет кнопкой рядом с полем сообщения.'
           : ''),
     ],
     ...(composer ? [{ help: '#skill-show-composer' }] : []),
@@ -224,8 +204,7 @@ export class SettingsGuide {
   }
 
   stepText(step) {
-    const [, english, russian] = step;
-    if (this.locale === 'ru') return { pair: russian, language: 'ru' };
+    const [, english] = step;
     const messages = guideLocales.get(this.locale);
     if (this.locale !== 'en' && messages?.[english[0]] && messages?.[english[1]])
       return { pair: english.map((text) => messages[text]), language: this.locale };
@@ -234,7 +213,7 @@ export class SettingsGuide {
 
   refresh() {
     const locale = this.locale;
-    if (locale !== 'en' && locale !== 'ru' && !guideLocales.has(locale)) {
+    if (locale !== 'en' && !guideLocales.has(locale)) {
       void loadGuideLocale(locale)
         .then(() => {
           if (this.locale === locale && guideLocales.has(locale)) {
@@ -248,9 +227,7 @@ export class SettingsGuide {
     const section = sections.get(id);
     const label = this.ui.text(section?.label);
     const description = label
-      ? this.locale === 'ru'
-        ? copy.ru.open(label)
-        : this.guideText('Guide for {section}', { section: label })
+      ? this.guideText('Guide for {section}', { section: label })
       : this.guideText('Guide for this tab');
     this.opener.disabled = !section || !this.available() || this.loading;
     this.opener.toggleAttribute(
@@ -275,7 +252,7 @@ export class SettingsGuide {
     if (!steps) return;
     const anchors = new Map();
     const descriptionAnchors = new Map();
-    for (const [index, [selector, , , options]] of steps.entries()) {
+    for (const [index, [selector, , options]] of steps.entries()) {
       const targets = [
         ...new Set(
           [selector, options?.help]
@@ -332,10 +309,7 @@ export class SettingsGuide {
       } = this.stepText(steps[index]);
       entry.button.dataset.guideStep = String(index);
       entry.button.lang = language;
-      entry.button.setAttribute(
-        'aria-label',
-        this.locale === 'ru' ? copy.ru.topic(title) : this.guideText('{title} (guide)', { title }),
-      );
+      entry.button.setAttribute('aria-label', this.guideText('{title} (guide)', { title }));
       entry.button.title = title;
       entry.button.hidden = false;
       buttons.add(entry.button);
@@ -363,7 +337,7 @@ export class SettingsGuide {
     return true;
   }
 
-  authoredTarget([selector, , , options]) {
+  authoredTarget([selector, , options]) {
     return [...this.pane.querySelectorAll(options?.spotlight ?? selector)].find((target) =>
       this.canShow(target),
     );
@@ -401,7 +375,7 @@ export class SettingsGuide {
       const steps = settingsGuideSteps(section, this.content);
       this.steps = steps.flatMap((step, index) => {
         const target =
-          index === entry?.index && !step[3]?.spotlight ? entry.target : this.authoredTarget(step);
+          index === entry?.index && !step[2]?.spotlight ? entry.target : this.authoredTarget(step);
         return target ? [{ step, target, index }] : [];
       });
       if (!this.steps.length) throw new Error('Missing Settings guide for ' + section);
@@ -421,11 +395,7 @@ export class SettingsGuide {
     } catch (error) {
       if (this.active) this.close();
       console.error(error);
-      this.onError(
-        this.locale === 'ru'
-          ? copy.ru.error
-          : this.guideText('Could not open the guide. Try again.'),
-      );
+      this.onError(this.guideText('Could not open the guide. Try again.'));
     } finally {
       this.loading = false;
       this.refresh();
@@ -494,13 +464,10 @@ export class SettingsGuide {
     this.modal.dataset.step = String(this.index + 1);
     this.modal.dataset.catalogStep = String(index);
     this.caption.textContent = this.ui.text(label);
-    this.counter.textContent =
-      locale === 'ru'
-        ? copy.ru.step(this.index + 1, this.steps.length)
-        : this.guideText('Step {current} of {total}', {
-            current: this.index + 1,
-            total: this.steps.length,
-          });
+    this.counter.textContent = this.guideText('Step {current} of {total}', {
+      current: this.index + 1,
+      total: this.steps.length,
+    });
     this.title.lang = language;
     this.description.lang = language;
     this.title.dir = 'auto';
@@ -513,20 +480,12 @@ export class SettingsGuide {
       '--guide-progress',
       `${((this.index + 1) * 100) / this.steps.length}%`,
     );
-    this.closeButton.setAttribute(
-      'aria-label',
-      locale === 'ru' ? copy.ru.close : this.guideText('Close guide'),
-    );
-    this.back.textContent = locale === 'ru' ? copy.ru.back : this.guideText('Back');
+    this.closeButton.setAttribute('aria-label', this.guideText('Close guide'));
+    this.back.textContent = this.guideText('Back');
     this.back.disabled = this.index === 0;
-    this.skip.textContent = locale === 'ru' ? copy.ru.skip : this.guideText('Skip step');
+    this.skip.textContent = this.guideText('Skip step');
     this.skip.hidden = last;
-    this.next.textContent =
-      locale === 'ru'
-        ? last
-          ? copy.ru.done
-          : copy.ru.next
-        : this.guideText(last ? 'Finish' : 'Next');
+    this.next.textContent = this.guideText(last ? 'Finish' : 'Next');
   }
 
   queueLayout(scroll = false) {
@@ -563,7 +522,7 @@ export class SettingsGuide {
     let bottomLimit = Math.min(pane.bottom, this.card.getBoundingClientRect().top - 10);
     const topLimit = pane.top + 3;
     let bounds = spotlightBounds(target);
-    const block = this.steps[this.index].step[3]?.spotlight;
+    const block = this.steps[this.index].step[2]?.spotlight;
     if (block && bounds.height + 12 > bottomLimit - topLimit) bottomLimit = pane.bottom - 3;
     if (bottomLimit <= topLimit) {
       this.spotlight.hidden = true;

@@ -29,7 +29,7 @@ exists.
   resource monitoring. It moves by its header; its transparent area still
   catches clicks, and resizing, roaming and teleports are off on Wayland. A
   native layer-shell overlay is in [`apps/overlay`](apps/overlay).
-  The interface has 50 offline languages.
+  The interface ships in English, French, Polish and Ukrainian.
 - **Inference and memory.** Local models through a system `llama-server`,
   Hugging Face GGUF imports, saved OpenAI-compatible API profiles, and the
   [Claude Code bridge](README.md#chat-through-claude-code-no-model-download).
@@ -290,7 +290,7 @@ removed the Windows code and recorded its lessons in the
 - [x] Keep models, environments, private data and generated reports out of the repository.
 - [x] Remove PowerShell, C#, DirectShow and `.cmd` sources, the Windows installer and updater.
 - [ ] Remove the Windows-only tests that are always skipped on Linux.
-- [ ] Remove dead locale keys that mention `setup-*.cmd` (all 50 languages).
+- [ ] Remove dead locale keys that mention `setup-*.cmd`.
 - [ ] Remove or repoint upstream links and the private-repository token flow (`community-links.mjs`, `github-access.mjs`).
 - [ ] Rename Windows-flavoured wording that survives in code and docs: Recycle Bin, drives, `.exe`/`.dll` names in `CALL_CAMERA_FILES`.
 - [ ] Rename the `ollama*` settings and URLs that now point at the managed llama.cpp host, with a settings migration.

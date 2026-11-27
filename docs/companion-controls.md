@@ -152,7 +152,7 @@ plus the description supplied by the user. A separate button opens public GitHub
 issues; it does not submit or upload anything. The project's GitHub links (source,
 releases and issues) are maintained in config/community.json. This fork has no
 donation, subscription or social-media links.
-The interface includes 50 offline language catalogs; translated availability is
+The interface ships English, French, Polish and Ukrainian catalogs; translated availability is
 separate from model, voice and recognition quality. See [diagnostics](diagnostic-reports.md)
 and [localization](localization.md).
 

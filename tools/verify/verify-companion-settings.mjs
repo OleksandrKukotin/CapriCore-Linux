@@ -431,7 +431,7 @@ try {
     .evaluate((el) => el.getBoundingClientRect().width);
   assert.ok(width <= 680 && width > 300);
   await page.screenshot({ path: path.join(folder, 'languages.png') });
-  await page.selectOption('#language-interface', 'ru');
+  await page.selectOption('#language-interface', 'uk');
   await page.locator('[data-section="credits"]').click();
   await page.locator('#credits-panel').waitFor();
   assert.equal(await page.locator('#settings-draft-actions').isHidden(), true);
@@ -440,7 +440,7 @@ try {
   assert.equal(await page.locator('#confirmation-dialog[open]').count(), 0);
   await page.screenshot({ path: path.join(folder, 'unsaved-settings.png') });
   assert.equal(await page.locator('#language-panel').isVisible(), false);
-  assert.equal(await page.locator('#language-interface').inputValue(), 'ru');
+  assert.equal(await page.locator('#language-interface').inputValue(), 'uk');
   await page.locator('#settings-discard').click();
   await settingsView(application, 'credits');
   await page.locator('#credits-panel').waitFor({ state: 'visible' });
@@ -449,7 +449,7 @@ try {
   assert.equal(await page.locator('[data-community]:not([data-community="issues"])').count(), 0);
   assert.equal((await page.evaluate(() => window.capri.bootstrap())).languages.interface, 'en');
   page = await settingsView(application, 'languages');
-  await page.selectOption('#language-interface', 'ru');
+  await page.selectOption('#language-interface', 'uk');
   // This fixture intentionally has no installed voice pack. Explicit text mode
   // keeps the navigation check separate from the tested missing-pack dialog.
   await settingsView(application, 'voice');
@@ -459,7 +459,7 @@ try {
   await saveSettings(page);
   await page.waitForFunction(
     () =>
-      document.documentElement.lang === 'ru' && document.getElementById('language-panel').hidden,
+      document.documentElement.lang === 'uk' && document.getElementById('language-panel').hidden,
   );
   const savedState = await page.evaluate(() => window.capri.bootstrap());
   await page.evaluate(

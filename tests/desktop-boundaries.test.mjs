@@ -152,13 +152,19 @@ test('allowlisted renderer modules and locale catalogs serve only shipped resour
     spriteFile: '',
     startupIntro: null,
   });
-  for (const name of ['en', 'ru', 'ar'])
+  for (const name of ['en', 'fr', 'pl', 'uk'])
     assert.equal(
       resourceResponse({ url: `capri://desktop/locales/${name}.json`, method: 'GET' }, resources)
         .status,
       200,
     );
-  for (const name of ['unknown.json', '%2e%2e/locales/ru.json?source=external'])
+  // Removed interface languages are no longer served.
+  for (const name of [
+    'ru.json',
+    'ar.json',
+    'unknown.json',
+    '%2e%2e/locales/uk.json?source=external',
+  ])
     assert.equal(
       resourceResponse({ url: `capri://desktop/locales/${name}`, method: 'GET' }, resources).status,
       404,

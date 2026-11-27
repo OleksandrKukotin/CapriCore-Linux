@@ -16,7 +16,7 @@ if (process.argv.includes('--russian')) {
   mkdirSync(path.join(folder, 'desktop'), { recursive: true });
   writeFileSync(
     path.join(folder, 'desktop/languages.json'),
-    JSON.stringify({ schemaVersion: 1, settings: { ...LANGUAGE_DEFAULTS, interface: 'ru' } }),
+    JSON.stringify({ schemaVersion: 1, settings: { ...LANGUAGE_DEFAULTS, interface: 'uk' } }),
   );
 }
 const server = createServer((_req, res) => {

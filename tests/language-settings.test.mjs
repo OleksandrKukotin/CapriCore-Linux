@@ -7,7 +7,7 @@ import {
   validateLanguages,
 } from '../apps/desktop/renderer/language-settings.mjs';
 import { uiText } from '../apps/desktop/interface-translations.mjs';
-import russian from '../apps/desktop/locales/ru.json' with { type: 'json' };
+import ukrainian from '../apps/desktop/locales/uk.json' with { type: 'json' };
 import { conversationInstruction, VOICE_PREVIEWS } from '../apps/desktop/language-context.mjs';
 import { SentenceBuffer, VoiceService } from '../apps/desktop/voice-service.mjs';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -72,11 +72,11 @@ test('installed language applies normally and leaving settings waits for a missi
 
 test('changing only the interface language saves with a missing voice', async (t) => {
   const load = t.mock.method(globalThis, 'fetch', async (url) => {
-    assert.equal(url, '/locales/ru.json');
-    return Response.json(russian);
+    assert.equal(url, '/locales/uk.json');
+    return Response.json(ukrainian);
   });
   const value = { ...LANGUAGE_DEFAULTS, speech: 'en' };
-  const draft = { ...value, interface: 'ru' };
+  const draft = { ...value, interface: 'uk' };
   let saved;
   const panel = {
     value,
@@ -94,12 +94,12 @@ test('changing only the interface language saves with a missing voice', async (t
 });
 
 test('language settings preserve English and resolve multilingual capability limits explicitly', () => {
-  const value = validateLanguages({ ...LANGUAGE_DEFAULTS, interface: 'ru', recognition: 'en' });
-  assert.equal(value.interface, 'ru');
+  const value = validateLanguages({ ...LANGUAGE_DEFAULTS, interface: 'uk', recognition: 'en' });
+  assert.equal(value.interface, 'uk');
   assert.equal(value.conversation, 'en');
   assert.equal(value.speech, 'follow');
   assert.equal(resolveLanguages(value).speech, 'en');
-  assert.equal(uiText('Mute Capri', 'ru'), 'Выключить голос Capri');
+  assert.equal(uiText('Mute Capri', 'uk'), 'Вимкнути Capri');
   assert.deepEqual(validateLanguages(LANGUAGE_DEFAULTS), LANGUAGE_DEFAULTS);
   assert.equal(LANGUAGE_PACKS.length, 101);
   assert.equal(LANGUAGE_PACKS.filter((p) => p.speechReady).length, 24);
@@ -119,12 +119,12 @@ test('language settings preserve English and resolve multilingual capability lim
   assert.equal(validateLanguages({ ...LANGUAGE_DEFAULTS, autoDetect: true }).recognition, 'auto');
   const brazilian = validateLanguages({
     ...LANGUAGE_DEFAULTS,
-    interface: 'pt-BR',
+    interface: 'fr',
     conversation: 'pt-BR',
   });
-  assert.equal(brazilian.interface, 'pt-BR');
+  assert.equal(brazilian.interface, 'fr');
   assert.equal(resolveLanguages(brazilian).recognition, 'pt-BR');
-  assert.equal(uiText('Microphone input', brazilian.interface), 'Entrada do microfone');
+  assert.equal(uiText('Microphone input', brazilian.interface), 'Entrée du microphone');
   assert.match(conversationInstruction(brazilian), /Brazilian Portuguese/);
   assert.throws(() => validateLanguages({ ...LANGUAGE_DEFAULTS, interface: 'unknown' }));
   assert.throws(() => validateLanguages({ ...LANGUAGE_DEFAULTS, speech: 'uk' }), /No voice/);
@@ -202,4 +202,22 @@ test('voice requests carry a fixed language per turn and text-only selection mak
   assert.equal(service.snapshot().ready, false);
   assert.equal(service.turn, null);
   assert.equal(seen.length, 1);
+});
+
+test('a retired interface language falls back to English without losing other language settings', async () => {
+  const { restoreLanguages, validateLanguages, LANGUAGE_DEFAULTS } = await import(
+    '../apps/desktop/renderer/language-settings.mjs'
+  );
+  const saved = { ...LANGUAGE_DEFAULTS, interface: 'ru', conversation: 'uk', autoDetect: true };
+  const restored = restoreLanguages(saved);
+  assert.equal(restored.interface, 'en');
+  assert.equal(restored.conversation, 'uk');
+  assert.equal(restored.autoDetect, true);
+  assert.equal(restoreLanguages({ ...saved, interface: 'pl' }).interface, 'pl');
+  // New choices stay strict, and unknown values are not silently rewritten.
+  assert.throws(() => validateLanguages(saved), /Invalid interface language/);
+  assert.throws(
+    () => restoreLanguages({ ...saved, interface: 'xx' }),
+    /Invalid interface language/,
+  );
 });

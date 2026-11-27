@@ -306,23 +306,18 @@ function fixture(overrides = {}) {
 
 test('a status question reports live computer access without a model, action, or confirmation', async () => {
   for (const [language, question, on, off] of [
+    // The question is still recognized; without a Portuguese catalog the answer is English.
     [
       'pt-BR',
       'Você tem acesso total ao meu PC?',
-      'Acesso total ao computador está habilitado.',
-      'Acesso total ao computador está desativado.',
+      'Full computer access is enabled.',
+      'Full computer access is off.',
     ],
     [
       'en',
       'Do you currently have full access to my computer?',
       'Full computer access is enabled.',
       'Full computer access is off.',
-    ],
-    [
-      'ru',
-      'У тебя есть полный доступ к моему ПК?',
-      'Полный доступ к компьютеру включен.',
-      'Полный доступ к компьютеру выключен.',
     ],
   ]) {
     let enabled = true;

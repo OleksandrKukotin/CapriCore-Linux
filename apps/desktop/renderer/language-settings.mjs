@@ -46,6 +46,63 @@ export function resolveLanguages(value) {
       : value.speech;
   return { ...value, recognition, speech };
 }
+// Interface languages CapriCore-Linux no longer ships. A saved choice falls back
+// to English instead of discarding the conversation and speech settings with it.
+const RETIRED_INTERFACE_LOCALES = new Set([
+  'ru',
+  'de',
+  'es',
+  'it',
+  'pt',
+  'pt-BR',
+  'nl',
+  'cs',
+  'sk',
+  'bg',
+  'hr',
+  'sr',
+  'sl',
+  'ro',
+  'hu',
+  'el',
+  'da',
+  'no',
+  'sv',
+  'fi',
+  'et',
+  'lv',
+  'lt',
+  'is',
+  'ca',
+  'ar',
+  'he',
+  'fa',
+  'ur',
+  'hi',
+  'bn',
+  'ta',
+  'te',
+  'mr',
+  'gu',
+  'pa',
+  'zh',
+  'ja',
+  'ko',
+  'vi',
+  'th',
+  'id',
+  'ms',
+  'tl',
+  'tr',
+  'sw',
+  'af',
+]);
+/** Validates saved settings, moving a retired interface language to English. */
+export function restoreLanguages(value) {
+  return validateLanguages(
+    value && RETIRED_INTERFACE_LOCALES.has(value.interface) ? { ...value, interface: 'en' } : value,
+  );
+}
 export function validateLanguages(value) {
   if (
     !value ||

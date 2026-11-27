@@ -1051,11 +1051,6 @@ test('disabled Calculator explains the setting and compound tasks still go throu
   });
   for (const [language, text, expected] of [
     [
-      'ru',
-      'Капри, вычисли квадратный корень из 2653',
-      'Сначала включи «Калькулятор» в разделе «Настройки → Навыки».',
-    ],
-    [
       'en',
       'Calculate 134^4 - sqrt(14) + ln(cos(24))',
       'Enable Calculator in Settings → Skills first.',

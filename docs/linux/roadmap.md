@@ -81,11 +81,11 @@ region (`setIgnoreMouseEvents` does, but cannot be undone without a cursor).
 ### 5. Cleanup
 
 - [ ] Remove the 16 Windows-only tests that are always skipped on Linux.
-- [ ] Remove the dead locale keys that mention `setup-*.cmd` (all 50 languages).
+- [ ] Remove the dead locale keys that mention `setup-*.cmd`.
 - [ ] Replace the locale key "Windows did not confirm removal. Check the file and
       Recycle Bin." with Linux wording. The locale check requires every
-      translation to keep the word "Windows", so this needs a new key in all 50
-      languages. The other trash strings already read "trash" in English.
+      translation to keep the word "Windows", so this needs a new key in every
+      shipped language. The other trash strings already read "trash" in English.
 - [x] Update checks use this fork's GitHub releases. A git checkout is offered
       any newer tagged release and updates with `git pull`; pre-releases are the
       experimental channel. The GitLab mirror and private preview repository are

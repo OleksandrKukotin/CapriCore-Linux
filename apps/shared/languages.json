@@ -13,7 +13,7 @@
     "label": "Afrikaans",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "sq",
@@ -37,7 +37,7 @@
     "label": "العربية",
     "recognizer": "whisper",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "hy",
@@ -69,7 +69,7 @@
     "label": "Bangla",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "ba",
@@ -117,7 +117,7 @@
     "label": "Bulgarian",
     "recognizer": "parakeet-v3",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "my",
@@ -141,7 +141,7 @@
     "label": "Catalan",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "zh",
@@ -149,7 +149,7 @@
     "label": "中文",
     "recognizer": "whisper",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "hr",
@@ -157,7 +157,7 @@
     "label": "Croatian",
     "recognizer": "parakeet-v3",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "cs",
@@ -165,7 +165,7 @@
     "label": "Czech",
     "recognizer": "parakeet-v3",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "da",
@@ -173,7 +173,7 @@
     "label": "Danish",
     "recognizer": "parakeet-v3",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "nl",
@@ -181,7 +181,7 @@
     "label": "Dutch",
     "recognizer": "parakeet-v3",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "et",
@@ -189,7 +189,7 @@
     "label": "Estonian",
     "recognizer": "parakeet-v3",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "fo",
@@ -205,7 +205,7 @@
     "label": "Filipino",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "fi",
@@ -213,7 +213,7 @@
     "label": "Finnish",
     "recognizer": "parakeet-v3",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "fr",
@@ -245,7 +245,7 @@
     "label": "Deutsch",
     "recognizer": "parakeet-v3",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "el",
@@ -253,7 +253,7 @@
     "label": "Greek",
     "recognizer": "parakeet-v3",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "gu",
@@ -261,7 +261,7 @@
     "label": "Gujarati",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "ht",
@@ -293,7 +293,7 @@
     "label": "Hebrew",
     "recognizer": "whisper",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "hi",
@@ -301,7 +301,7 @@
     "label": "हिन्दी",
     "recognizer": "whisper",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "hu",
@@ -309,7 +309,7 @@
     "label": "Hungarian",
     "recognizer": "parakeet-v3",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "is",
@@ -317,7 +317,7 @@
     "label": "Icelandic",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "id",
@@ -325,7 +325,7 @@
     "label": "Indonesian",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "it",
@@ -333,7 +333,7 @@
     "label": "Italian",
     "recognizer": "parakeet-v3",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "ja",
@@ -341,7 +341,7 @@
     "label": "日本語",
     "recognizer": "whisper",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "jw",
@@ -381,7 +381,7 @@
     "label": "한국어",
     "recognizer": "whisper",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "lo",
@@ -405,7 +405,7 @@
     "label": "Latvian",
     "recognizer": "parakeet-v3",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "ln",
@@ -421,7 +421,7 @@
     "label": "Lithuanian",
     "recognizer": "parakeet-v3",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "lb",
@@ -453,7 +453,7 @@
     "label": "Malay",
     "recognizer": "whisper",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "ml",
@@ -485,7 +485,7 @@
     "label": "Marathi",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "mn",
@@ -509,7 +509,7 @@
     "label": "Norwegian",
     "recognizer": "whisper",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "nn",
@@ -541,7 +541,7 @@
     "label": "Persian",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "pl",
@@ -557,7 +557,7 @@
     "label": "Português",
     "recognizer": "parakeet-v3",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "pt-BR",
@@ -567,7 +567,7 @@
     "speech": true,
     "voiceModel": "chatterbox-multilingual-pt-br",
     "modelLanguage": "pt",
-    "interface": true
+    "interface": false
   },
   {
     "id": "pa",
@@ -575,7 +575,7 @@
     "label": "Punjabi",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "ro",
@@ -583,7 +583,7 @@
     "label": "Romanian",
     "recognizer": "parakeet-v3",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "ru",
@@ -591,7 +591,7 @@
     "label": "Русский",
     "recognizer": "parakeet-v3",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "sa",
@@ -607,7 +607,7 @@
     "label": "Serbian",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "sn",
@@ -639,7 +639,7 @@
     "label": "Slovak",
     "recognizer": "parakeet-v3",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "sl",
@@ -647,7 +647,7 @@
     "label": "Slovenian",
     "recognizer": "parakeet-v3",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "so",
@@ -663,7 +663,7 @@
     "label": "Español",
     "recognizer": "parakeet-v3",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "su",
@@ -679,7 +679,7 @@
     "label": "Swahili",
     "recognizer": "whisper",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "sv",
@@ -687,7 +687,7 @@
     "label": "Swedish",
     "recognizer": "parakeet-v3",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "tg",
@@ -703,7 +703,7 @@
     "label": "Tamil",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "tt",
@@ -719,7 +719,7 @@
     "label": "Telugu",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "th",
@@ -727,7 +727,7 @@
     "label": "Thai",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "bo",
@@ -743,7 +743,7 @@
     "label": "Turkish",
     "recognizer": "whisper",
     "speech": true,
-    "interface": true
+    "interface": false
   },
   {
     "id": "tk",
@@ -767,7 +767,7 @@
     "label": "Urdu",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "uz",
@@ -783,7 +783,7 @@
     "label": "Vietnamese",
     "recognizer": "whisper",
     "speech": false,
-    "interface": true
+    "interface": false
   },
   {
     "id": "cy",

@@ -199,7 +199,7 @@ try {
     'Case-insensitive local nickname/epithet search, empty results and clearing work',
   );
 
-  for (const locale of ['en', 'ru', 'de', 'ar', 'ja']) {
+  for (const locale of ['en', 'uk', 'pl', 'fr']) {
     if (locale !== 'en') {
       await settings.locator('[data-section="languages"]').click();
       await settings.selectOption('#language-interface', locale);

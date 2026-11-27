@@ -341,6 +341,7 @@ import {
   LANGUAGE_DEFAULTS,
   LANGUAGE_PACKS,
   INTERFACE_LOCALES,
+  restoreLanguages,
   validateLanguages,
   resolveLanguages,
   languageBehaviorChanged,
@@ -1088,8 +1089,10 @@ async function initializeDesktop() {
   const languages = new Preferences(
     path.join(state, 'languages.json'),
     LANGUAGE_DEFAULTS,
-    validateLanguages,
+    restoreLanguages,
   );
+  // New choices are validated strictly; only restoring old files is lenient.
+  languages.validate = validateLanguages;
   const applications = new Preferences(
     path.join(state, 'applications.json'),
     APPLICATION_DEFAULTS,

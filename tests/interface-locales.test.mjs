@@ -282,17 +282,17 @@ test('recent desktop controls have localized labels instead of English source co
 });
 test('formatting preserves data slots and unknown text while localizing owned labels', () => {
   assert.equal(uiText('Open', 'en'), 'Open');
-  assert.equal(uiText('Open', 'ru'), 'Открыть');
-  assert.equal(uiText('  Apply\n languages  ', 'ru'), uiText('Apply languages', 'ru'));
-  assert.equal(uiText('  Private\n owner text  ', 'ru'), '  Private\n owner text  ');
+  assert.equal(uiText('Open', 'uk'), 'Відкрити');
+  assert.equal(uiText('  Apply\n languages  ', 'uk'), uiText('Apply languages', 'uk'));
+  assert.equal(uiText('  Private\n owner text  ', 'uk'), '  Private\n owner text  ');
   const text = 'An arbitrary message from the owner, not a UI key.';
   for (const locale of INTERFACE_LOCALES) {
     assert.equal(uiText(text, locale.id), text);
     assert.ok(uiText('Unavailable — {device}', locale.id, { device: 'Menu' }).includes('Menu'));
     assert.ok(uiText('{value} px', locale.id, { value: '142' }).includes('142'));
   }
-  const translated = uiText('Microphone (Japanese)', 'de');
-  assert.ok(translated.includes(displayLanguage('ja', 'de')));
+  const translated = uiText('Microphone (Japanese)', 'pl');
+  assert.ok(translated.includes(displayLanguage('ja', 'pl')));
 });
 
 test('navigation headings describe settings rather than unrelated service names or save errors', () => {
@@ -304,15 +304,14 @@ test('navigation headings describe settings rather than unrelated service names 
     );
     assert.notEqual(uiText('Microphone settings', id), 'Spotify', id);
   }
-  assert.equal(uiText('Microphone settings', 'da'), 'Mikrofonindstillinger');
-  assert.equal(uiText('Microphone settings', 'pt'), 'Configurações do microfone');
+  assert.equal(uiText('Microphone settings', 'uk'), 'Налаштування мікрофона');
+  assert.equal(uiText('Microphone settings', 'pl'), 'Ustawienia mikrofonu');
   assert.equal(uiText('Hide to tray', 'fr'), 'Réduire dans la zone de notification');
 });
-test('RTL metadata is scoped to the appropriate interface languages and has an English fallback', () => {
-  for (const id of ['ar', 'he', 'fa', 'ur']) assert.equal(interfaceLocale(id).direction, 'rtl');
-  for (const id of ['en', 'ru', 'de', 'ja', 'hi'])
-    assert.equal(interfaceLocale(id).direction, 'ltr');
-  assert.equal(interfaceLocale('unknown').id, 'en');
+test('the fork ships English, French, Polish and Ukrainian, with an English fallback', () => {
+  assert.deepEqual(INTERFACE_LOCALES.map(({ id }) => id).sort(), ['en', 'fr', 'pl', 'uk']);
+  for (const { id } of INTERFACE_LOCALES) assert.equal(interfaceLocale(id).direction, 'ltr');
+  for (const id of ['ru', 'de', 'ar', 'unknown']) assert.equal(interfaceLocale(id).id, 'en');
 });
 
 test('all language names stay localized without the browser ICU tables', () => {
@@ -328,11 +327,11 @@ test('all language names stay localized without the browser ICU tables', () => {
     for (const { id } of INTERFACE_LOCALES) {
       assert.ok(displayLanguage('en', id).trim());
       assert.notEqual(displayLanguage('en', id), 'en', id);
-      assert.ok(displayLanguage('ru', id).trim());
+      assert.ok(displayLanguage('uk', id).trim());
     }
     assert.equal(calls, 0);
-    assert.equal(displayLanguage('en', 'is'), 'enska');
-    assert.notEqual(displayLanguage('en', 'pa'), 'English');
+    assert.equal(displayLanguage('en', 'uk'), 'англійська');
+    assert.equal(displayLanguage('en', 'pl'), 'angielski');
   } finally {
     Intl.DisplayNames = NativeDisplayNames;
   }

@@ -424,7 +424,7 @@ try {
   page = await settingsView(application, 'models');
   await expectRecommendation('ru', 'en', chosen.id);
   page = await settingsView(application, 'languages');
-  await page.selectOption('#language-interface', 'ru');
+  await page.selectOption('#language-interface', 'uk');
   page = await settingsView(application, 'models');
   await expectRecommendation('ru', 'ru', chosen.id);
   await page.screenshot({ path: path.join(folder, 'models-ru.png') });

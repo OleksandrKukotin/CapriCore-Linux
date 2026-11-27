@@ -191,7 +191,7 @@ try {
     'Provider rejection appears inline without Electron wrappers; retry works with the saved key.',
   );
 
-  for (const locale of ['ru', 'de', 'fr', 'ar', 'ja', 'en']) {
+  for (const locale of ['uk', 'pl', 'fr', 'en']) {
     await page.evaluate(
       async (locale) =>
         window.capri.setLanguages({
@@ -271,14 +271,14 @@ try {
   await page.evaluate(async () =>
     window.capri.setLanguages({
       ...(await window.capri.bootstrap()).languages,
-      interface: 'ru',
+      interface: 'uk',
     }),
   );
-  await settings.waitForFunction(() => document.documentElement.lang === 'ru');
+  await settings.waitForFunction(() => document.documentElement.lang === 'uk');
   await settingsView(application, 'general');
   await settingsView(application, 'voice-api');
   await control('status')
-    .filter({ hasText: uiText('Enter an API key to continue.', 'ru') })
+    .filter({ hasText: uiText('Enter an API key to continue.', 'uk') })
     .waitFor();
   await settings.locator('#external-tts-panel > h2').scrollIntoViewIfNeeded();
   await screenshot('06-ru-first-setup');
