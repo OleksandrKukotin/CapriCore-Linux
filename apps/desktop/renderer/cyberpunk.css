@@ -4233,3 +4233,15 @@ body[data-window-resizable] .window-resize {
   grid-area: 3 / 3;
   cursor: nwse-resize;
 }
+
+/* Wayland: Capri cannot place her window, so the compositor moves it from the
+   header. Edge resizing reads a global cursor that Wayland never reports. */
+:root[data-window-placement='compositor'] #handle {
+  -webkit-app-region: drag;
+}
+:root[data-window-placement='compositor'] #handle button {
+  -webkit-app-region: no-drag;
+}
+:root[data-window-placement='compositor'] .window-resize {
+  display: none;
+}

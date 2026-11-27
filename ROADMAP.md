@@ -26,8 +26,9 @@ exists.
 
 - **Desktop.** The Electron companion opens on Wayland (developed on sway) with
   animation, teleports, mouth layers, dialogue, compact controls, tray and
-  resource monitoring. Its transparent area still catches clicks and the window
-  cannot be dragged yet. A native layer-shell overlay is in [`apps/overlay`](apps/overlay).
+  resource monitoring. It moves by its header; its transparent area still
+  catches clicks, and resizing, roaming and teleports are off on Wayland. A
+  native layer-shell overlay is in [`apps/overlay`](apps/overlay).
   The interface has 50 offline languages.
 - **Inference and memory.** Local models through a system `llama-server`,
   Hugging Face GGUF imports, saved OpenAI-compatible API profiles, and the
@@ -318,7 +319,7 @@ direction are documented, and every step passes its checks.
 - [ ] A bug backlog with severity, reproduction, affected versions, expected behavior and regression tests.
 - [ ] Test cancellation, reconnects, missing models, unavailable devices, permission denial, interrupted downloads, sleep/resume and GPU/voice failures.
 - [ ] Long conversations, repeated messages, simultaneous channel input and partial tool completion without duplicate actions or stale audio.
-- [ ] Wayland window behavior: only Capri's shape catches clicks (`setShape`), compositor-driven dragging, multiple monitors, fractional scaling, fullscreen apps, off-screen recovery, and the Electron window vs. the layer-shell overlay.
+- [ ] Wayland window behavior: only Capri's shape catches clicks and the avatar places itself again (layer-shell overlay; Electron's `setShape` does nothing on Wayland), resizing, multiple monitors, fractional scaling, fullscreen apps and off-screen recovery. The window already moves by its header. [Linux roadmap](docs/linux/roadmap.md#2-companion-window-on-wayland)
 - [ ] Test at least sway and one of GNOME or KDE; record what each compositor allows.
 - [ ] Readable subtitles, usable history, consistent keyboard navigation and screen-reader access where supported (AT-SPI).
 - [ ] Reduced motion, independent glitch intensity, high-contrast text and separate speech/effect volume.

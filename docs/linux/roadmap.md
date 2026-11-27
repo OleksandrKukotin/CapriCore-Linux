@@ -33,14 +33,28 @@ is large: persona plus about 30 tool descriptions the bridge cannot use.
 
 ### 2. Companion window on Wayland
 
-- [ ] Only Capri's shape should catch clicks. Today the whole transparent window
-      does (`pointerPassthrough` is off). Try `BrowserWindow.setShape` with the
-      sprite and control regions.
-- [ ] Dragging the window. Wayland ignores `setBounds` positions; the compositor
-      has to move the window (`-webkit-app-region: drag`, which uses
-      `xdg_toplevel.move`).
-- [ ] Decide between the Electron window and the native layer-shell overlay in
-      `apps/overlay` for the avatar.
+Tested on labwc with Electron 45 and `WAYLAND_DEBUG=1`. A Wayland client cannot
+place its own window: `setPosition` is ignored while `getBounds()` echoes it,
+and `getCursorScreenPoint()` reads 0,0. `setShape` never changes the input
+region (`setIgnoreMouseEvents` does, but cannot be undone without a cursor).
+
+- [x] Dragging the window: on Wayland the header is a `-webkit-app-region: drag`
+      region, so the compositor moves it (`xdg_toplevel.move`).
+- [x] Features that place the window (roaming, teleports, perching, detach hops)
+      are off on Wayland; Settings shows roaming as unavailable.
+- [ ] Resizing. The edges poll the cursor, so they are hidden on Wayland.
+      `resizable: true` would let the compositor resize (`xdg_toplevel.resize`),
+      but Electron's Linux `resize` event cannot tell a user resize from Capri's
+      own `setBounds` calls, and the size clamp would undo it. Mark Capri's own
+      resizes first, then save the rest.
+- [ ] Only Capri's shape should catch clicks. Electron cannot do this on
+      Wayland; a layer-shell surface can (`apps/overlay` already sets its input
+      region from the sprite's alpha).
+- [ ] Show the avatar through the layer-shell overlay: Electron renders the
+      companion offscreen and streams frames and the hit mask to
+      `capri-overlay`, which passes pointer events back. Layer-shell margins
+      also restore roaming, teleports and perching. GNOME has no layer-shell
+      and keeps the Electron window.
 
 ### 3. Speech
 

@@ -351,3 +351,19 @@ test('without pointer passthrough the window never becomes click-through', () =>
   assert.deepEqual(calls, []);
   assert.equal(pointer.ignored, false);
 });
+
+test('a Wayland client leaves window placement to the compositor', async () => {
+  const { clientPlacesWindows } = await import('../apps/desktop/platform-features.mjs');
+  assert.equal(clientPlacesWindows({ platform: 'linux', ozonePlatform: 'wayland' }), false);
+  assert.equal(clientPlacesWindows({ platform: 'linux', ozonePlatform: 'x11' }), true);
+  // Electron normally names its backend; otherwise the session type decides.
+  assert.equal(clientPlacesWindows({ platform: 'linux', sessionType: 'wayland' }), false);
+  assert.equal(clientPlacesWindows({ platform: 'linux', sessionType: 'x11' }), true);
+  assert.equal(clientPlacesWindows({ platform: 'linux' }), true);
+  // An explicit X11 backend (XWayland) can still place windows in a Wayland session.
+  assert.equal(
+    clientPlacesWindows({ platform: 'linux', ozonePlatform: 'x11', sessionType: 'wayland' }),
+    true,
+  );
+  assert.equal(clientPlacesWindows({ platform: 'win32', sessionType: 'wayland' }), true);
+});

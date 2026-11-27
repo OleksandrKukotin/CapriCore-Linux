@@ -325,6 +325,7 @@ export class CompanionPanel {
           <section class="settings-card" data-companion-group="Desktop roaming">
           <h3>Desktop roaming</h3>
           <label><input id="avatar-roaming" type="checkbox">Let Capri move around on her own</label>
+          <p class="settings-help" id="avatar-roaming-unavailable" hidden>Unavailable</p>
           <label for="avatar-roam-monitors">Roaming monitors</label><select id="avatar-roam-monitors"><option value="current">Current or observed monitor</option><option value="any">Any monitor</option><option value="pointer">Monitor with the pointer</option></select>
           <label class="drag-lightning-control" for="avatar-roam-interval">Time between moves <output id="avatar-roam-interval-value" data-untranslated></output></label>
           <input id="avatar-roam-interval" type="range" min="30" max="1800" step="30" value="120">
@@ -530,7 +531,11 @@ export class CompanionPanel {
     this.get('wake-play').onclick = () => void this.playWakePreview();
     this.roamingControls = () => {
       const control = this.get('avatar-roam-interval');
-      control.disabled = !this.get('avatar-roaming').checked;
+      // Roaming moves the window, which a Wayland client cannot do.
+      const placement = this.windowPlacement !== false;
+      this.get('avatar-roaming').disabled = !placement;
+      this.get('avatar-roaming-unavailable').hidden = placement;
+      control.disabled = !placement || !this.get('avatar-roaming').checked;
       this.get('avatar-roam-monitors').disabled = control.disabled;
       const seconds = control.valueAsNumber;
       this.get('avatar-roam-interval-value').textContent =
@@ -1030,6 +1035,11 @@ export class CompanionPanel {
     if (processGraphs !== undefined) this.get('process-graphs').checked = processGraphs;
     if (memoryStyle !== undefined) this.get('memory-style').value = memoryStyle;
     this.memoryControls();
+  }
+  /** Whether Capri can place her own window (false on Wayland). */
+  setWindowPlacement(available) {
+    this.windowPlacement = available;
+    this.roamingControls();
   }
   show(value) {
     queueMicrotask(() => this.glitchControls());

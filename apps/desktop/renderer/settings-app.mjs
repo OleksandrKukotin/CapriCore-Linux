@@ -2126,6 +2126,7 @@ function show(snapshot) {
   models.show(snapshot.models);
   updates.show(snapshot.updates);
   companion.show(snapshot.companion);
+  companion.setWindowPlacement(snapshot.windowSettings?.placement !== false);
   effects.show(snapshot.voiceEffects);
   effects.availability(!snapshot.activeTurnId && snapshot.voice.language !== 'off');
   language.installed(snapshot.recognitionAvailability, snapshot.speechAvailability);

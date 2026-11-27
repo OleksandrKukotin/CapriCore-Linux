@@ -23,8 +23,27 @@ export const platformFeatures = Object.freeze({
   /**
    * Click-through outside Capri's shape. It needs the global cursor position
    * while the window ignores the mouse, which Wayland never reveals, so the
-   * window would stay unclickable. Linux keeps the window clickable instead
-   * (next step: limit its input region with BrowserWindow.setShape).
+   * window would stay unclickable. Linux keeps the window clickable instead.
+   * BrowserWindow.setShape cannot help: on Wayland (Electron 45) it never
+   * changes the input region. The layer-shell overlay in apps/overlay can.
    */
   pointerPassthrough: false,
 });
+
+/**
+ * Whether Capri can place her own windows. A Wayland client cannot: the
+ * compositor ignores requested positions, getBounds() only echoes them back and
+ * the global cursor reads 0,0. Moving the window is then the compositor's job
+ * (-webkit-app-region: drag); resizing by cursor polling, roaming, teleports
+ * and perching stay off.
+ */
+export function clientPlacesWindows({
+  platform = process.platform,
+  ozonePlatform = '',
+  sessionType = '',
+} = {}) {
+  if (platform !== 'linux') return true;
+  // Electron records the backend it picked; fall back to the session type.
+  const backend = ozonePlatform || (sessionType === 'wayland' ? 'wayland' : 'x11');
+  return backend !== 'wayland';
+}

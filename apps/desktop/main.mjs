@@ -308,7 +308,7 @@ import {
   nativeMusicPackets,
 } from './audio-routing.mjs';
 import { AudioEndpoints } from './audio-endpoints.mjs';
-import { platformFeatures } from './platform-features.mjs';
+import { clientPlacesWindows, platformFeatures } from './platform-features.mjs';
 import { SystemAudioCapture } from './system-audio-capture.mjs';
 import { MusicAudioCapture } from './music-audio-capture.mjs';
 import { MusicListeningService } from './music-listening-service.mjs';
@@ -818,6 +818,11 @@ async function initializeDesktop() {
     avatarRoamCapture,
     avatarDesktopUpdate = false;
   const avatarRoaming = new AvatarRoaming();
+  // On Wayland the compositor owns window positions; see clientPlacesWindows.
+  const windowPlacement = clientPlacesWindows({
+    ozonePlatform: app.commandLine.getSwitchValue('ozone-platform'),
+    sessionType: process.env.XDG_SESSION_TYPE,
+  });
   let settingsHost;
   let settingsPreview = {};
   const liveCompanionSettings = () => settingsPreview.companion ?? companionPreferences.value;
@@ -4219,6 +4224,7 @@ async function initializeDesktop() {
 
   function canTeleport() {
     return (
+      windowPlacement &&
       catalog.animated &&
       !sessionLocked &&
       !shuttingDown &&
@@ -4849,6 +4855,7 @@ async function initializeDesktop() {
 
   function avatarRoamingAllowed() {
     return (
+      windowPlacement &&
       liveCompanionSettings().avatarRoaming &&
       backendState.phase === 'ready' &&
       avatarIdleAllowed() &&
@@ -8352,7 +8359,12 @@ async function initializeDesktop() {
           ...(rt.remote.authMode === 'chatgpt' ? { authMode: 'chatgpt' } : {}),
           ...(rt.remote.enabled ? { providerHost: new URL(rt.remote.baseUrl).hostname } : {}),
         },
-        windowSettings: { alwaysOnTop: saved.alwaysOnTop !== false, focusMode, avatarOnly },
+        windowSettings: {
+          alwaysOnTop: saved.alwaysOnTop !== false,
+          focusMode,
+          avatarOnly,
+          placement: windowPlacement,
+        },
         callCamera: callCamera.snapshot(),
         settingsVersions: settingsVersions(),
         screenSettings: media.screen.preferences(),
@@ -9407,6 +9419,9 @@ async function initializeDesktop() {
       return true;
     });
     handle('capri:drag-start', (edge) => {
+      // Without placement the compositor moves the window from its header, and
+      // resizing needs a global cursor that Wayland never reports.
+      if (!windowPlacement) return false;
       stopReplyWindowResize();
       if (edge === undefined) pointer.beginWindow();
       else {
