@@ -52,9 +52,8 @@ test('standalone math never consumes mixed tasks, prose, code or incomplete expr
   assert.equal(isScientificExpression('('.repeat(49) + '1' + ')'.repeat(49)), false);
   assert.equal(isScientificExpression('1+'.repeat(130) + '1'), false);
 });
-test('tool narrowing selects only available music and math domains without executing or rerouting file/time tasks', () => {
-  const state = { applications: { calculator: true }, spotify: { enabled: true, prepared: true } };
-  assert.equal(toolDomain('Set the volume even lower.', state), 'spotify');
+test('tool narrowing selects only available math domains without executing or rerouting file/time tasks', () => {
+  const state = { applications: { calculator: true } };
   assert.equal(
     toolDomain('Open Google Chrome and type Capri in its search bar.', {
       ...state,
@@ -77,34 +76,6 @@ test('tool narrowing selects only available music and math domains without execu
     'Read the file square.txt',
   ])
     assert.equal(toolDomain(value, state), null, value);
-});
-
-test('ordinary Spotify playback stays narrow even when the integration is disabled or not prepared', () => {
-  const requests = [
-    'Can you open my Spotify and turn on some music like Example Artist?',
-    'play music on Spotify',
-    'Start some music in Spotify.',
-  ];
-  for (const fullComputerAccess of [false, true])
-    for (const spotify of [
-      { enabled: true, prepared: true },
-      { enabled: true, prepared: false },
-      { enabled: false, prepared: true },
-      { enabled: false, prepared: false },
-    ])
-      for (const request of requests)
-        assert.equal(
-          toolDomain(request, { fullComputerAccess, spotify }),
-          spotify.enabled && spotify.prepared ? 'spotify' : 'conversation',
-          request,
-        );
-  assert.equal(
-    toolDomain('Do you have access to my Spotify?', {
-      fullComputerAccess: true,
-      spotify: { enabled: true, prepared: true },
-    }),
-    'conversation',
-  );
 });
 
 test('computer access questions and repeated-permission complaints stay conversational', () => {
@@ -146,29 +117,4 @@ test('access discussion narrowing preserves genuine polite commands and mixed ap
     for (const text of requests)
       assert.equal(toolDomain(text, { fullComputerAccess }), 'desktop', text);
   assert.equal(toolDomain('Write "full computer access is off" in Notepad.', {}), null);
-});
-
-test('mentioning music, player names or song titles does not require a Spotify action', () => {
-  const state = { spotify: { enabled: true, prepared: true } };
-  for (const text of [
-    'Do you like this music?',
-    'Do you like to play music?',
-    'What do you think of this song?',
-    'My favorite song is Next to Me.',
-    'This playlist makes me happy.',
-    '¿Te gusta esta música de Spotify?',
-    'Tu aimes cette chanson sur Spotify ?',
-    'Gefällt dir dieses Lied auf Spotify?',
-    'Você gosta desta música no Spotify?',
-    'Spotifyのこの曲は好き？',
-    'هل تعجبك هذه الأغنية على Spotify؟',
-    'Explain the volume of a sphere.',
-    'I track my exercise.',
-    'Do not play music.',
-  ]) {
-    assert.notEqual(toolDomain(text, state), 'spotify', text);
-    assert.notEqual(toolDomain(text, { ...state, fullComputerAccess: true }), 'spotify', text);
-  }
-  for (const text of ['Check Spotify volume.', 'What song is playing?', 'Pause Spotify.'])
-    assert.equal(toolDomain(text, state), 'spotify', text);
 });

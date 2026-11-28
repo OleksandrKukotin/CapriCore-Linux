@@ -10,26 +10,26 @@ Capri is a Linux AI desktop companion powered by OpenClaw. Run a bundled local m
 
 ### Linux status
 
-| Area                                                                                                                      | Status                                                                                                                                                                                             |
-| ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Text chat through an API connection, including [Claude Code](#chat-through-claude-code-no-model-download)                 | Works from source; no local model needed                                                                                                                                                           |
-| Local models through llama.cpp                                                                                            | Works from source with a system `llama-server`                                                                                                                                                     |
-| Memory recall                                                                                                             | Needs `llama-server` and the embedding model; switched off automatically without them                                                                                                              |
-| Hardware probe, VRAM/GPU load, CPU temperature, process load                                                              | Works (DRM sysfs, hwmon, `/proc`)                                                                                                                                                                  |
-| Desktop window                                                                                                            | Opens and is clickable on Wayland and moves by its header. Its transparent area also catches clicks; resizing, roaming and teleports are off on Wayland                                            |
-| Native avatar overlay                                                                                                     | Rust layer-shell surface in [`apps/overlay`](apps/overlay)                                                                                                                                         |
-| Coding mode (editor discovery, VS Code bridge), Discord Rich Presence, Stockfish                                          | Works (system packages)                                                                                                                                                                            |
-| Speech recognition and voice                                                                                              | Setup ported to Linux (`node tools/setup/setup.mjs`). Recognition's lock already works; the router, voice and Qwen locks must be recompiled for Linux first. Accelerated Qwen voice is unavailable |
-| Computer control, app actions, Spotify/YouTube Music, awareness, call audio, screen capture, virtual camera, tool sandbox | Not ported yet: these report "not available on Linux yet"                                                                                                                                          |
+| Area                                                                                                      | Status                                                                                                                                                                                             |
+| --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Text chat through an API connection, including [Claude Code](#chat-through-claude-code-no-model-download) | Works from source; no local model needed                                                                                                                                                           |
+| Local models through llama.cpp                                                                            | Works from source with a system `llama-server`                                                                                                                                                     |
+| Memory recall                                                                                             | Needs `llama-server` and the embedding model; switched off automatically without them                                                                                                              |
+| Hardware probe, VRAM/GPU load, CPU temperature, process load                                              | Works (DRM sysfs, hwmon, `/proc`)                                                                                                                                                                  |
+| Desktop window                                                                                            | Opens and is clickable on Wayland and moves by its header. Its transparent area also catches clicks; resizing, roaming and teleports are off on Wayland                                            |
+| Native avatar overlay                                                                                     | Rust layer-shell surface in [`apps/overlay`](apps/overlay)                                                                                                                                         |
+| Speech recognition and voice                                                                              | Setup ported to Linux (`node tools/setup/setup.mjs`). Recognition's lock already works; the router, voice and Qwen locks must be recompiled for Linux first. Accelerated Qwen voice is unavailable |
+| App actions (launch, browser drafts), awareness, call audio, screen capture, virtual camera, tool sandbox | Not ported yet: these report "not available on Linux yet"                                                                                                                                          |
 
 ## Changes in this fork
 
-- Windows-only code removed; Linux backends for hardware probing, process load, editor discovery, Discord IPC and file locations.
+- Windows-only code removed; Linux backends for hardware probing, process load and file locations.
 - Speech component setup ported from PowerShell to Node: a pinned, uv-managed Python per component, with broken environments moved aside instead of deleted.
 - `npm run claude-bridge` lets Capri chat through the Claude Code CLI with no model download.
 - API mode starts without llama.cpp; memory search is switched off until local memory is available.
 - The companion window stays clickable on Wayland.
 - Capri's prompts say she lives on a Linux desktop.
+- Upstream side features were removed to keep Capri a companion: chess, coding mode, Spotify, YouTube Music, music listening, Steam, Discord presence and control, recorded workflows, the GitHub token flow and the screen-reading computer agent. Computer control now only opens permitted apps and web pages.
 
 Upstream release notes up to 1.2.2 are in [docs/releases](docs/releases).
 
@@ -40,12 +40,10 @@ Upstream release notes up to 1.2.2 are in [docs/releases](docs/releases).
 - **Talk and remember.** Text chat, optional local speech recognition and voice, independent language settings, communication styles, searchable memory facts and a local document knowledge base.
 - **Live on the desktop.** Animated expressions and mouth layers, headpats, lightning teleports, window-edge poses, floating dialogue, compact controls, tray mode, themes and resource monitoring.
 - **Choose how much she moves.** Optional [desktop roaming](docs/desktop-roaming.md), with a 30-second to 30-minute interval and automatic pauses during interaction.
-- **Use tools with permission.** Scoped app/file actions, Spotify, Discord desktop control, web search, deep-thinking mode, recorded workflows and approved user tools. Computer control is BETA and uses a visible indicator with Escape cancellation.
-- **React to music and calls.** Optional local system-audio music detection with BPM animation, and microphone/system-audio call features with a separately configured virtual cable.
+- **Use tools with permission.** Scoped file actions, opening permitted apps and web pages, a calculator, timers, web search, deep-thinking mode and approved user tools.
+- **Join calls.** Optional microphone/system-audio call features with a separately configured virtual cable.
 
 Capabilities depend on the selected model, its tool/image support and your permissions. Complex workflows, individual GPU backends and additional voices still need configuration and can require your help; see [current limits](docs/releases/1.0.0.md#limits-to-know).
-
-[Set up native NPU and editor integration, and follow desktop task progress](docs/native-npu-and-coding.md).
 
 ## Run from source
 
@@ -53,7 +51,7 @@ Requirements: an x86-64 Linux desktop and Node.js 24.x with npm. For local model
 memory recall you also need [llama.cpp](https://github.com/ggml-org/llama.cpp)'s
 `llama-server`. On Arch: `pacman -S llama-cpp` plus a GPU backend such as `ggml-vulkan`,
 `ggml-cuda` or `ggml-hip`. Put `llama-server` on `PATH` or set `CAPRI_LLAMA_PATH`.
-Optional: `uv` for speech components, `stockfish` for chess, and a keyring service
+Optional: `uv` for speech components and a keyring service
 (GNOME Keyring or KWallet) if you want to save API keys.
 
 ```sh
@@ -95,7 +93,7 @@ In Capri open **Settings → API connections → Add an API connection → Custo
 
 Then **Save → Test → Use connection**. Each reply runs `claude -p` with no tools, no MCP
 servers and no settings files, so it can only write text. Capri's own tools (apps,
-files, Discord) are not available this way. Messages go to Anthropic under your Claude
+files, timers) are not available this way. Messages go to Anthropic under your Claude
 account. The bridge refuses requests from web browsers; pass `--require-token` to also
 demand a key. Replies take several seconds because Capri's agent prompt is large.
 

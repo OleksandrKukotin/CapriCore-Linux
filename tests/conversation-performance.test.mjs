@@ -41,7 +41,7 @@ async function capture(text, extra = {}) {
   return { ...sent, persona };
 }
 
-test('casual dialogue and personal-memory questions keep their narrow scopes without action manuals', async () => {
+test('casual dialogue keeps its narrow scope without action manuals', async () => {
   const social = await capture('Hi'),
     unclassified = await capture('Find the missing file');
   assert.equal(social.headers['x-capri-tools-once'], 'dialogue');
@@ -54,12 +54,6 @@ test('casual dialogue and personal-memory questions keep their narrow scopes wit
   assert(prompt.length < unclassified.body.messages[0].content.length * 0.6);
   assert.equal(unclassified.headers['x-capri-tools-once'], undefined);
   assert(unclassified.body.messages[0].content.includes('filesystem_control'));
-  const memory = await capture('What did I tell you yesterday?', {
-    computerIntent: async () => ({ intent: 'memory', usesPrevious: true }),
-  });
-  assert.equal(memory.headers['x-capri-tools-once'], 'conversation');
-  assert(memory.body.messages[0].content.includes('Only memory tools'));
-  assert(!memory.body.messages[0].content.includes('filesystem_control trash'));
 });
 
 test('unclassified questions cannot reach action tools when no action skill is available', async () => {

@@ -39,14 +39,11 @@ const files = Object.fromEntries([
     'reply-bubble-outline.mjs',
     'interface-theme.mjs',
     'presence-model.mjs',
-    'music-animation.mjs',
   ].map((name) => [`/${name}`, path.join(desktop, 'renderer', name)]),
-  ...[
-    'avatar-grip-rig.mjs',
-    'avatar-body-regions.mjs',
-    'avatar-pose-motion.mjs',
-    'music-listening-settings.mjs',
-  ].map((name) => [`/${name}`, path.join(desktop, name)]),
+  ...['avatar-grip-rig.mjs', 'avatar-body-regions.mjs', 'avatar-pose-motion.mjs'].map((name) => [
+    `/${name}`,
+    path.join(desktop, name),
+  ]),
   ['/headpat-face.png', path.join(root, 'assets/default/capri-headpat.png')],
 ]);
 writeFileSync(

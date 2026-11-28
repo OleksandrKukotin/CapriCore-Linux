@@ -162,25 +162,6 @@ textarea,
     transition: none;
   }
 }
-.computer-task-status {
-  display: block;
-  padding: 6px 10px;
-  border-left: 2px solid #f4ef69;
-  background: #0b2029;
-  color: #85e7e6;
-  font:
-    11px/1.5 Consolas,
-    monospace;
-}
-.computer-task-status[hidden] {
-  display: none;
-}
-.computer-task-card textarea {
-  width: 100%;
-  box-sizing: border-box;
-  resize: vertical;
-  min-height: 90px;
-}
 button,
 textarea {
   font: inherit;

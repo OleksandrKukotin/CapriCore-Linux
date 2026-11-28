@@ -4,8 +4,7 @@ import path from 'node:path';
 
 const PROJECT = 'https://github.com/OleksandrKukotin/CapriCore-Linux';
 
-// Renderer requests identifiers, never arbitrary URLs. Discord presence uses the
-// same table, so a changed destination cannot leave an old button behind.
+// Renderer requests identifiers, never arbitrary URLs.
 export const COMMUNITY_LINKS = Object.freeze({
   github: PROJECT,
   releases: PROJECT + '/releases/latest',

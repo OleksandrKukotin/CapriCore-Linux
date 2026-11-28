@@ -39,8 +39,13 @@ exists.
   The recognition lock installs on Linux (CI proves it). The voice, router and
   Qwen locks are still Windows builds, so voice does not install yet.
 - **Perception and actions.** Scoped file tools work. Screen capture, app
-  awareness, app actions, computer control, recorded workflows, Spotify, call
-  audio, the virtual camera and sandboxed user tools need a Linux backend.
+  awareness, app actions (launch, browser drafts, text entry), call audio, the
+  virtual camera and sandboxed user tools need a Linux backend.
+- **Scope.** The fork dropped upstream's side features to stay a companion:
+  chess, coding mode, Spotify, YouTube Music, music listening, Steam, Discord
+  presence and control, recorded workflows and the screen-reading computer
+  agent. Computer control is now limited to opening permitted apps and web
+  pages and typing into inspected fields.
 - **Distribution.** Runs from source only: `npm ci`, `npm run setup`,
   `npm run desktop`. No packages, installer or in-app updater. CI runs on Ubuntu.
 
@@ -50,14 +55,14 @@ exists.
 - **P1 — Core improvement:** the next user-facing capabilities.
 - **P2 — Expansion:** after dependencies and quality checks are ready.
 
-| Order         | Deliverable                                                                                                                                                                                                                                                                                                                                 | Exit condition                                                                                                                     |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Now · P0      | Finish the port basics: fast Claude Code chat, a usable Wayland window, installable speech locks, memory recall. [Linux roadmap](docs/linux/roadmap.md)                                                                                                                                                                                     | Chat, voice and recall work on the development machine from a clean checkout.                                                      |
-| Next · P0     | Measure long-chat stalls and move routine compaction out of the reply path. [CAP-07](#cap-07--measured-performance-improvements--ongoing-p0) · [CAP-12A](#cap-12a--responsive-context-compaction--p0)                                                                                                                                       | Local and API chat survive context pressure. Timings separate compaction from provider wait. History survives cancellation.        |
-| Then · P1     | Restore the Windows-era features with Linux backends, most-used first: media, screen capture, awareness, load control. [CAP-03](#cap-03--scoped-file-and-application-actions--p1) · [CAP-04](#cap-04--contextual-awareness-and-proactive-conversation--p1) · [CAP-05](#cap-05--optional-screen-and-webcam-perception--p1-screen--p2-webcam) | Each restored feature passes its own capability and privacy checks on wlroots, and its gap on GNOME/KDE is documented.             |
-| Then · P1     | Budgeted recall with free-form tags and memory controls. [CAP-12B](#cap-12b--tagged-long-term-memory--p1)                                                                                                                                                                                                                                   | Capri retrieves the right fact from a crowded category within a fixed prompt budget, with local indexing and per-provider sharing. |
-| Parallel · P0 | Make installing, updating and removing Capri on Linux ordinary. [CAP-14](#cap-14--public-repository-and-distribution--p0) · [CAP-15](#cap-15--install-and-first-run--p0) · [CAP-16](#cap-16--updates-recovery-and-removal--p0)                                                                                                              | Install, first conversation, update and removal pass on a clean supported distribution without editing JSON.                       |
-| Later · P2    | Computer control, webcam, more speech backends, remote channels. [CAP-06A](#cap-06a--gpu-cpu-and-npu-voice-backends--p2) · [CAP-13](#cap-13--telegram-parity--p2)                                                                                                                                                                           | Each advertised device, workflow and channel passes its own checks.                                                                |
+| Order         | Deliverable                                                                                                                                                                                                                                                                                                                                      | Exit condition                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Now · P0      | Finish the port basics: fast Claude Code chat, a usable Wayland window, installable speech locks, memory recall. [Linux roadmap](docs/linux/roadmap.md)                                                                                                                                                                                          | Chat, voice and recall work on the development machine from a clean checkout.                                                      |
+| Next · P0     | Measure long-chat stalls and move routine compaction out of the reply path. [CAP-07](#cap-07--measured-performance-improvements--ongoing-p0) · [CAP-12A](#cap-12a--responsive-context-compaction--p0)                                                                                                                                            | Local and API chat survive context pressure. Timings separate compaction from provider wait. History survives cancellation.        |
+| Then · P1     | Restore the Windows-era features with Linux backends, most-used first: app launch, screen capture, awareness, load control. [CAP-03](#cap-03--scoped-file-and-application-actions--p1) · [CAP-04](#cap-04--contextual-awareness-and-proactive-conversation--p1) · [CAP-05](#cap-05--optional-screen-and-webcam-perception--p1-screen--p2-webcam) | Each restored feature passes its own capability and privacy checks on wlroots, and its gap on GNOME/KDE is documented.             |
+| Then · P1     | Budgeted recall with free-form tags and memory controls. [CAP-12B](#cap-12b--tagged-long-term-memory--p1)                                                                                                                                                                                                                                        | Capri retrieves the right fact from a crowded category within a fixed prompt budget, with local indexing and per-provider sharing. |
+| Parallel · P0 | Make installing, updating and removing Capri on Linux ordinary. [CAP-14](#cap-14--public-repository-and-distribution--p0) · [CAP-15](#cap-15--install-and-first-run--p0) · [CAP-16](#cap-16--updates-recovery-and-removal--p0)                                                                                                                   | Install, first conversation, update and removal pass on a clean supported distribution without editing JSON.                       |
+| Later · P2    | Click/type computer agent, webcam, more speech backends, remote channels. [CAP-06A](#cap-06a--gpu-cpu-and-npu-voice-backends--p2) · [CAP-13](#cap-13--telegram-parity--p2)                                                                                                                                                                       | Each advertised device, workflow and channel passes its own checks.                                                                |
 
 No item implies support for every compositor, GPU or language. Each advertised
 combination needs its own evidence.
@@ -103,10 +108,12 @@ quality checks. Multilingual support is not a claim of equal quality.
 
 ## CAP-03 — Scoped file and application actions · P1
 
-File tools are pure Node and work on Linux. App actions, Discord desktop
-control and computer control drove Windows UI and need a Linux backend:
-AT-SPI2 for controls and the RemoteDesktop portal with libei for input
+File tools are pure Node and work on Linux. App actions drove Windows UI and
+need a Linux backend: `.desktop` entries for launching, AT-SPI2 for controls
 ([heritage](docs/linux/windows-heritage.md#computer-control-and-task-recording--p2-wayland-makes-it-hard)).
+The screen-reading click/type agent, its control session and recorded
+workflows were removed; Full computer access is now only a standing grant for
+app actions and extra folders.
 
 - [x] Typed tools to list, find, read, create, copy, move and rename regular files in granted scopes.
 - [x] Scopes grow only through explicit user choices. Real paths are resolved; links, name collisions and changed destinations are handled. Protected locations cover system trees and per-user credentials.
@@ -120,8 +127,10 @@ AT-SPI2 for controls and the RemoteDesktop portal with libei for input
 - [ ] A short action preview when useful. Confirm destructive, bulk or sensitive actions; reusable grants only for routine low-impact ones.
 - [ ] Stop control and Escape across long action chains, including focus loss, late tool results and partial work. On Wayland, Electron's global Escape (`globalShortcut`) gets no keys; bind a compositor key to the companion CLI's `stop` action ([CAP-11](#cap-11--unified-settings-and-capability-controls--p0)) or use the GlobalShortcuts portal.
 - [ ] File contents, window text, websites and screenshots are untrusted data. They never grant permissions.
+- [ ] **TODO (P2): click/type computer agent.** Bring back a minimal agent that can click and type inside permitted apps, with a visible control indicator and Escape stop. Design it on the new intent pipeline, not the removed upstream planner. Input needs the RemoteDesktop portal with libei on Wayland.
+- [ ] **TODO (P2): replaying recorded clicks.** Revisit "task training" (record owner clicks and replay them) only once the click/type agent exists, since it uses the same input path.
 
-[File actions](docs/file-actions.md) · [Application access](docs/application-actions.md) · [Computer control](docs/computer-control.md)
+[File actions](docs/file-actions.md) · [Application access](docs/application-actions.md)
 
 **Done when:** supported workflows pass tests with real applications and
 failure cases. Capri reports partial work honestly and never claims success
@@ -291,7 +300,7 @@ removed the Windows code and recorded its lessons in the
 - [x] Remove PowerShell, C#, DirectShow and `.cmd` sources, the Windows installer and updater.
 - [ ] Remove the Windows-only tests that are always skipped on Linux.
 - [ ] Remove dead locale keys that mention `setup-*.cmd`.
-- [ ] Remove or repoint upstream links and the private-repository token flow (`community-links.mjs`, `github-access.mjs`).
+- [x] Remove or repoint upstream links and the private-repository token flow (`community-links.mjs` points at the fork; `github-access.mjs` is removed).
 - [ ] Rename Windows-flavoured wording that survives in code and docs: Recycle Bin, drives, `.exe`/`.dll` names in `CALL_CAMERA_FILES`.
 - [ ] Rename the `ollama*` settings and URLs that now point at the managed llama.cpp host, with a settings migration.
 

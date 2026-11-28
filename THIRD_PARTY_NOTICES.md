@@ -9,7 +9,6 @@ GPL-3.0-only applies to project-owned code. LICENSE contains the full license te
 | Electron                               | npm distribution and its bundled notices                                                                                                                       |
 | mathjs                                 | Pinned Apache-2.0 npm package for numerical calculation; retain its LICENSE and NOTICE                                                                         |
 | PDF.js (`pdfjs-dist`)                  | Apache-2.0 npm package for local PDF text extraction; retain its upstream LICENSE                                                                              |
-| chess.js                               | BSD-2-Clause chess rules and notation library used by the Chess skill. Retain the package LICENSE.                                                             |
 | fenshot and its chess tile model       | MIT screenshot recognition library and model. See https://github.com/scoriiu/fenshot for the source, license and model training pipeline.                      |
 | ONNX Runtime Web                       | MIT runtime for local chess tile recognition. Retain its LICENSE and bundled third-party notices.                                                              |
 | Stockfish 19                           | Optional GPL-3.0 engine downloaded separately from the official release. Source and license are at https://github.com/official-stockfish/Stockfish/tree/sf_19. |
@@ -53,30 +52,5 @@ The optional Qwen speech adapter installs its own CPU runtime from the hash-lock
 A publisher can explicitly build a setup executable with a separate trained voice artifact using --voice-pack. That artifact contains only the runtime adapter, configuration and reference audio, with a VOICE_PACK_MANIFEST.json and VOICE-PACK-NOTICE.md. It remains outside the source export and outside the code license. Base Chatterbox weights are obtained separately from the pinned upstream repository. Packaging records provenance; it does not assert permission for third-party source recordings or performances.
 
 Breeze TTS 2 is an optional local voice engine. Capri downloads the pinned [Breeze-TTS-2.cpp Windows release](https://github.com/HoppouAI/Breeze-TTS-2.cpp/releases/tag/v0.1.7) (Apache-2.0) and the Q4_K GGUF on request. The [BreezeBlue Research and Non-Commercial License](https://huggingface.co/BreezeBlue/Breeze-TTS-2/blob/main/LICENSE) applies to the weights and their use. Users import their own voice profile locally.
-
-## Optional music detector
-
-Music listening downloads the pinned official Qualcomm YAMNet ONNX float export
-only when requested. `config/music-detector.json` records its immutable artifact
-checksums. The model is derived from Google's YAMNet and the Torch AudioSet
-implementation; it retains these upstream terms:
-
-- Google TensorFlow Models / YAMNet: Apache-2.0, copyright Google LLC;
-  [source](https://github.com/tensorflow/models/tree/master/research/audioset/yamnet)
-  and [bundled license](docs/licenses/music-detector/tensorflow-Apache-2.0.txt).
-- Torch AudioSet YAMNet implementation: MIT, copyright (c) 2021 Haochen;
-  [pinned source](https://github.com/w-hc/torch_audioset/tree/e8852c5)
-  and [bundled license](docs/licenses/music-detector/torch-audioset-MIT.txt).
-- Qualcomm AI Hub Models export: BSD-3-Clause, copyright 2025 Qualcomm
-  Technologies, Inc. and/or its subsidiaries;
-  [v0.61.0 source](https://github.com/qualcomm/ai-hub-models/tree/v0.61.0/src/qai_hub_models/models/yamnet)
-  and [bundled license](docs/licenses/music-detector/qualcomm-BSD-3-Clause.txt).
-
-The optional benchmark uses public MUSAN, Google FLEURS and explicitly licensed
-Wikimedia Commons recordings. Their license and attribution metadata is retained
-beside the downloaded samples under `.runtime/music-detection-research/` only.
-MUSAN recordings retain their individual source terms; Commons vocal examples
-use CC-BY-SA-3.0 and CC-BY-SA-4.0. Benchmark audio is never included in Capri
-source exports or release packages. See [music-listening verification](docs/music-listening.md).
 
 The default screenshot cue (`assets/default/screenshot-capture.mp3`) in 1.0.0 is original procedurally synthesized audio supplied under GPL-3.0-only. It contains no third-party recording samples. Its source is `tools/assets/build-screenshot-cue.py`; ffmpeg is used only for optional regeneration. Older releases used a different supplied cue.

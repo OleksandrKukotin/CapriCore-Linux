@@ -19,7 +19,6 @@ const api = settings('api', 'API connections');
 const updates = settings('updates', 'Updates');
 const microphone = settings('microphone', 'Voice input');
 const replies = settings('voice', 'Spoken replies');
-const music = settings('music', 'Music listening');
 const report = settings('bug', 'Report a bug');
 const releases = external('releases', 'Official releases');
 const github = external('github', 'Source code on GitHub');
@@ -190,7 +189,7 @@ const topics = [
       [
         'computer-access',
         'Do I need to give Capri full computer access?',
-        'Full computer access is optional. Turn it on only for tasks that need it. Press Esc during an active session to stop computer control, or revoke the permission in Settings.',
+        'Full computer access is optional. It lets Capri open apps and use extra folders without asking each time. You can revoke it in Settings.',
         settings('computer', 'Computer control'),
       ],
       [
@@ -202,23 +201,8 @@ const topics = [
     ],
   ],
   [
-    'Music and languages',
+    'Languages',
     [
-      [
-        'listen',
-        'How do I make Capri listen to music?',
-        'Turn on Music listening. Capri can detect rhythm from system audio and animate to the beat. Choose a different audio input or playback device under Audio if needed.',
-        music,
-        settings('audio', 'Audio'),
-      ],
-      [
-        'music-sources',
-        'Does Music listening only work with Spotify?',
-        'Music listening uses the selected audio device, so it works with any app playing through it. The separate Spotify and YouTube Music skills control playback in those services.',
-        music,
-        settings('spotify', 'Spotify'),
-        settings('youtube-music', 'YouTube Music'),
-      ],
       [
         'languages',
         'Can I use Capri in other languages?',

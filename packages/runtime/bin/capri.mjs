@@ -116,14 +116,7 @@ try {
     ].includes(command)
   )
     await import('./core.mjs');
-  else if (command === 'setup-spotify') {
-    process.argv.splice(2, 1);
-    await import('../../../integrations/spotify/provision.mjs');
-    await import('../../../tools/configuration/configure-spotify.mjs');
-  } else if (command === 'spotify') {
-    process.argv.splice(2, 1);
-    await import('../../../integrations/spotify/cli.mjs');
-  } else if (command === 'help' || command === '--help')
+  else if (command === 'help' || command === '--help')
     console.log(
       'Capri commands: doctor, profiles, setup [--profile=balanced], models, desktop, start, stop, status, chat. See docs/installation.md.',
     );

@@ -5,7 +5,6 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import configured from '../config/community.json' with { type: 'json' };
 import { COMMUNITY_LINKS, loadCommunityLinks } from '../apps/desktop/community-links.mjs';
-import { DiscordPresence } from '../apps/desktop/discord-presence.mjs';
 import {
   COMMUNITY_LINKS as legacyLinks,
   registerCompanionIpc,
@@ -21,13 +20,6 @@ function fixture(value) {
     writeFileSync(path.join(root, 'config/community.json'), JSON.stringify(value));
   return root;
 }
-const activity = (links) =>
-  new DiscordPresence({
-    preferences: {
-      snapshot: () => ({ enabled: true, applicationId: '123456789012345678', assetKey: '' }),
-    },
-    communityLinks: links,
-  }).activity();
 
 test('the only community destinations are this project on GitHub', () => {
   assert.equal(legacyLinks, COMMUNITY_LINKS, 'Existing imports retain the same allowlist');
@@ -38,10 +30,9 @@ test('the only community destinations are this project on GitHub', () => {
     issues: PROJECT + '/issues/new/choose',
     'issue-list': PROJECT + '/issues',
   });
-  assert.deepEqual(activity().buttons, [{ label: 'Get Capri', url: PROJECT }]);
 });
 
-test('a moved project updates presence and Settings together without forwarding unknown keys', async () => {
+test('a moved project updates Settings links without forwarding unknown keys', async () => {
   const moved = 'https://github.com/example/CapriCore-Linux';
   const root = fixture({ github: moved, futurePrivateMetadata: 'fixture-private-value' });
   const links = loadCommunityLinks(root);
@@ -49,9 +40,7 @@ test('a moved project updates presence and Settings together without forwarding 
   assert(Object.isFrozen(links));
   assert.equal(links.github, moved);
   assert.equal(links.releases, COMMUNITY_LINKS.releases, 'Partial configs keep the other links');
-  const presence = activity(links);
-  assert.equal(presence.buttons[0].url, moved);
-  assert(!JSON.stringify(presence).includes('fixture-private-value'));
+  assert(!JSON.stringify(links).includes('fixture-private-value'));
   const handlers = new Map(),
     opened = [];
   registerCompanionIpc((name, handler) => handlers.set(name, handler), {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-const routeNames = ['speaker', 'music', 'system', 'call'];
+const routeNames = ['speaker', 'system', 'call'];
 const emptyRoutes = Object.freeze(Object.fromEntries(routeNames.map((route) => [route, ''])));
 export const AUDIO_ROUTING_DEFAULTS = Object.freeze({
   routes: emptyRoutes,
@@ -52,28 +52,4 @@ export function localPlaybackDevices(devices) {
     if (label) outputs.set(device.deviceId, { id: device.deviceId, label });
   }
   return [...outputs.values()];
-}
-
-/** The detector consumes half seconds; Windows capture supplies one tenth second at a time. */
-export function nativeMusicPackets({ muted, deliver }) {
-  let packet = Buffer.allocUnsafe(32000);
-  let offset = 0;
-  let sequence = 0;
-  let gap = false;
-  return (pcm) => {
-    if (muted()) {
-      offset = 0;
-      gap = true;
-      return;
-    }
-    if (!(pcm instanceof Uint8Array) || pcm.byteLength !== 6400) return;
-    packet.set(pcm, offset);
-    offset += pcm.byteLength;
-    if (offset !== packet.byteLength) return;
-    if (gap && sequence) sequence++;
-    deliver(sequence++, packet);
-    packet = Buffer.allocUnsafe(32000);
-    offset = 0;
-    gap = false;
-  };
 }

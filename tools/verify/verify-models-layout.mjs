@@ -443,42 +443,6 @@ try {
   await page.locator('#language-custom').fill('');
   await page.selectOption('#language-conversation', 'en');
   page = await settingsView(application, 'applications');
-  await page.locator('#spotify-access').waitFor({ state: 'visible' });
-  assert.equal(await page.locator('#spotify-access').textContent(), 'Enable Spotify');
-  assert.equal(await page.locator('#spotify-check').isDisabled(), true);
-  assert.equal(await page.locator('#spotify-repair').isVisible(), false);
-  assert.equal(
-    await page.evaluate(() =>
-      window.capri.setSpotifyAccess(true).then(
-        () => true,
-        () => false,
-      ),
-    ),
-    false,
-  );
-  const showSpotify = (settings) =>
-    application.evaluate(
-      ({ BrowserWindow }, event) =>
-        BrowserWindow.getAllWindows()
-          .filter((win) =>
-            ['capri://desktop/index.html', 'capri://desktop/settings.html'].includes(
-              win.webContents.getURL(),
-            ),
-          )
-          .forEach((win) => win.webContents.send('capri:event', event)),
-      { type: 'spotify.settings', settings },
-    );
-  await showSpotify({ enabled: true, prepared: true, phase: 'idle', connection: 'connected' });
-  await page.waitForFunction(
-    () => document.getElementById('spotify-access').textContent === 'Disable Spotify',
-  );
-  assert.equal(await page.locator('#spotify-check').isEnabled(), true);
-  assert.equal(await page.locator('#spotify-result').textContent(), 'Connected to Spotify.');
-  await showSpotify({ enabled: true, prepared: false, phase: 'idle' });
-  await page.locator('#spotify-repair').waitFor({ state: 'visible' });
-  assert.equal(await page.locator('#spotify-access').textContent(), 'Disable Spotify');
-  assert.equal(await page.locator('#spotify-check').isDisabled(), true);
-  await page.screenshot({ path: path.join(folder, 'spotify.png') });
   await page.locator('#settings-window-close').click();
   page = primary;
   // Enter compact mode using its actual pin toggle rather than changing renderer state.
@@ -598,7 +562,6 @@ try {
       downloadedSizes: true,
       measuredLanguageRecommendations: measured,
       languageRecommendations: true,
-      spotifySettings: true,
       screenshots: folder,
       ownerDataAccessed: false,
       modelSwitched: false,

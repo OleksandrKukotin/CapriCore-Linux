@@ -3014,17 +3014,6 @@ body[data-presence='core'] #microphone-preview {
 #models-apply {
   border-color: var(--cyan);
 }
-.spotify-access {
-  margin-block-start: 18px;
-  padding-block-start: 12px;
-  border-block-start: 2px solid var(--ui-line, #397984);
-}
-#spotify-status {
-  color: var(--cyan);
-}
-#spotify-result {
-  overflow-wrap: anywhere;
-}
 #quick-actions #screen-indicator {
   padding: 0;
   font: 700 9px/1 monospace;
@@ -3101,21 +3090,6 @@ button:enabled:focus-visible {
   border-color: #ff668d;
   background: #581c31;
   box-shadow: 0 0 12px #ff37643d;
-}
-.github-access-card ol {
-  padding-inline-start: 19px;
-}
-.github-access-card li {
-  margin-block: 7px;
-}
-.github-access-card input[type='password'] {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 8px;
-  background: #071820;
-  border: 1px solid #65d5cf;
-  color: #bafff6;
 }
 
 body[data-presence='core'][data-avatar-detach='attached'] #handle #avatar-detach {

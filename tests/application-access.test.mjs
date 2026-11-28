@@ -19,7 +19,7 @@ test('pause persists before cancellation, blocks writes and preserves unrelated 
   assert.equal(access.enabled, true);
   await access.set(false);
   assert.deepEqual(events, ['stop', false]);
-  for (const tool of ['application_control', 'desktop_control', 'spotify_control'])
+  for (const tool of ['application_control', 'desktop_control'])
     assert.throws(() => access.assertAllowed(tool, { action: 'launch' }), {
       code: 'APPLICATION_ACCESS_PAUSED',
     });

@@ -15,117 +15,12 @@ export const advancedGuides = {
     step(
       '#computer-access-toggle',
       'Grant or revoke full access',
-      'Grant full access only for tasks that need broader control, then confirm it. Windows permissions still apply. Revoking it stops the current task and returns Capri to your individual app and folder grants.',
+      'Full access lets Capri open apps, enter text in inspected fields and use extra folders without asking each time. Revoking it returns Capri to your individual app and folder grants.',
     ),
     step(
       '#computer-access-resume',
       'Resume access to applications',
-      'A paused Application access setting also blocks new computer tasks. Resume it here. Full computer access still requires separate confirmation.',
-    ),
-    step(
-      '#computer-task-goal',
-      'Describe the result you want',
-      'Name the app, the item to act on and the result you want. If there are several similar windows, include the window title.',
-    ),
-    step(
-      '#computer-task-run',
-      'Run the task and follow its progress',
-      'Test runs the task on your computer. Capri observes the active window, acts and checks the result. An external model can receive task screenshots when image input is enabled.',
-    ),
-    step(
-      '#computer-task-stop',
-      'Stop an active task',
-      'Esc or Stop ends the remaining steps. Actions already completed stay in effect.',
-    ),
-    step(
-      '#computer-fx-enabled',
-      'Show effects at the screen edges',
-      'Edge effects indicate when Capri is controlling the computer. The center stays clear.',
-    ),
-    step(
-      '#computer-fx-theme',
-      'Choose the control style',
-      'Select Capri or Blackwall to change the appearance of the overlay. Intensity sets how bright the edge effects are.',
-      '#computer-fx-intensity',
-    ),
-    step(
-      '#computer-fx-cursor',
-      'Show Capri’s pointer and trail',
-      'Show where Capri is pointing, with a trail as the pointer moves. This switch is separate from the edge effects.',
-    ),
-    step(
-      '#computer-fx-motion',
-      'Set pointer movement duration',
-      'Set 0 for instant movement. A higher value gives you more time to follow the pointer.',
-    ),
-    step(
-      '#computer-fx-preview',
-      'Preview the effects',
-      'Preview shows your current choices for three seconds. Save Settings to keep them.',
-    ),
-  ],
-  coding: [
-    step(
-      '#coding-panel [data-code="folder"]',
-      'Choose one project folder',
-      'Choose the smallest folder that contains your whole project. Capri can search, read, create and edit files in the approved folder. An external model can receive parts of files relevant to the request.',
-      '#coding-panel [data-code="workspace"]',
-    ),
-    step(
-      '#coding-panel [data-code="clear"]',
-      'Revoke project access',
-      'This clears the saved project permission. Choose and save a project folder to work on it again.',
-    ),
-    step(
-      '#coding-panel [data-code="kind"]',
-      'Connect your editor',
-      'Choose the editor type, then find installed editors or select the executable. Save project access to use this editor.',
-      '#coding-panel :is([data-code="editor"], [data-code="pickEditor"], [data-code="detect"], [data-code="editors"] button)',
-    ),
-    step(
-      '#coding-panel [data-code="openProject"]',
-      'Open the saved project in the editor',
-      'Capri can also open a file at a specific line. Save open documents before asking her to edit. If a file changed on disk after reading, Capri must read the current copy before writing.',
-    ),
-    step(
-      '#coding-panel [data-code="bridge"]',
-      'Use unsaved editor documents and diagnostics',
-      'For a VS Code-compatible editor, enable live documents and save project access. Install the bridge, reload the editor and open the saved folder as a trusted workspace. Check editor connection to verify it.',
-      '#coding-panel :is([data-code="installBridge"], [data-code="checkBridge"])',
-    ),
-    step(
-      '#coding-panel [data-code="monitorStatus"]',
-      'Follow project activity',
-      'See whether monitoring is active, which files changed recently, and the last step during a coding task.',
-    ),
-    step(
-      '#coding-panel [data-code="reviewWrites"]',
-      'Review edits before writing',
-      'Enable this option and save project access. Capri will prepare changes for review before writing them to disk.',
-    ),
-    step(
-      '#coding-panel [data-code="batches"]',
-      'Inspect a change set and its files',
-      'Pick a change set, select a file and read the diff. Open file in editor jumps to an affected line when the file exists.',
-      '#coding-panel :is([data-code="changedFiles"] button[data-path], [data-code="openFile"])',
-    ),
-    step(
-      '#coding-panel [data-code="apply"]',
-      'Apply or discard pending changes',
-      'Apply writes the pending set. Discard drops it.',
-      '#coding-panel [data-code="discard"]',
-    ),
-    step(
-      '#coding-panel [data-code="taskName"]',
-      'Approve a specific build or test task',
-      'Give the task a name, choose its executable and enter arguments as a JSON array, such as ["--test"]. Add it and save project access. The saved command runs with your Windows permissions. Approve only trusted project code.',
-      '#coding-panel :is([data-code="taskExe"], [data-code="pickTask"], [data-code="taskArgs"], [data-code="addTask"], [data-code="tasks"] button)',
-    ),
-    step(
-      '#coding-panel [data-code="save"]',
-      'Save project access and enable coding',
-      'Save the project, editor, approved tasks and review preference. Enable coding mode to use the saved project in chat.',
-      '#coding-panel [data-code="enable"]',
+      'A paused Application access setting also blocks app actions. Resume it here. Full computer access still requires separate confirmation.',
     ),
   ],
   files: [
@@ -210,71 +105,6 @@ export const advancedGuides = {
       'Change your password',
       'Unlock the store, enter the current password and a new password of at least eight characters, then select Change password.',
       '#private-current-password, #private-change-password',
-    ),
-  ],
-  discord: [
-    step(
-      '#discord-application',
-      'Get your Discord Application ID',
-      'Open the Developer Portal, create an application named Capri, then copy its numeric Application ID from General Information.',
-      '#discord-portal',
-    ),
-    step(
-      '#discord-enabled',
-      'Show Capri in your Discord activity',
-      'Turn on activity sharing in Discord Desktop and keep it open. This status shows that you are using Capri. It contains no conversation text. Apply settings after changing the switch.',
-      '#discord-save',
-    ),
-    step(
-      '#discord-refresh',
-      'Refresh the connection status',
-      'If Capri is waiting, check that Discord Desktop is running and Activity Sharing is on, then refresh.',
-    ),
-    step(
-      '#discord-asset',
-      'Add an optional activity image',
-      'Upload an image under Rich Presence → Art Assets in your Discord application. Paste its asset key and apply settings. An empty field gives a text-only activity.',
-      '#discord-panel details:has(#discord-asset) > summary',
-    ),
-  ],
-  workflows: [
-    step(
-      '#workflow-record',
-      'Record a repeatable task',
-      'Enable Application access, then start recording and perform the task. Capri records clicks, drags, scrolling and shortcuts for up to two minutes. Ordinary typing, password fields and clipboard contents are excluded.',
-    ),
-    step(
-      '#workflow-stop',
-      'Stop recording or playback',
-      'Select Stop or press Esc to end recording or stop the remaining playback steps. Actions already completed stay in effect.',
-    ),
-    step(
-      '#workflow-name',
-      'Review and save the workflow',
-      'Name your workflow before saving. Review the recorded steps, reorder them with the arrows, and remove unneeded steps with ×.',
-      '#workflow-save, #workflow-steps .action-entry button',
-    ),
-    step(
-      '#workflow-add-text',
-      'Add a text step',
-      'Record a click on the intended text field first. Add the text step and enter what the workflow should type.',
-      '#workflow-steps .action-entry textarea',
-    ),
-    step(
-      '#workflow-json',
-      'Edit the recorded steps as JSON',
-      'Review the selectors and actions in the advanced editor. Apply the edited steps and save the workflow.',
-      '#workflows-panel details:has(#workflow-json) > summary, #workflow-edit',
-    ),
-    step(
-      '#workflow-variables',
-      'Supply values for reusable text steps',
-      'Put {{query}} in a recorded text step and supply an object such as {"query":"a song name"} at playback.',
-    ),
-    step(
-      '#workflow-list .action-entry button',
-      'Run, edit or remove a saved workflow',
-      'Playback requires full computer access. Review the workflow before running it. Capri stops if a control no longer matches, so check the result in the application.',
     ),
   ],
   'user-tools': [

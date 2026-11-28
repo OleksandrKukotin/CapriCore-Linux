@@ -54,7 +54,6 @@ export class ToolProgressGuard {
 
 const failurePrefixes = ['OpenClaw stopped this run', 'OpenClaw stopped this turn'];
 const toolNames = [
-  'spotify_control',
   'application_control',
   'desktop_control',
   'filesystem_control',

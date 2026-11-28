@@ -1,5 +1,4 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-.composer #coding-toggle,
 .composer #thinking-toggle,
 .composer #internet-toggle {
   display: inline-grid;
@@ -12,7 +11,6 @@
   border: 1px solid var(--ui-line, #72d2da88);
   background: transparent;
 }
-.composer #coding-toggle svg,
 .composer #thinking-toggle svg,
 .composer #internet-toggle svg {
   width: 18px;
@@ -23,7 +21,6 @@
   stroke-linejoin: round;
   fill: none;
 }
-.composer #coding-toggle[aria-pressed='true'],
 .composer #thinking-toggle[aria-pressed='true'],
 .composer #internet-toggle[aria-pressed='true'] {
   color: #ffed52;

@@ -5,13 +5,10 @@ import {
   readApiSettings,
 } from './inference-api.mjs';
 import { CapriCore } from '../../packages/core/src/index.mjs';
-import { codingSkill } from '../../packages/skills/src/coding.mjs';
 import { computerSkill } from '../../packages/skills/src/computer.mjs';
 import { avatarSkill } from '../../packages/skills/src/avatar/index.mjs';
-import { discordPresenceSkill } from '../../packages/skills/src/discord-presence.mjs';
 import { reasoningSkill } from '../../packages/skills/src/reasoning/index.mjs';
 import { webSearchSkill } from '../../packages/skills/src/web-search/index.mjs';
-import { installCodingBridge } from './main/coding-bridge.mjs';
 import { createMediaSkills } from './main/media-skills.mjs';
 import { createConversationSkills, createOwnerMemory } from './main/conversation-skills.mjs';
 import { createVoiceSkills } from './main/voice-skills.mjs';
@@ -20,10 +17,6 @@ import { skillPreferences } from '../../packages/skills/src/settings-catalog.mjs
 import { ACTION_SKILLS } from '../../packages/skills/src/action-tools.mjs';
 import { NpuInference } from '../../packages/runtime/src/providers/npu-inference.mjs';
 import { NpuSetupService, prepareIntelNpu } from './npu-setup-service.mjs';
-import { CodingService } from './coding-service.mjs';
-import { CodingAgent } from './coding-agent.mjs';
-import { CodingRevisions } from './coding-revisions.mjs';
-import { discoverCodingEditors } from './coding-editors.mjs';
 import {
   readNpuSettings,
   saveNpuSettings,
@@ -40,7 +33,6 @@ import { AvatarRoaming, chooseRoamingDisplay } from './avatar-roaming.mjs';
 import { LocalModelLoad } from './local-model-load.mjs';
 import { openLocalModelFolder } from './local-model-folder.mjs';
 import { isLemonadeNpuEndpoint, isLocalApiEndpoint } from './renderer/inference-endpoint.mjs';
-import { ComputerControl } from './computer-control.mjs';
 import { WebSearch } from './web-search.mjs';
 import { webSources } from './web-sources.mjs';
 import { visualReplyFailure } from './visual-response.mjs';
@@ -49,20 +41,9 @@ import {
   validateVoiceVolume,
   voiceVolumeSettings,
 } from './renderer/voice-volume.mjs';
-import { ResolveAdapter } from '../../integrations/resolve/service.mjs';
-import { ComputerAgent } from './computer-agent.mjs';
-import { steamGameLauncher } from './steam-game-launch.mjs';
-import { createSteamGameTask } from './steam-game-task.mjs';
-import { computerIntentClassifier, computerPlanner } from './computer-planner.mjs';
-import { spotifyPlanner } from './spotify-planner.mjs';
-import { computerVision } from './computer-vision.mjs';
-import { readSteamScreenText } from './steam-screen-text.mjs';
 import { FullComputerAccess } from './full-computer-access.mjs';
 import { ComputerRequests } from './computer-requests.mjs';
 import { callApplicationBridge } from '../../integrations/desktop-actions/service.mjs';
-import discordDefaults from '../../config/discord-presence.json' with { type: 'json' };
-import { DiscordPresence, discordSettings } from './discord-presence.mjs';
-import { loadCommunityLinks } from './community-links.mjs';
 import {
   diagnosticModelId,
   writeModelSelectionLog,
@@ -112,7 +93,6 @@ import { ApplicationAccess } from './application-access.mjs';
 import { BrainKnowledge } from './brain-knowledge.mjs';
 import { PrivateMemory } from './private-memory.mjs';
 import { privateDialogue } from './private-dialogue.mjs';
-import { TaskWorkflows } from './task-workflows.mjs';
 import { UserTools } from './user-tools.mjs';
 import { interfaceThemeColors } from './renderer/interface-theme.mjs';
 import { FileService } from '../../integrations/filesystem/service.mjs';
@@ -131,32 +111,11 @@ import { createDesktopResources } from './main/resources.mjs';
 import { createIpcHandler, settingsVersion } from './main/ipc.mjs';
 import { resourceResponse } from './main/protocol.mjs';
 import { registerScreenIpc } from './main/screen-ipc.mjs';
-import { ChessCapture } from './chess/capture.mjs';
-import { ChessDiagnostics, chessUiDecisions } from './chess/diagnostics.mjs';
-import {
-  chessArrowAppearance,
-  DEFAULT_CHESS_ARROW,
-  restoreChessArrowAppearance,
-} from './renderer/chess-arrow-style.mjs';
-import {
-  chessFrameAppearance,
-  DEFAULT_CHESS_FRAME,
-  restoreChessFrameAppearance,
-} from './renderer/chess-frame-style.mjs';
-import { ChessEngineInstall } from './chess/engine-install.mjs';
-import { importGame } from './chess/position.mjs';
-import { ChessSession } from './chess/session.mjs';
-import { ChessReactions } from './chess/reactions.mjs';
-import {
-  CHESS_REACTION_DEFAULTS,
-  chessReactionSettings,
-} from './renderer/chess-reaction-settings.mjs';
-import { ChessPageAccess } from './chess/source.mjs';
 import { registerAccessIpc } from './main/access-ipc.mjs';
 import { registerCompanionIpc } from './main/companion-ipc.mjs';
 import { crashReporter } from './main/crash-report.mjs';
 import { UpdateService } from './update-service.mjs';
-import { GitHubAccess, githubTokenUrl, credentialStorage } from './github-access.mjs';
+import { credentialStorage } from './credential-storage.mjs';
 import { installSpeechComponents } from '../../packages/installer/src/speech-components.mjs';
 import { SpeechInstallService } from './speech-install-service.mjs';
 import { ModelService } from './model-service.mjs';
@@ -175,9 +134,6 @@ import {
 import { BREEZE_LICENSE_URL, BreezeVoice } from './breeze-voice.mjs';
 import { ModelDeviceService } from './model-device-service.mjs';
 import { VoiceTrainingService } from './voice-training-service.mjs';
-import { SpotifySettings } from './spotify-settings.mjs';
-import { SpotifyService, SpotifyWorker } from '../../integrations/spotify/service.mjs';
-import { YouTubeMusicService } from '../../integrations/youtube-music/service.mjs';
 import { ApplicationService } from '../../integrations/desktop-actions/service.mjs';
 import {
   saveModelProfile,
@@ -304,18 +260,10 @@ import {
   audioRouteRequest,
   audioRoutingPreferences,
   localPlaybackDevices,
-  nativeMusicPackets,
 } from './audio-routing.mjs';
 import { AudioEndpoints } from './audio-endpoints.mjs';
 import { clientPlacesWindows, platformFeatures } from './platform-features.mjs';
 import { SystemAudioCapture } from './system-audio-capture.mjs';
-import { MusicAudioCapture } from './music-audio-capture.mjs';
-import { MusicListeningService } from './music-listening-service.mjs';
-import {
-  MUSIC_LISTENING_DEFAULTS,
-  musicAnimationReady,
-  validateMusicListeningSettings,
-} from './music-listening-settings.mjs';
 import { callResponseGenerator } from './call-response.mjs';
 import { CallAudioSetup } from './call-audio-setup.mjs';
 import { VirtualCableInstaller } from './virtual-cable-installer.mjs';
@@ -375,7 +323,6 @@ import { avatarTapsSleeping, isSleepCommand, SleepService } from './sleep-servic
 import { ScreenshotFiles } from './screenshot-files.mjs';
 import { ScreenClipFrames } from './screen-clip-frames.mjs';
 import { ScreenFrameWorker } from './screen-frame-worker.mjs';
-import { ControlOverlay } from './main/control-overlay.mjs';
 import { ControlWindowLayer } from './main/control-window-layer.mjs';
 import { AvatarDetach, avatarDragCanTeleport } from './main/avatar-detach.mjs';
 import { createAvatarScreenTargetDetector } from './main/avatar-screen-targets.mjs';
@@ -411,7 +358,6 @@ import {
   defaultPersonality,
   validatePersonality,
 } from '../../packages/runtime/src/personality.mjs';
-import { COMPUTER_DEFAULTS, computerPreferences } from './computer-preferences.mjs';
 import {
   companionVoiceSettings,
   companionVoiceInstalled,
@@ -490,38 +436,11 @@ async function initializeDesktop() {
     skills.call({ skillId, command, input }, { source, signal });
   const requestComputerAccess = (enabled, { signal, source = 'chat' } = {}) =>
     callSkill('capri.computer', 'requestAccess', enabled, { signal, source });
-  const runComputerSkill = (
-    goal,
-    {
-      signal,
-      previousTask,
-      ownerRequestedCall,
-      planningEffort,
-      applicationHint,
-      source = 'chat',
-    } = {},
-  ) =>
-    callSkill(
-      'capri.computer',
-      'run',
-      {
-        goal,
-        previousTask,
-        ownerRequestedCall,
-        ...(source === 'chat' && planningEffort && { planningEffort }),
-        ...(source === 'chat' && applicationHint && { applicationHint }),
-      },
-      { signal, source },
-    );
   configureResponseTimings(
     new ResponseTimingLog(
       path.join(verification ? verificationFolder : root, 'logs/response-desktop.jsonl'),
     ),
   );
-  const chessDiagnostics = new ChessDiagnostics(
-    path.join(verification ? verificationFolder : root, 'logs/chess.jsonl'),
-  );
-  const chessTrace = (operation, context) => chessDiagnostics.start(operation, context);
   const localTimingFetch = timingFetch(fetch, { ollamaPort: settings.ollamaPort });
   const rt = verification
     ? runtime({
@@ -830,15 +749,10 @@ async function initializeDesktop() {
   const livePersona = () => personaPrompt(rt, settingsPreview);
   let focusMode = false;
   let minimizedChip;
-  let recordingIndicator;
-  let recordingShown = false;
   let avatarOnly = false;
-  let workflowTurn = null,
-    workflows;
   const VOICE_REQUIRED_MESSAGE = 'Enable Capri’s voice first.';
   let prepareWakeAudio = async () => {};
   let temporal;
-  let chess, chessReactions;
   let reminders,
     sessionLocked = false;
   let pendingMemoryDecision, latestMemoryCandidate;
@@ -922,11 +836,6 @@ async function initializeDesktop() {
     dataRoot: verification ? verificationFolder : root,
   });
   let localInferenceTasks = 0;
-  const computerAppearance = new Preferences(
-    path.join(state, 'computer-control.json'),
-    COMPUTER_DEFAULTS,
-    computerPreferences,
-  );
   const confirmations = new Confirmations({
     emit,
     show: () =>
@@ -936,17 +845,11 @@ async function initializeDesktop() {
           ? restoreCompanion()
           : showCompanion(true),
   });
-  const githubAccess = new GitHubAccess({
-    root: verification ? verificationFolder : root,
-    storage: credentialStorage(safeStorage),
-    ...(verification ? { fallback: async () => null } : {}),
-  });
   const updates = new UpdateService({
     root,
     state,
     node: nodePath,
     emit,
-    credential: () => githubAccess.credential(),
   });
   const automaticUpdatesEnabled =
     !verification || process.env.CAPRI_DESKTOP_VERIFICATION_UPDATE_CHECK === '1';
@@ -955,11 +858,7 @@ async function initializeDesktop() {
     root: verification ? verificationFolder : root,
     node: nodePath,
     emit,
-    install: (selection, options) =>
-      installSpeechComponents(selection, {
-        ...options,
-        credential: () => githubAccess.credential(),
-      }),
+    install: (selection, options) => installSpeechComponents(selection, options),
     before: async (signal, selection) => {
       if (selection.recognition !== 'off') {
         microphone.stop();
@@ -1066,19 +965,6 @@ async function initializeDesktop() {
       emit({ type: 'voice-catalog.status', ...voiceCatalog.snapshot() });
     },
   });
-  const spotifyService = new SpotifyService(new SpotifyWorker({ root }));
-  const youtubeMusicService = new YouTubeMusicService({
-    root,
-    openExternal: (url) => shell.openExternal(url),
-  });
-  const spotify = new SpotifySettings({
-    root,
-    rt,
-    agentId: settings.agentId,
-    node: nodePath,
-    emit,
-    readStatus: (signal) => spotifyService.execute(randomUUID(), { action: 'status' }, signal),
-  });
   const startup = new StartupProgress({ file: path.join(state, 'startup-times.json'), emit });
   const voiceEffects = new Preferences(
     path.join(state, 'voice-effects.json'),
@@ -1101,10 +987,7 @@ async function initializeDesktop() {
     file: path.join(state, 'application-access.json'),
     changed: (settings) => emit({ type: 'application.access', settings }),
     stop: async () => {
-      workflows?.cancel();
       companionActions.approvals.cancel();
-      await spotifyService?.close();
-      if (computerAgent.running || computerControl.session) await emergencyComputerStop();
     },
   });
   const brain = new BrainKnowledge({
@@ -1133,18 +1016,13 @@ async function initializeDesktop() {
     file: path.join(state, 'full-computer-access.json'),
     discover: async () => (await callApplicationBridge(root, { action: 'catalog_drives' })).drives,
     confirm: (options) => confirmations.request(options),
-    onChange: (value) => {
-      if (!value.enabled) void computerControl.stop();
-      chat.computerApproval(value.enabling);
-      emit({ type: 'computer-access', settings: value });
-    },
+    onChange: (value) => emit({ type: 'computer-access', settings: value }),
   });
   const filePermissions = new FilePermissions(path.join(state, 'file-permissions.json'), {
     protectedRoots: verification ? [state] : protectedLocations(root),
     privatePaths: [
       state,
       brain.folder,
-      path.join(verification ? verificationFolder : path.join(root, 'data'), 'workflows'),
       path.join(userTools.data, 'secrets'),
       userTools.publicFile,
       path.join(root, '.runtime/native-helpers'),
@@ -1171,12 +1049,6 @@ async function initializeDesktop() {
     audioRoutingPreferences,
   );
   const audioEndpoints = new AudioEndpoints();
-  const musicPreferences = new Preferences(
-    path.join(state, 'music-listening.json'),
-    MUSIC_LISTENING_DEFAULTS,
-    validateMusicListeningSettings,
-  );
-  const liveMusicSettings = () => settingsPreview.musicListening ?? musicPreferences.snapshot();
   const callAudioPolicy = new Preferences(
     path.join(state, 'call-audio.json'),
     callAudioPreferences({ allowModel: false }),
@@ -1252,23 +1124,6 @@ async function initializeDesktop() {
   });
   const responseTiming = responsiveness({ ...settings, availableRamBytes: freemem() });
   const internetSearch = new WebSearch();
-  const coding = new CodingService({
-    root: verification ? verificationFolder : root,
-    onProjectChange: (monitor) => emit({ type: 'coding.project', monitor }),
-  });
-  const codingRevisions = new CodingRevisions(coding, {
-    changed: (changes) => emit({ type: 'coding.changes', changes }),
-    review: () => void settingsHost?.open('coding').catch((error) => console.error(error.message)),
-  });
-  const codingAgent = new CodingAgent({
-    service: coding,
-    applyEdits: (edits, options) => codingRevisions.apply(edits, options),
-    url: rt.inferenceUrl,
-    model: settings.model,
-    ...inferenceOptions,
-    params: auxiliaryRunnerParams,
-    emit,
-  });
   skills.register(webSearchSkill, {
     searchWeb: (query, options) =>
       internetSearch.search(query, {
@@ -1285,15 +1140,6 @@ async function initializeDesktop() {
   );
   skills.subscribe({ skillId: 'capri.web-search', event: 'settings' }, ({ data: settings }) =>
     emit({ type: 'internet.settings', settings }),
-  );
-  skills.register(codingSkill, {
-    service: coding,
-    agent: codingAgent,
-    assertModelIdle,
-    installBridge: (editor, { signal }) => installCodingBridge(root, editor, signal),
-  });
-  skills.subscribe({ skillId: 'capri.coding', event: 'settings' }, ({ data }) =>
-    emit({ type: 'coding.settings', ...data }),
   );
   function notifySavedMemoryWrite(receipt) {
     if (receipt.saved === true && !receipt.alreadySaved) {
@@ -1323,8 +1169,6 @@ async function initializeDesktop() {
   }
   const chat = new ChatService({
     skills,
-    codingTask: (goal, { signal } = {}) =>
-      callSkill('capri.coding', 'run', goal, { source: 'chat', signal }),
     externalInference: rt.remote.enabled,
     externalChatProviderRejectionSince: (startedAt) =>
       inferenceApi.chatProviderRejectionSince(startedAt),
@@ -1352,16 +1196,7 @@ async function initializeDesktop() {
           applicationAccess.mask(applications.snapshot()).notepad,
         calculator: skillEnabled('capri.calculator'),
       },
-      spotify: {
-        ...spotify.snapshot(),
-        enabled: skillEnabled('capri.spotify') && spotify.snapshot().enabled,
-      },
-      youtubeMusic: {
-        enabled: skillEnabled('capri.youtube-music'),
-        preferred: skillSettings.preferences.value['capri.youtube-music'].preferred,
-      },
       applicationAccess: skillEnabled('capri.applications') && applicationAccess.enabled,
-      computerSkillEnabled: skillEnabled('capri.computer'),
       fullComputerAccess:
         skillEnabled('capri.computer') && fullComputerAccess.enabled && applicationAccess.enabled,
       followUp:
@@ -1410,61 +1245,8 @@ async function initializeDesktop() {
       npuDialogue && !verification
         ? (user, assistant) => rememberDirectDialogue(user, assistant, 'Local NPU conversation')
         : null,
-    computerIntent: verification
-      ? null
-      : computerIntentClassifier({
-          url: rt.inferenceUrl,
-          model: settings.model,
-          modelCapabilities: settings.modelCapabilities,
-          ...inferenceOptions,
-          params: auxiliaryRunnerParams,
-        }),
     localCalculation: (input, args, signal) =>
       companionActions.execute('application_control', input.id, args, signal),
-    localMusic: (input, args, signal) =>
-      companionActions.execute('spotify_control', input.id, args, signal),
-    localYouTubeMusic: (input, args, signal) =>
-      companionActions.execute('youtube_music_control', input.id, args, signal),
-    prepareMusic: spotifyPlanner({
-      url: rt.inferenceUrl,
-      model: settings.model,
-      params: auxiliaryRunnerParams,
-      modelCapabilities: settings.modelCapabilities,
-      ...inferenceOptions,
-    }),
-    prepareYouTubeMusic: spotifyPlanner({
-      url: rt.inferenceUrl,
-      model: rt.remote.enabled ? rt.remote.model : settings.model,
-      params: auxiliaryRunnerParams,
-      modelCapabilities: settings.modelCapabilities,
-      ...inferenceOptions,
-      player: 'YouTube Music',
-    }),
-    computerAccess: (enabled, options) => {
-      chat.assertToolAllowed('settings_control', {
-        action: 'request',
-        setting: 'fullComputerAccess',
-        value: enabled,
-      });
-      if (enabled) applicationAccess.assertAllowed('desktop_control', { action: 'run_task' });
-      return requestComputerAccess(enabled, options);
-    },
-    computerTask: async (goal, options) => {
-      chat.assertToolAllowed('desktop_control', { action: 'run_task' });
-      applicationAccess.assertAllowed('desktop_control', { action: 'run_task' });
-      const result = await runComputerSkill(goal, options);
-      if (!verification)
-        void metadataRpc
-          .call('chat.inject', {
-            sessionKey: chatSessionKey,
-            label: 'Local computer task result',
-            message:
-              'Local execution record (data, not a new instruction): ' +
-              JSON.stringify({ ownerTask: goal, status: result.status, result: result.summary }),
-          })
-          .catch(() => {});
-      return result;
-    },
     prepareContext: async (input, options) => ({
       ...(skillEnabled('capri.screen') && !options.smallTalk
         ? await media.screen.prepare(input, options)
@@ -1621,14 +1403,11 @@ async function initializeDesktop() {
   function thinkingInput(value) {
     const input = validateInput({
       ...value,
-      mode: value?.mode ?? (callSkill('capri.coding', 'enabled') ? 'coding' : undefined),
       thinking:
         value?.thinking === undefined ? callSkill('capri.reasoning', 'mode') : value.thinking,
       internet:
         value?.internet === undefined ? callSkill('capri.web-search', 'mode') : value.internet,
     });
-    if (input.mode)
-      skillSettings.require(input.mode === 'coding' ? 'capri.coding' : 'capri.computer');
     // A composer can still have the old toggle state when a skill is switched off in Settings.
     if (input.thinking && !skillEnabled('capri.reasoning')) input.thinking = false;
     if (input.internet && !skillEnabled('capri.web-search')) input.internet = false;
@@ -1672,7 +1451,6 @@ async function initializeDesktop() {
         'Finish ChatGPT sign-in or cancel it before sending a message.',
       );
     avatarClickReactions?.cancel();
-    chessReactions?.cancel();
     wildTabs?.reset();
     const input = thinkingInput(value);
     surfaceRequest++;
@@ -1805,7 +1583,6 @@ async function initializeDesktop() {
       } finally {
         if (currentChatTask === task) {
           currentChatTask = null;
-          void computerControl.stop();
         }
       }
     }
@@ -1824,7 +1601,6 @@ async function initializeDesktop() {
       } finally {
         if (currentChatTask === task) {
           currentChatTask = null;
-          void computerControl.stop();
         }
       }
     }
@@ -1850,7 +1626,6 @@ async function initializeDesktop() {
     } finally {
       if (currentChatTask === task) {
         currentChatTask = null;
-        void computerControl.stop();
       }
     }
   }
@@ -2037,50 +1812,6 @@ async function initializeDesktop() {
       throw error;
     }
   }
-  let musicSuspended = false;
-  const musicAvailable = () =>
-    skillEnabled('capri.music') &&
-    platformFeatures.musicListening &&
-    !sessionLocked &&
-    !musicSuspended &&
-    !shuttingDown &&
-    !quitting &&
-    sleepService.phase === 'awake' &&
-    window &&
-    !window.isDestroyed() &&
-    window.webContents.getURL() === rendererUrl;
-  let previousMusicPose = false;
-  const musicListening = new MusicListeningService({
-    root,
-    settings: liveMusicSettings,
-    available: musicAvailable,
-    emit: (event) => {
-      if (!event.enabled) musicAudio?.revoke();
-      emit(event);
-      avatarDetach?.sendMusic({
-        enabled: event.enabled && event.settings.enabled,
-        hearingMusic: event.hearingMusic,
-        energy: event.energy,
-        tempo: event.tempo,
-        tempoConfidence: event.tempoConfidence,
-        beatAt: event.beatAt,
-        notes: event.settings.notes,
-        motion: event.settings.motion,
-        autoBpm: event.settings.autoBpm !== false,
-      });
-      const musicPoseReady = musicAnimationReady(event);
-      if (previousMusicPose !== musicPoseReady) {
-        previousMusicPose = musicPoseReady;
-        if (perch?.seated && !perch.hidden)
-          void Promise.resolve(updateSeatedFrame()).catch(() => {});
-      }
-    },
-  });
-  const musicAudio = new MusicAudioCapture({
-    ownerFrame: () => window?.webContents.mainFrame,
-    sessionId: () => (musicAvailable() ? musicListening.session?.id : null),
-    available: musicAvailable,
-  });
   const media = createMediaSkills(skills, {
     microphone: {
       start: startMicrophone,
@@ -2098,19 +1829,6 @@ async function initializeDesktop() {
       },
       snapshot: () => microphone.snapshot(),
     },
-    music: {
-      configure: (value) => {
-        musicPreferences.set(validateMusicListeningSettings(value));
-        return musicListening.publish();
-      },
-      start: () => musicListening.start(),
-      ready: (id) => musicListening.ready(id),
-      stop: (id) => {
-        if (id === undefined || id === musicListening.session?.id) musicAudio.revoke();
-        return musicListening.stop(id);
-      },
-      snapshot: () => musicListening.snapshot(),
-    },
     screen: {
       context: () => screenObservation?.context() ?? null,
       prepare: prepareScreenContext,
@@ -2120,69 +1838,6 @@ async function initializeDesktop() {
       stop: () => screenObservation.stop(),
     },
   });
-  let musicStartup;
-  let nativeMusicPlaybackTail = 0;
-  async function startNativeMusic(deviceId, startup) {
-    const { sessionId } = await media.music.start();
-    const musicSession = musicListening.session;
-    if (!musicSession || musicSession.id !== sessionId)
-      throw Error('The selected audio source could not start.');
-    startup.signal.throwIfAborted();
-    await audioEndpoints.capture(deviceId, {
-      signal: musicSession.controller.signal,
-      onPacket: nativeMusicPackets({
-        muted: () => !musicSession.capture || playbackBusy || Date.now() < nativeMusicPlaybackTail,
-        deliver: (sequence, pcm) =>
-          musicListening.packet({ sessionId, sequence, pcm, capturedAt: Date.now() }),
-      }),
-      onError: (error) => {
-        if (musicListening.session === musicSession) musicListening.fail(error.message);
-      },
-    });
-    if (!(await media.music.ready(sessionId)))
-      throw Error('The selected audio source could not start.');
-  }
-  function stopMusicListening() {
-    if (musicStartup) {
-      musicStartup.abort();
-      musicStartup = undefined;
-      emit({ type: 'music.stop-requested' });
-    }
-    return media.music.stop(undefined, 'host');
-  }
-  async function startMusicListening() {
-    if (musicStartup || musicListening.session) return;
-    const startup = (musicStartup = new AbortController());
-    const error = () => Error('Music listening could not start. Try again from Settings.');
-    const source = audioRoutes.value.routes.music;
-    let timer;
-    try {
-      if (!musicAvailable()) throw error();
-      await Promise.race([
-        source
-          ? startNativeMusic(source, startup)
-          : window.webContents.executeJavaScript('window.capriStartMusicListening()', true),
-        new Promise((_, reject) => {
-          timer = setTimeout(() => reject(error()), 15000);
-          startup.signal.addEventListener('abort', () => reject(error()), { once: true });
-        }),
-      ]);
-    } catch {
-      if (musicStartup !== startup) return;
-      stopMusicListening();
-      const failure = source ? Error('The selected audio source could not start.') : error();
-      musicListening.fail(failure.message);
-      throw failure;
-    } finally {
-      clearTimeout(timer);
-      if (musicStartup === startup) musicStartup = undefined;
-    }
-  }
-  function restoreMusicListening() {
-    if (!musicAvailable() || window.webContents.isLoading()) return;
-    if (powerMonitor.getSystemIdleState(1) === 'locked') return;
-    void startMusicListening().catch(() => {});
-  }
   async function startMicrophone() {
     if (speechInstaller.busy('recognition'))
       throw new Error('Wait for speech installation to finish, or cancel it in Languages.');
@@ -2341,11 +1996,6 @@ async function initializeDesktop() {
       saved.routeLabels[route] = device?.label ?? '';
       audioRoutes.set(saved);
       emit({ type: 'audio-routing.changed', ...audioRoutingState() });
-      if (route === 'music') {
-        await stopMusicListening();
-        if (musicAvailable() && audioRoutes.value.routes.music === deviceId)
-          void startMusicListening().catch(() => {});
-      }
       if (
         route === 'system' &&
         (currentCallAudio.systemAudioActive || currentCallAudio.systemAudioPending)
@@ -2441,25 +2091,6 @@ async function initializeDesktop() {
   const metadataRpc = new CompanionRpc({
     url: rt.gatewayUrl,
     token: () => readFileSync(rt.tokenPath, 'utf8').trim(),
-  });
-  const discordPresence = new DiscordPresence({
-    communityLinks: loadCommunityLinks(root),
-    preferences: new Preferences(
-      path.join(state, 'discord-presence.json'),
-      discordSettings(discordDefaults),
-      discordSettings,
-    ),
-    platform: verification ? 'verification' : process.platform,
-    onChange: (value) => emit({ type: 'discord.presence', settings: value }),
-  });
-  skills.register(discordPresenceSkill, {
-    start: () => discordPresence.start(),
-    stop: () => discordPresence.close(),
-    snapshot: () => discordPresence.snapshot(),
-    configure: (value) => {
-      const enabled = skillEnabled('capri.discord-presence');
-      return discordPresence.configure({ ...value, enabled }, { active: enabled });
-    },
   });
   const contextSampler = new ContextSampler({
     rpc: metadataRpc,
@@ -2895,7 +2526,6 @@ async function initializeDesktop() {
     } finally {
       if (currentChatTask === task) {
         currentChatTask = null;
-        void computerControl.stop();
       }
     }
   }
@@ -2928,7 +2558,6 @@ async function initializeDesktop() {
       busy: Boolean(
         chat.active ||
           currentChatTask ||
-          chessReactions?.active ||
           avatarClickReactions?.active ||
           screenObservation.session?.foreground ||
           screenObservation.session?.controller,
@@ -3069,7 +2698,6 @@ async function initializeDesktop() {
       !shuttingDown &&
       !quitting &&
       !sessionLocked &&
-      !controlBorder &&
       companionPresent() &&
       !chat.active &&
       (!currentChatTask || sleepService.phase === 'sleeping') &&
@@ -3140,7 +2768,6 @@ async function initializeDesktop() {
 
   function recordAvatarClick(kind = 'body') {
     initiative.activity();
-    chessReactions?.cancel();
     if (!skillEnabled('capri.avatar-interaction')) return false;
     callSkill('capri.avatar-interaction', 'react', kind);
     return true;
@@ -3169,7 +2796,6 @@ async function initializeDesktop() {
       !interfaceBusy &&
       !chat.active &&
       !currentChatTask &&
-      !computerControl.session &&
       Date.now() >= lastSpeechUntil
     );
   }
@@ -3205,7 +2831,6 @@ async function initializeDesktop() {
       if (
         initiative.active ||
         avatarClickReactions.active ||
-        chessReactions?.active ||
         playbackBusy ||
         voice.generating ||
         screenObservation.session?.controller
@@ -3435,16 +3060,6 @@ async function initializeDesktop() {
             });
         }
         break;
-      case 'capri.music':
-        if (enabled) await startMusicListening();
-        else stopMusicListening();
-        break;
-      case 'capri.chess':
-        if (!enabled) {
-          chess?.stop();
-          chess?.install.cancel();
-        }
-        break;
       case 'capri.screen':
         if (!enabled) {
           capturePolicy.clear();
@@ -3457,26 +3072,15 @@ async function initializeDesktop() {
       case 'capri.web-search':
         callSkill(id, 'setMode', enabled);
         break;
-      case 'capri.coding':
-        coding.setMonitoring(enabled);
-        if (!enabled) callSkill(id, 'resetMode');
-        break;
       case 'capri.applications':
         if (enabled) await applicationAccess.set(true);
         else companionActions.approvals.cancel();
         break;
       case 'capri.computer':
         if (enabled) await applicationAccess.set(true);
-        else if (computerAgent.running || computerControl.session) await emergencyComputerStop();
-        break;
-      case 'capri.workflows':
-        if (!enabled) workflows.cancel();
         break;
       case 'capri.user-tools':
         if (!enabled) userTools.cancel();
-        break;
-      case 'capri.spotify':
-        if (!enabled) await spotifyService.close();
         break;
       case 'capri.voice-calls':
         if (!enabled) {
@@ -3503,9 +3107,6 @@ async function initializeDesktop() {
         break;
       case 'capri.private-memory':
         if (!enabled) privateMemory.lock();
-        break;
-      case 'capri.discord-presence':
-        discordPresence.configure({ ...discordPresence.preferences.snapshot(), enabled });
         break;
       case 'capri.attachment-viewer':
         if (!enabled) {
@@ -3543,7 +3144,6 @@ async function initializeDesktop() {
       'open-file-access': 'files',
       'open-time': 'time',
       'open-applications': 'applications',
-      'open-spotify': 'spotify',
       'open-initiative': 'initiative',
       'open-screen': 'screen',
       'open-dimming': 'dimming',
@@ -3763,13 +3363,7 @@ async function initializeDesktop() {
   function emitChat(event) {
     if (event.type === 'turn.started' && speechInstaller.busy('speech'))
       event = { ...event, silent: true };
-    if (event.type === 'turn.started') chessReactions?.cancel();
     considerMemory(event);
-    if (
-      ['turn.completed', 'turn.cancelled', 'turn.failed'].includes(event.type) &&
-      (!computerControl.session || computerControl.session.turn === event.turnId)
-    )
-      void computerControl.stop();
     if (event.type === 'turn.completed') initiative.activity({ quietMs: 45000 });
     if (['turn.started', 'turn.completed', 'turn.cancelled', 'turn.failed'].includes(event.type))
       settingsHost?.send({
@@ -3850,12 +3444,9 @@ async function initializeDesktop() {
       previousPowerPhase = state.phase;
       emit({ type: 'power.state', ...state });
       if (awakened) showAvatarWave();
-      if (state.phase === 'awake') restoreMusicListening();
     },
     unload: async () => {
-      workflows?.cancel();
       privateMemory.lock();
-      stopMusicListening();
       avatarClickReactions?.cancel();
       resetCallAudio();
       setBackend('sleeping', 'Freeing model memory…');
@@ -4091,7 +3682,6 @@ async function initializeDesktop() {
   }
 
   function discardScreens(reason) {
-    chess?.stop();
     resetCallAudio();
     companionActions.approvals.cancel();
     capturePolicy.clear(reason);
@@ -4106,7 +3696,6 @@ async function initializeDesktop() {
     avatarDetach?.reset();
     desktopTeleportMenu?.hide();
     settingsHost?.hide();
-    void computerControl.stop();
     processLoad.stop();
     systemCpu.stop();
     if (!verification || capturePolicy.capture) discardScreens('companion-hidden');
@@ -4227,7 +3816,6 @@ async function initializeDesktop() {
       !sessionLocked &&
       !shuttingDown &&
       !quitting &&
-      !controlBorder &&
       window &&
       !window.isDestroyed() &&
       companionPresent()
@@ -4568,20 +4156,6 @@ async function initializeDesktop() {
       desktopFrame?.id === 'pose-sleep'
         ? desktopFrame
         : (surface?.frame ?? avatarDockFrame(dockFrames, perch?.dock ?? defaultSeat));
-    if (
-      !surface &&
-      frame?.id !== 'pose-sleep' &&
-      musicAnimationReady(musicListening.snapshot()) &&
-      !avatarSleeping()
-    ) {
-      const id =
-        frame?.anchor?.name === 'seat'
-          ? 'music-window'
-          : frame?.anchor?.name === 'ground'
-            ? 'music-floor'
-            : null;
-      frame = dockFrames.get(id) ?? frame;
-    }
     if (!frame) return false;
     const mask = maskFor(frame.id, frame);
     return display
@@ -4858,8 +4432,7 @@ async function initializeDesktop() {
       perch.updating ||
       !avatarDetach.available ||
       !surfaceAvailable() ||
-      !avatarIdleAllowed() ||
-      musicAnimationReady(musicListening.snapshot())
+      !avatarIdleAllowed()
     )
       return false;
     const frame = perch.dock.surface?.frame ?? avatarDockFrame(dockFrames, perch.dock);
@@ -5118,8 +4691,6 @@ async function initializeDesktop() {
       speechPause: (pause) =>
         validateSpeechSettings({ trailingSilenceSeconds: pause }).trailingSilenceSeconds,
       microphoneGain: validateMicrophoneGain,
-      computerAppearance: computerPreferences,
-      musicListening: validateMusicListeningSettings,
     };
     const next = {};
     for (const [key, input] of Object.entries(value)) {
@@ -5131,7 +4702,6 @@ async function initializeDesktop() {
     settingsPreview = next;
     const changed = (key) => JSON.stringify(previous[key]) !== JSON.stringify(next[key]);
     const send = (type, fields) => emit({ type, ...fields, preview: true });
-    if (changed('musicListening')) musicListening.publish();
     if (changed('companion'))
       send('companion.settings', {
         settings: {
@@ -5154,8 +4724,6 @@ async function initializeDesktop() {
           interface: next.interface ?? languages.value.interface,
         },
       });
-    if (changed('computerAppearance'))
-      controlBorder?.configure(next.computerAppearance ?? computerAppearance.snapshot());
     if (changed('initiative')) void syncInitiative().catch(() => observer.publish('failed'));
     if (
       changed('microphone') &&
@@ -5367,7 +4935,6 @@ async function initializeDesktop() {
   async function shutdownForRestart(message) {
     pendingMemoryDecision?.abort();
     memoryWarmup?.abort();
-    await computerControl.stop();
     shuttingDown = true;
     await callCamera.stop();
     await localModelLoad.stop();
@@ -5410,7 +4977,6 @@ async function initializeDesktop() {
     if (shuttingDown) return;
     if (cableInstaller.snapshot().busy)
       throw new Error('Wait for VB-CABLE setup to finish before closing or restarting Capri.');
-    await computerControl.stop();
     const choice = await confirmations.choose({
       title: 'Quit Capri?',
       detail: 'Capri will close and unload the local models. Any active reply will stop.',
@@ -5794,251 +5360,25 @@ async function initializeDesktop() {
     trash: (file) => shell.trashItem(file),
     translate: (text) => uiText(text, languages.value.interface),
   });
-  let controlBorder = null;
-  // A global Escape while another app has focus needs the GlobalShortcuts portal.
-  const nativeEscape = null;
-  const computerControl = new ComputerControl({
-    allowed: () => fullComputerAccess.enabled && applicationAccess.enabled,
-    visionAvailable: () => screenVisionAvailable,
-    canStart: () =>
-      Boolean(
-        (workflowTurn || (chat.active && !chat.active.controller.signal.aborted)) && !shuttingDown,
-      ),
-    currentTurn: () => workflowTurn ?? chat.active?.id ?? null,
-    bridge: (command, options) =>
-      desktopCatalog.bridge(
-        root,
-        command.action === 'computer_state'
-          ? { ...command, ignoreProcessId: String(process.pid) }
-          : command,
-        options,
-      ),
-    pointerDuration: () =>
-      (settingsPreview.computerAppearance ?? computerAppearance.value).pointerDuration,
-    applicationAdapter: new ResolveAdapter({
-      root,
-      bridge: (command, options) => desktopCatalog.bridge(root, command, options),
-      allowed: () =>
-        fullComputerAccess.enabled &&
-        applicationAccess.enabled &&
-        Boolean(chat.active) &&
-        !shuttingDown,
-    }),
-    capture: async ({ signal, displayWindow, steamGame, cyberpunkLauncher }) => {
-      const take = () =>
-        screenFrames.frame({
-          signal,
-          displayWindow,
-          limit:
-            steamGame || cyberpunkLauncher
-              ? { width: 3840, height: 2160 }
-              : { width: 1280, height: 720 },
-        });
-      const screen = await (controlBorder ? controlBorder.captureWithoutPointer(take) : take());
-      const scale = Math.min(1, 1280 / screen.width, 720 / screen.height);
-      if (scale === 1) return screen;
-      const scaled = nativeImage.createFromBuffer(screen.png).resize({
-        width: Math.max(1, Math.floor(screen.width * scale)),
-        height: Math.max(1, Math.floor(screen.height * scale)),
-        quality: 'best',
-      });
-      return {
-        bounds: screen.bounds,
-        png: scaled.toPNG(),
-        ...scaled.getSize(),
-        ocrPng: screen.png,
-        ocrWidth: screen.width,
-        ocrHeight: screen.height,
-      };
-    },
-    readSteamText: readSteamScreenText,
-    describe: computerVision({
-      url: rt.inferenceUrl,
-      model: settings.model,
-      modelCapabilities: settings.modelCapabilities,
-      ...inferenceOptions,
-      params: { ...auxiliaryRunnerParams, ...settings.generation },
-    }),
-    registerEscape: async () => {
-      let shortcut = false;
-      try {
-        shortcut = globalShortcut.register('Escape', () => void emergencyComputerStop());
-      } catch {}
-      if (!nativeEscape) return shortcut;
-      try {
-        const armed = await nativeEscape.start({
-          onEscape: () => void emergencyComputerStop(),
-          onFailure: () => void emergencyComputerStop(),
-        });
-        if (!armed || !nativeEscape.active)
-          throw new Error('Escape emergency stop is unavailable.');
-        return true;
-      } catch {
-        nativeEscape.stop();
-        globalShortcut.unregister('Escape');
-        return false;
-      }
-    },
-    unregisterEscape: () => {
-      try {
-        nativeEscape?.stop();
-      } finally {
-        globalShortcut.unregister('Escape');
-      }
-    },
-    showBorder: async () => {
-      if (controlBorder) throw new Error('Computer control indicator is already open.');
-      avatarDetach?.reset();
-      const overlay = new ControlOverlay({
-        BrowserWindow,
-        screen,
-        owner: window,
-        onLost: (reason) => {
-          if (controlBorder !== overlay) return;
-          console.warn('Computer control indicator lost:', reason);
-          return emergencyComputerStop();
-        },
-      });
-      controlBorder = overlay;
-      controlWindowLayer.begin();
-      overlay.configure(settingsPreview.computerAppearance ?? computerAppearance.snapshot());
-      await overlay.show(
-        uiText('Computer control active — press Escape to stop', languages.value.interface),
-      );
-    },
-    hideBorder: () => {
-      const overlay = controlBorder;
-      controlBorder = null;
-      try {
-        overlay?.hide();
-      } finally {
-        controlWindowLayer.end();
-      }
-    },
-    emit: (event) => {
-      if (event.type === 'computer.input') controlBorder?.pulse(event.action);
-      emit(event);
-    },
-  });
-  const computerAgent = new ComputerAgent({
-    onPlan: (value) => controlBorder?.plan(value),
-    control: computerControl,
-    applications: desktopCatalog,
-    callFocusWindow: () => {
-      const focused = BrowserWindow.getFocusedWindow();
-      return focused === window || focused === settingsHost?.window ? focused : null;
-    },
-    launchSteamGame:
-      platformFeatures.steamGames && !verification
-        ? steamGameLauncher({ openExternal: (uri) => shell.openExternal(uri) })
-        : undefined,
-    steamGameTask:
-      platformFeatures.steamGames && !verification
-        ? createSteamGameTask({ openExternal: (uri) => shell.openExternal(uri) })
-        : undefined,
-    language: () => languages.value.conversation,
-    audit: ({ lastOutcome, lastFailure, plan, actions }) =>
-      markResponseTiming('computer_outcome', {
-        reason: lastOutcome?.reason,
-        phase: lastFailure?.phase ?? lastOutcome?.phase,
-        failureCode: lastFailure?.code,
-        httpStatus: lastFailure?.httpStatus,
-        ...(actions.some(({ outcome }) => outcome === 'incremental_fallback') && {
-          outlineFallback: true,
-        }),
-        steps: lastOutcome?.steps,
-        completedCheckpoints: plan?.completed,
-        remainingCheckpoints: plan?.remaining,
-      }),
-    plan: computerPlanner({
-      url: rt.inferenceUrl,
-      model: settings.model,
-      modelCapabilities: settings.modelCapabilities,
-      ...inferenceOptions,
-      params: { ...auxiliaryRunnerParams, ...settings.generation },
-    }),
-    emit: (event) => {
-      controlBorder?.phase(event.phase);
-      chat.computerProgress();
-      emit(event);
-    },
-  });
   const computerRequests = new ComputerRequests({
     access: fullComputerAccess,
-    run: (goal, options) => computerAgent.run(goal, options),
     language: () => languages.value.conversation,
   });
   skills.register(computerSkill, {
     access: fullComputerAccess,
     requests: computerRequests,
-    agent: computerAgent,
     isApplicationAccessEnabled: () => applicationAccess.enabled,
-  });
-  function emergencyComputerStop() {
-    workflows?.cancel();
-    const stopped = computerControl.stop();
-    chat.cancel();
-    cancelVisual();
-    companionActions.approvals.cancel();
-    return stopped;
-  }
-  workflows = new TaskWorkflows({
-    root,
-    data: verification ? verificationFolder : path.join(root, 'data'),
-    control: computerControl,
-    catalog: desktopCatalog,
-    allowed: () =>
-      fullComputerAccess.enabled && applicationAccess.enabled && !sessionLocked && !shuttingDown,
-    turn: (id) => {
-      workflowTurn = id;
-    },
-    changed: (settings) => {
-      if (settings.recording !== recordingShown) {
-        recordingShown = settings.recording;
-        if (settings.recording) void recordingIndicator?.show();
-        else recordingIndicator?.hide();
-      }
-      chat.computerProgress();
-      emit({ type: 'workflow.status', settings });
-    },
-  });
-  // Also catch Escape in Capri-owned windows if OS shortcut delivery is interrupted.
-  app.on('web-contents-created', (_event, contents) => {
-    contents.on('before-input-event', (event, input) => {
-      if (
-        input.type === 'keyDown' &&
-        input.key === 'Escape' &&
-        (computerControl.session || controlBorder)
-      ) {
-        event.preventDefault();
-        void emergencyComputerStop();
-      }
-    });
   });
   const companionActions = new CompanionActions({
     skills,
     userTools,
-    workflows,
     authorizeAction: (tool, args) => {
-      if (tool === 'desktop_control' && !['end_control', 'control_status'].includes(args?.action)) {
-        const appAction = [
-          'apps',
-          'find_app',
-          'launch',
-          'launch_executable',
-          'inspect',
-          'browser_input',
-          'open_url',
-        ].includes(args?.action);
-        if (!appAction || !skillEnabled('capri.computer'))
-          skillSettings.require(appAction ? 'capri.applications' : 'capri.computer');
-      }
+      if (tool === 'desktop_control') skillSettings.require('capri.applications');
       if (tool === 'settings_control' && args?.action === 'request') {
         const id = {
           screenObservation: 'capri.screen',
           notepad: 'capri.applications',
           calculator: 'capri.calculator',
-          spotify: 'capri.spotify',
         }[args.setting];
         if (id) skillSettings.require(id);
       }
@@ -6047,38 +5387,18 @@ async function initializeDesktop() {
         (tool === 'application_control' && args?.action !== 'calculate')
       )
         applicationAccess.assertAllowed(tool, args);
-      if (
-        (tool === 'workflow_control' && args?.action === 'run') ||
-        /^capri_tool_\d{2}$/.test(tool)
-      )
-        chat.assertToolAllowed('desktop_control', { action: 'run_task' });
+      if (/^capri_tool_\d{2}$/.test(tool)) chat.assertToolAllowed('desktop_control', {});
       chat.assertToolAllowed(tool, args);
     },
-    computerAgent,
     requestComputerAccess: (enabled, options) => {
       chat.assertToolAllowed('settings_control', {
         action: 'request',
         setting: 'fullComputerAccess',
         value: enabled,
       });
-      if (enabled) applicationAccess.assertAllowed('desktop_control', { action: 'run_task' });
+      if (enabled) applicationAccess.assertAllowed('desktop_control', { action: 'launch' });
       return requestComputerAccess(enabled, { ...options, source: 'tool' });
     },
-    runComputerTask: (goal, options) => {
-      chat.assertToolAllowed('desktop_control', { action: 'run_task' });
-      applicationAccess.assertAllowed('desktop_control', { action: 'run_task' });
-      return chat.active?.computerTaskResult ?? chat.selectModelComputerTask(goal, options);
-    },
-    spotify: {
-      execute: (id, args, signal) => {
-        const access = spotify.snapshot();
-        if (!access.enabled || !access.prepared)
-          throw new Error('Enable Spotify in Settings → Application access first.');
-        return spotifyService.execute(id, args, signal);
-      },
-      close: () => spotifyService.close(),
-    },
-    youtubeMusic: youtubeMusicService,
     applications: new ApplicationService({
       root,
       permissionsFile: path.join(state, 'applications.json'),
@@ -6093,7 +5413,6 @@ async function initializeDesktop() {
           : {}),
       }),
     }),
-    computer: computerControl,
     fullAccess: () => fullComputerAccess.enabled,
     files: (() => {
       const folder = path.join(verification ? verificationFolder : root, 'data/filesystem');
@@ -6132,11 +5451,7 @@ async function initializeDesktop() {
     })(),
     onResult: (tool, args, result) => {
       chat.recordToolResult(tool, args, result);
-      if (
-        result?.cancelled &&
-        ((tool === 'settings_control' && args.setting === 'fullComputerAccess') ||
-          (tool === 'desktop_control' && args.action === 'run_task'))
-      )
+      if (result?.cancelled && tool === 'settings_control' && args.setting === 'fullComputerAccess')
         chat.cancel();
       if (tool === 'time_control') temporal?.observe(args, result);
       if (tool === 'time_control' && args.action === 'cancel' && result.ok)
@@ -6150,7 +5465,6 @@ async function initializeDesktop() {
       applications: applications.snapshot(),
       screenObservation: screenObservation.snapshot().active,
       fullComputerAccess: fullComputerAccess.enabled && applicationAccess.enabled,
-      spotify: spotify.snapshot().enabled && applicationAccess.enabled,
     }),
     setSetting: (key, value) => {
       const settings = companionPreferences.set({
@@ -6184,7 +5498,6 @@ async function initializeDesktop() {
         });
       const panel = {
         screenObservation: 'screen',
-        spotify: 'spotify',
         languages: 'languages',
         models: 'models',
       }[setting];
@@ -6213,7 +5526,6 @@ async function initializeDesktop() {
             confirmation: {
               screenObservation:
                 'Choose a window or monitor in Screen snapshot, then press Start observation. Capture has not started yet.',
-              spotify: 'Opened Spotify settings. Connect Spotify there.',
               languages:
                 'Opened Languages. Choose the languages, then press Apply languages. No language was changed yet.',
               models:
@@ -6309,7 +5621,7 @@ async function initializeDesktop() {
   });
   reminders.start();
 
-  function assertModelIdle({ spotifyChange = false } = {}) {
+  function assertModelIdle() {
     if (speechInstaller.busy())
       throw new Error('Wait for speech installation to finish, or cancel it in Languages.');
     if (
@@ -6322,8 +5634,7 @@ async function initializeDesktop() {
       huggingface.busy() ||
       voiceCatalog.busy() ||
       voiceTraining.busy() ||
-      models.busy() ||
-      (!spotifyChange && spotify.busy())
+      models.busy()
     )
       throw new Error('Wait for the current reply or operation to finish.');
   }
@@ -6523,20 +5834,7 @@ async function initializeDesktop() {
     handle('capri:settings-versions', settingsVersions);
     handle('capri:skill-settings', async (change, { role }) => {
       if (change === undefined) return skillSettings.snapshot();
-      const musicShortcut =
-        role === 'companion' &&
-        change?.id === 'capri.music' &&
-        typeof change.enabled === 'boolean' &&
-        Object.keys(change).every((key) => ['id', 'enabled'].includes(key));
-      if (role !== 'settings' && !musicShortcut)
-        throw new Error('Open Settings → Skills to configure a skill.');
-      if (
-        role === 'settings' &&
-        change?.id === 'capri.music' &&
-        change.enabled === true &&
-        !settingsHost?.window?.isVisible()
-      )
-        throw Error('Music listening could not start. Try again from Settings.');
+      if (role !== 'settings') throw new Error('Open Settings → Skills to configure a skill.');
       const before = skillEnabled(change?.id);
       const settings = skillSettings.set(change);
       if (
@@ -6623,8 +5921,6 @@ async function initializeDesktop() {
         [speechPreferences, speechDefaults],
         [initiativeSettings, INITIATIVE_DEFAULTS],
         [screenPreferences, observationOptions()],
-        [computerAppearance, COMPUTER_DEFAULTS],
-        [musicPreferences, MUSIC_LISTENING_DEFAULTS],
       ].map(([preferences, value]) => ({
         previous: preferences.snapshot(),
         value,
@@ -6687,7 +5983,6 @@ async function initializeDesktop() {
       for (const [id, value] of Object.entries(previousSkills))
         if (value.enabled) await applySkillActivation(id, false);
       emit({ type: 'voice.settings', ...voiceSnapshot() });
-      stopMusicListening();
       const result = {
         alwaysOnTop: saved.alwaysOnTop,
         portrait: presencePinned,
@@ -6698,15 +5993,12 @@ async function initializeDesktop() {
         speech: speechPreferences.snapshot(),
         initiative: initiativeSettings.snapshot(),
         screenSettings: media.screen.preferences(),
-        computerAppearance: computerAppearance.snapshot(),
-        musicListening: musicListening.snapshot(),
         settingsVersions: settingsVersions(),
       };
       controlWindowLayer.sync();
       emit({ type: 'window.always-on-top', active: result.alwaysOnTop });
       emit({ type: 'window.portrait', active: result.portrait });
       emit({ type: 'settings.set-portrait', active: result.portrait, preservePresentation: true });
-      controlBorder?.configure(result.computerAppearance);
       void syncInitiative().catch(() => observer.publish('failed'));
       await microphone.configurePause(result.speech.trailingSilenceSeconds);
       for (const [type, settings] of [
@@ -6716,7 +6008,6 @@ async function initializeDesktop() {
         ['speech.settings', result.speech],
         ['initiative.settings', result.initiative],
         ['screen.settings', result.screenSettings],
-        ['computer.appearance', result.computerAppearance],
       ])
         emit({ type, settings, ...(type === 'companion.settings' ? { reset: true } : {}) });
       emit({ type: 'avatar.layout', layout: result.avatarLayout });
@@ -6744,8 +6035,7 @@ async function initializeDesktop() {
     handle('capri:window-action', async ({ action, value } = {}, { role }) => {
       if (action === 'leave-frame' || action === 'return-to-frame') {
         if (role !== 'companion') throw new Error('Companion frame required.');
-        if (shuttingDown || quitting || sessionLocked || controlBorder || !companionPresent())
-          return false;
+        if (shuttingDown || quitting || sessionLocked || !companionPresent()) return false;
         if (action === 'return-to-frame') return returnAvatar();
         if (!catalog.animated) return false;
         avatarRoaming.postpone(liveCompanionSettings(), 60000);
@@ -6972,83 +6262,6 @@ async function initializeDesktop() {
     handle('capri:screen-settings', (value, { role }) => {
       return media.screen.configure(value, role);
     });
-    handle('capri:spotify-status', () => spotify.snapshot());
-    handle('capri:youtube-music', async (value, { role }) => {
-      if (
-        role !== 'settings' ||
-        !value ||
-        Object.keys(value).length !== 1 ||
-        !['status', 'open', 'verify'].includes(value.op)
-      )
-        throw new Error('Invalid YouTube Music request.');
-      const configured = skillEnabled('capri.youtube-music');
-      if (!configured)
-        return {
-          ok: false,
-          configured,
-          message: 'Enable YouTube Music in Settings → Skills first.',
-        };
-      if (value.op === 'status')
-        return { ok: true, configured, message: 'YouTube Music control is enabled.' };
-      const signal = skillSettings.operationSignal({
-        skillId: 'capri.youtube-music',
-        command: 'execute',
-      });
-      const action = value.op === 'verify' ? 'status' : 'open';
-      const result = await youtubeMusicService.execute(randomUUID(), { action }, signal);
-      const message = result.ok
-        ? value.op === 'verify'
-          ? 'Connected to YouTube Music.'
-          : 'Opened YouTube Music.'
-        : result.status === 'tab_not_found'
-          ? 'YouTube Music tab not found. Open it in your browser and select the tab.'
-          : 'YouTube Music did not confirm this action. Check the player.';
-      return { ok: result.ok, configured, message };
-    });
-    handle('capri:spotify-check', () => {
-      if (verification)
-        throw new Error('Spotify connection checks are disabled in desktop verification.');
-      return spotify.check();
-    });
-    handle('capri:spotify-access', async (enabled) => {
-      if (typeof enabled !== 'boolean') throw new Error('Invalid Spotify permission.');
-      if (verification) throw new Error('Spotify setup is disabled in desktop verification.');
-      assertModelIdle();
-      if (spotify.busy() || models.busy())
-        throw new Error('Wait for the current operation to finish.');
-      if (
-        !(await confirmations.request({
-          title: enabled ? 'Enable Spotify control?' : 'Disable Spotify control?',
-          detail:
-            'Capri will restart to apply Spotify access. Your history, memory and voice settings will be kept. Only the Spotify desktop app is controlled.',
-          confirmLabel: enabled ? 'Enable and restart' : 'Disable and restart',
-        }))
-      )
-        return false;
-      assertModelIdle();
-      const previous = backendState;
-      let stopped = false;
-      setBackend('starting', 'Preparing Spotify integration...');
-      try {
-        await spotify.setEnabled(enabled, {
-          beforeCommit: async () => {
-            assertModelIdle({ spotifyChange: true });
-            await shutdownForRestart('Applying Spotify access...');
-            stopped = true;
-          },
-          restart: () => queueDesktopRelaunch(),
-        });
-        app.quit();
-        return true;
-      } catch (error) {
-        if (!stopped && !shuttingDown) setBackend(previous.phase, previous.message);
-        else {
-          shuttingDown = false;
-          setBackend('offline', 'Spotify access could not be applied. Reconnect to try again.');
-        }
-        throw error;
-      }
-    });
     handle('capri:models-status', () => models.snapshot());
     handle('capri:models-folder', (_value, { role }) => {
       if (role !== 'settings') throw new Error('Settings window required.');
@@ -7062,60 +6275,6 @@ async function initializeDesktop() {
       ...(await modelDevices.refresh(voiceDeviceLanguage())),
       external: rt.remote.enabled,
     }));
-    async function codingPanelState(status, role) {
-      const config = coding.snapshot();
-      if (role === 'settings' && config.bridge && config.workspace) {
-        const handshake = await coding.bridge
-          .request(config.workspace, { action: 'context' }, AbortSignal.timeout(1200))
-          .catch(() => null);
-        config.bridgeConnected = handshake !== null && Object.hasOwn(handshake, 'active');
-      }
-      return { ...status, config, changes: codingRevisions.snapshot() };
-    }
-    handle('capri:coding', async (request, { role }) => {
-      const { op, value, enabled, id, path: file, apply, line } = request ?? {};
-      if (op === 'status') {
-        const status = callSkill('capri.coding', 'status', undefined, { source: role });
-        return codingPanelState(status, role);
-      }
-      if (op === 'open-project' || op === 'open-file' || op === 'diff' || op === 'review') {
-        if (role !== 'settings' || !settingsHost?.window?.isVisible())
-          throw Error('Open Coding mode in Settings.');
-        if (op === 'open-project') return coding.openProject();
-        if (op === 'open-file') return coding.execute({ action: 'open', path: file, line });
-        if (op === 'diff') return codingRevisions.diff(id, file);
-        if (sessionLocked || shuttingDown || !skillEnabled('capri.coding'))
-          throw Error('Coding mode is unavailable.');
-        return codingRevisions.decide(id, apply);
-      }
-      if (op === 'editors') return discoverCodingEditors();
-      if (op === 'folder' || op === 'executable') {
-        const selected = await dialog.showOpenDialog({
-          properties: [op === 'folder' ? 'openDirectory' : 'openFile'],
-        });
-        return selected.canceled ? null : selected.filePaths[0];
-      }
-      if (op === 'save') {
-        const previous = coding.config.workspace;
-        const status = callSkill('capri.coding', 'save', value, { source: role });
-        if (coding.config.workspace !== previous) codingRevisions.reset();
-        coding.setMonitoring(skillEnabled('capri.coding'));
-        return codingPanelState(status, role);
-      }
-      if (op === 'install-bridge')
-        return callSkill('capri.coding', 'installBridge', undefined, { source: role });
-      if (op === 'mode' && typeof enabled === 'boolean') {
-        const result = callSkill('capri.coding', 'mode', enabled, { source: role });
-        if (enabled && result.enabled && role === 'settings' && !skillEnabled('capri.coding')) {
-          const settings = skillSettings.set({ id: 'capri.coding', enabled: true });
-          await applySkillActivation('capri.coding', true);
-          emit({ type: 'skills.settings', settings, changed: 'capri.coding' });
-        }
-        if (result.projectRequired && role === 'companion') await settingsHost?.open('coding');
-        return result;
-      }
-      throw Error('Invalid coding operation.');
-    });
     async function restartWithModelDevice(selected, npuConfig) {
       assertModelIdle();
       const capture = microphone.snapshot();
@@ -7236,7 +6395,6 @@ async function initializeDesktop() {
       if (
         shuttingDown ||
         updates.busy() ||
-        spotify.busy() ||
         speechInstaller.busy() ||
         huggingface.busy() ||
         voiceCatalog.busy() ||
@@ -7680,49 +6838,9 @@ async function initializeDesktop() {
     });
     handle('capri:computer-access-status', () => callSkill('capri.computer', 'accessStatus'));
     handle('capri:computer-access-set', (enabled, { role }) => {
-      if (enabled) applicationAccess.assertAllowed('desktop_control', { action: 'run_task' });
+      if (enabled) applicationAccess.assertAllowed('desktop_control', { action: 'launch' });
       return callSkill('capri.computer', 'setAccess', enabled, { source: role });
     });
-    handle('capri:computer-task-status', () => callSkill('capri.computer', 'status'));
-    handle('capri:computer-appearance', () => computerAppearance.snapshot());
-    handle('capri:computer-appearance-set', (value) => {
-      const saved = computerAppearance.set(value);
-      controlBorder?.configure(saved);
-      emit({ type: 'computer.appearance', settings: saved });
-      return saved;
-    });
-    handle('capri:computer-preview', async (value) => {
-      if (computerControl.session || shuttingDown)
-        throw new Error('Stop computer control before previewing its effects.');
-      const preview = new ControlOverlay({ BrowserWindow, screen, owner: window });
-      preview.configure(
-        value === undefined ? computerAppearance.snapshot() : computerPreferences(value),
-      );
-      try {
-        await preview.show(
-          `${uiText('Computer control', languages.value.interface)} // ${uiText('Preview', languages.value.interface)} · 3 s`,
-        );
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-      } finally {
-        preview.hide();
-      }
-      return true;
-    });
-    handle('capri:computer-task', async (text) => {
-      applicationAccess.assertAllowed('desktop_control', { action: 'run_task' });
-      if (!fullComputerAccess.snapshot().enabled)
-        throw new Error('Enable Full computer access in Settings → Computer control first.');
-      return submitMessage({ id: randomUUID(), text, mode: 'computer' }, 'text');
-    });
-    handle('capri:discord-status', (_value, { role }) =>
-      callSkill('capri.discord-presence', 'snapshot', undefined, { source: role }),
-    );
-    handle('capri:discord-configure', (value, { role }) =>
-      callSkill('capri.discord-presence', 'configure', value, { source: role }),
-    );
-    handle('capri:discord-portal', () =>
-      shell.openExternal('https://discord.com/developers/applications'),
-    );
     handle('capri:models-apply', async () => {
       if (verification) throw new Error('Model changes are disabled in desktop verification.');
       assertModelIdle();
@@ -7806,24 +6924,6 @@ async function initializeDesktop() {
     });
     handle('capri:update-status', () => updates.snapshot());
     handle('capri:update-remind-later', () => updates.remindLater());
-    handle('capri:github-status', () => githubAccess.status());
-    handle('capri:github-connect', (value) => {
-      if (verification)
-        throw new Error('GitHub authentication is disabled in desktop verification.');
-      updates.cancelAutomaticCheck();
-      return githubAccess.connect(value);
-    });
-    handle('capri:github-remove', async () => {
-      updates.cancelAutomaticCheck();
-      const status = await githubAccess.remove();
-      updates.remindLater();
-      return status;
-    });
-    handle('capri:github-token-page', async (kind) => {
-      const url = githubTokenUrl(kind);
-      if (!verification) await shell.openExternal(url);
-      return true;
-    });
     handle('capri:update-settings', (value) => updates.setSettings(value));
     handle('capri:update-check', (value) => updates.check(value));
     handle('capri:update-versions', (experimental, { role }) => {
@@ -7844,7 +6944,6 @@ async function initializeDesktop() {
       assertIdle({ requireBackend: false });
       if (
         models.busy() ||
-        spotify.busy() ||
         speechInstaller.busy() ||
         huggingface.busy() ||
         voiceTraining.busy() ||
@@ -7869,8 +6968,7 @@ async function initializeDesktop() {
       )
         return false;
       assertIdle({ requireBackend: false });
-      if (models.busy() || spotify.busy())
-        throw new Error('Wait for the current operation to finish.');
+      if (models.busy()) throw new Error('Wait for the current operation to finish.');
       const installed = await updates.install({
         parentPid: process.pid,
         language: languages.value.interface,
@@ -7969,38 +7067,6 @@ async function initializeDesktop() {
           { source: role },
         );
       throw new Error('Invalid user-tool action.');
-    });
-    handle('capri:workflow', async (value, { role }) => {
-      if (
-        role !== 'settings' ||
-        sessionLocked ||
-        shuttingDown ||
-        (value?.action !== 'status' && !settingsHost?.window?.isVisible())
-      )
-        throw new Error('Open Task training in Settings.');
-      if (
-        !value ||
-        Object.keys(value).some((key) => !['action', 'workflow', 'id', 'variables'].includes(key))
-      )
-        throw new Error('Invalid workflow action.');
-      if (value.action === 'record' && !applicationAccess.enabled)
-        throw new Error('Enable application access first.');
-      if (['status', 'record', 'stop'].includes(value.action))
-        return callSkill(ACTION_SKILLS.workflows, value.action, undefined, { source: role });
-      if (value.action === 'save')
-        return callSkill(ACTION_SKILLS.workflows, 'save', value.workflow, { source: role });
-      if (value.action === 'remove')
-        return callSkill(ACTION_SKILLS.workflows, 'remove', value.id, { source: role });
-      if (value.action === 'run') {
-        if (chat.active) throw new Error('Wait for the current reply to finish.');
-        return callSkill(
-          ACTION_SKILLS.workflows,
-          'run',
-          { id: value.id, variables: value.variables ?? {} },
-          { source: role },
-        );
-      }
-      throw new Error('Invalid workflow action.');
     });
     const respondPrivately = privateDialogue({
       url: rt.inferenceUrl,
@@ -8195,7 +7261,6 @@ async function initializeDesktop() {
       resetContext: () => confirmReset(false),
       resetMemory: () => confirmReset(true),
       diagnosticRoot: verification ? verificationFolder : root,
-      prepareDiagnosticLogs: () => chessDiagnostics.flush(),
       verification,
       diagnosticResources: verification
         ? undefined
@@ -8220,14 +7285,8 @@ async function initializeDesktop() {
         modelStartup: { sequential: responseTiming.sequentialModels },
         backend: backendState,
         startup: startup.snapshot(),
-        github: githubAccess.diagnostics(),
         updates: updates.snapshot(),
         settingsWindow: settingsHost?.snapshot(),
-        discordPresence: {
-          phase: discordPresence.phase,
-          enabled: discordPresence.snapshot().enabled,
-        },
-        spotify: spotify.snapshot(),
         confirmationPending: Boolean(confirmations.pending),
         desktopActions: companionActions.broker.diagnostics(),
         applicationAccess: {
@@ -8236,15 +7295,12 @@ async function initializeDesktop() {
             .apps()
             .map(({ launch, inspect, text }) => ({ launch, inspect, text })),
         },
-        computerTask: callSkill('capri.computer', 'diagnostics'),
-        chess: chess?.diagnosticState(),
         screenCapture: capturePolicy.diagnostics(),
         screenObservation: (() => {
           const { source, ...state } = screenObservation.snapshot();
           return state;
         })(),
         voice: voice.diagnostics(),
-        musicListening: musicListening.snapshot(),
         callAudio: callAudioDiagnostics.snapshot({
           ...callAudioSnapshot(),
           setup: callSetup.diagnostics(),
@@ -8321,7 +7377,6 @@ async function initializeDesktop() {
         attachmentVision: screenVisionAvailable,
         skills: skillSettings.snapshot(),
         thinking: { enabled: callSkill('capri.reasoning', 'mode') },
-        coding: { enabled: callSkill('capri.coding', 'enabled') },
         internet: { enabled: callSkill('capri.web-search', 'mode') },
         time: companionActions.time.snapshot(),
         inference: {
@@ -8345,7 +7400,6 @@ async function initializeDesktop() {
         callCamera: callCamera.snapshot(),
         settingsVersions: settingsVersions(),
         screenSettings: media.screen.preferences(),
-        spotify: spotify.snapshot(),
         models: models.snapshot(),
         updates: updates.snapshot(),
         ...(role === 'companion' && {
@@ -8376,8 +7430,6 @@ async function initializeDesktop() {
         sprite: catalog.canvas,
         avatars: catalog.publicSprites(),
         animation: catalog.publicAnimation(),
-        musicArtwork: catalog.publicMusic(),
-        musicListening: musicListening.snapshot(),
         audioRouting:
           role === 'settings'
             ? audioRoutingState()
@@ -8502,311 +7554,10 @@ async function initializeDesktop() {
         models.busy() ||
         huggingface.busy() ||
         voiceTraining.busy() ||
-        voiceCatalog.busy() ||
-        spotify.busy()
+        voiceCatalog.busy()
       )
         throw new Error('Wait for the current reply or operation to finish.');
       return speechInstaller.start(selection);
-    });
-    const chessEnabled = () =>
-      skillEnabled('capri.chess') && !shuttingDown && !sessionLocked && !computerControl.session;
-    const chessPreferences = new Preferences(
-      path.join(state, 'chess.json'),
-      {
-        autoMove: false,
-        moveLightning: true,
-        showArrow: true,
-        boardFrame: false,
-        arrow: DEFAULT_CHESS_ARROW,
-        frameStyle: DEFAULT_CHESS_FRAME,
-        reactions: CHESS_REACTION_DEFAULTS,
-      },
-      (value) => {
-        if (typeof value?.autoMove !== 'boolean') throw new Error('Invalid chess settings');
-        const { autoMove, moveLightning = true, showArrow = true, boardFrame = false } = value;
-        if ([moveLightning, showArrow, boardFrame].some((flag) => typeof flag !== 'boolean'))
-          throw new Error('Invalid chess settings');
-        return {
-          autoMove,
-          moveLightning,
-          showArrow,
-          boardFrame,
-          arrow: restoreChessArrowAppearance(value.arrow),
-          frameStyle: restoreChessFrameAppearance(value.frameStyle),
-          reactions: chessReactionSettings(value.reactions),
-        };
-      },
-    );
-    chessReactions = new ChessReactions({
-      preferences: () => chessPreferences.value.reactions,
-      style: () => settingsPreview.style ?? readCommunicationStyle(rt.workspace),
-      language: () => {
-        const { conversation, interface: interfaceLanguage } = liveLanguages();
-        return INTERFACE_LOCALES.some(({ id }) => id === conversation)
-          ? conversation
-          : interfaceLanguage;
-      },
-      trace: chessTrace,
-      allowed: () =>
-        chessEnabled() &&
-        !quitting &&
-        !maintenance &&
-        companionPresent() &&
-        !chat.active &&
-        !currentChatTask &&
-        !draftBusy &&
-        !playbackBusy &&
-        !voice.generating &&
-        !voicePreviewRequest &&
-        !initiative.active &&
-        !avatarClickReactions.active &&
-        !screenObservation.session?.controller,
-      deliver: (text, spoken) => {
-        const turnId = randomUUID();
-        const assistant = {
-          id: randomUUID(),
-          turnId,
-          role: 'assistant',
-          text,
-          status: 'complete',
-          createdAt: new Date().toISOString(),
-          origin: { kind: 'chess-reaction' },
-        };
-        const speak =
-          spoken &&
-          skillEnabled('capri.voice-output') &&
-          voice.enabled &&
-          voice.language !== 'off' &&
-          !currentCallAudio.shareReplies;
-        emit({
-          type: 'turn.started',
-          turnId,
-          assistant: { ...assistant, text: '', status: 'streaming' },
-          source: 'chess-reaction',
-          silent: !speak,
-        });
-        if (speak) {
-          voiceSkills.output.turn({ type: 'turn.started', turnId });
-          voiceSkills.output.turn({ type: 'turn.delta', turnId, text });
-        }
-        emit({ type: 'turn.delta', turnId, text });
-        if (speak) voiceSkills.output.turn({ type: 'turn.completed', turnId });
-        emit({ type: 'turn.completed', turnId, assistant });
-      },
-    });
-    chess = new ChessSession({
-      capture: new ChessCapture({
-        BrowserWindow,
-        screen,
-        desktopCapturer,
-        enabled: chessEnabled,
-        teleportEffects: liveCompanionSettings,
-        regionBitmap: async (region, limit, signal, windowClient) => {
-          const { bgra, width, height } = await screenFrames.frame({
-            region,
-            windowClient,
-            limit,
-            signal,
-            format: 'bgra',
-          });
-          return nativeImage.createFromBitmap(bgra, { width, height, scaleFactor: 1 });
-        },
-      }),
-      access: new ChessPageAccess({
-        inspect: async (signal, target) => {
-          const response = await callApplicationBridge(
-            root,
-            {
-              action: 'chess_view',
-              ...(target.hwnd
-                ? { hwnd: target.hwnd }
-                : { x: String(target.x), y: String(target.y) }),
-            },
-            { signal, stillAllowed: chessEnabled },
-          );
-          return response.view ?? (response.probe ? { probe: response.probe } : null);
-        },
-      }),
-      install: new ChessEngineInstall({
-        root,
-        directory: path.join(
-          verification ? verificationFolder : path.join(root, '.runtime'),
-          'chess',
-        ),
-        progress: (engine) => settingsHost?.send({ type: 'chess.engine', engine }),
-        trace: chessTrace,
-      }),
-      enabled: chessEnabled,
-      trace: chessTrace,
-      autoMove: () => chessPreferences.value.autoMove,
-      playScreenMove: async ({ token, tabId, target, from, to, signal, onMovePressed }) => {
-        const response = await callApplicationBridge(
-          root,
-          {
-            action: 'chess_move',
-            token,
-            ...(tabId ? { tabId } : {}),
-            x: String(target.x),
-            y: String(target.y),
-            fromX: String(from.x),
-            fromY: String(from.y),
-            toX: String(to.x),
-            toY: String(to.y),
-          },
-          {
-            signal,
-            onMovePressed,
-            stillAllowed: () => chessEnabled() && chessPreferences.value.autoMove,
-          },
-        );
-        return {
-          status: response.status ?? 'blocked',
-          moveProbe: response.moveProbe,
-          browserProbe: response.probe,
-        };
-      },
-      prompt: () =>
-        uiText(
-          'Drag a square around the chessboard. Enter confirms. Esc cancels.',
-          languages.value.interface,
-        ),
-      event: (value) => settingsHost?.send({ type: 'chess.watch', ...value }),
-      react: (events, signal) => chessReactions.submit(events, signal),
-      reactionsEnabled: () => chessPreferences.value.reactions.enabled,
-    });
-    chess.capture.configureAppearance(chessPreferences.value.arrow);
-    chess.capture.configureMoveLightning(chessPreferences.value.moveLightning);
-    chess.capture.configureShowArrow(chessPreferences.value.showArrow);
-    chess.capture.configureBoardFrame(chessPreferences.value.boardFrame);
-    chess.capture.configureFrameStyle(chessPreferences.value.frameStyle);
-    handle('capri:chess', (request, { role }) => {
-      if (role !== 'settings') throw new Error('Settings frame required');
-      if (request?.action === 'status')
-        return chess
-          .snapshot()
-          .then((value) => ({ ...value, reactions: chessPreferences.value.reactions }));
-      if (request?.action === 'ui-diagnostic') {
-        const { reason, boardIndex } = request.payload ?? {};
-        if (!chessUiDecisions.has(reason)) throw new Error('Invalid chess diagnostic event');
-        chessTrace('ui', {
-          scanId: chess.scanned?.scanId,
-          boardIndex:
-            Number.isInteger(boardIndex) && boardIndex >= 0 && boardIndex < 3
-              ? boardIndex
-              : undefined,
-        })('decision', { reason });
-        return true;
-      }
-      if (request?.action === 'auto-move') {
-        const { autoMove } = chessPreferences.set({
-          ...chessPreferences.value,
-          autoMove: request.payload,
-        });
-        chessTrace('command', { command: 'auto-move', autoMove })('completed');
-        return autoMove;
-      }
-      if (request?.action === 'move-lightning') {
-        if (typeof request.payload !== 'boolean') throw new Error('Invalid chess settings');
-        const { moveLightning } = chessPreferences.set({
-          ...chessPreferences.value,
-          moveLightning: request.payload,
-        });
-        chess.capture.configureMoveLightning(moveLightning);
-        return moveLightning;
-      }
-      if (request?.action === 'board-frame') {
-        if (typeof request.payload !== 'boolean') throw new Error('Invalid chess settings');
-        const { boardFrame } = chessPreferences.set({
-          ...chessPreferences.value,
-          boardFrame: request.payload,
-        });
-        chess.capture.configureBoardFrame(boardFrame);
-        return boardFrame;
-      }
-      if (request?.action === 'show-arrow') {
-        if (typeof request.payload !== 'boolean') throw new Error('Invalid chess settings');
-        const { showArrow } = chessPreferences.set({
-          ...chessPreferences.value,
-          showArrow: request.payload,
-        });
-        chess.capture.configureShowArrow(showArrow);
-        return showArrow;
-      }
-      if (request?.action === 'frame-appearance') {
-        const frameStyle = chessFrameAppearance(request.payload);
-        chessPreferences.set({ ...chessPreferences.value, frameStyle });
-        chess.capture.configureFrameStyle(frameStyle);
-        return frameStyle;
-      }
-      if (request?.action === 'reactions') {
-        if (request.payload === undefined) throw new Error('Invalid chess reaction settings');
-        const { reactions } = chessPreferences.set({
-          ...chessPreferences.value,
-          reactions: request.payload,
-        });
-        chessReactions.cancel();
-        return reactions;
-      }
-      if (request?.action === 'arrow-appearance') {
-        const arrow = chessArrowAppearance(request.payload);
-        chessPreferences.set({ ...chessPreferences.value, arrow });
-        chess.capture.configureAppearance(arrow);
-        return arrow;
-      }
-      if (request?.action === 'stop') {
-        chessReactions.cancel();
-        chessTrace('command', { command: 'stop', scanId: chess.scanned?.scanId })('completed');
-        chess.stop();
-        return true;
-      }
-      if (request?.action === 'cancel') {
-        chessTrace('command', { command: 'cancel' })('completed');
-        chess.install.cancel();
-        return true;
-      }
-      if (!chessEnabled()) {
-        chessTrace('command', { command: request?.action })('failed', { reason: 'skill_disabled' });
-        throw new Error('Enable the Chess skill first');
-      }
-      switch (request?.action) {
-        case 'install':
-          if (!chess.install.snapshot().installed) chess.stop();
-          return chess.install.install();
-        case 'remove':
-          return chess.removeEngine();
-        case 'scan':
-          return chess.scan(request.payload ?? {});
-        case 'import': {
-          const trace = chessTrace('command', { command: 'import', source: 'local' });
-          const { fen, count, ply } = importGame(request.payload);
-          trace('completed', { historyPlies: count, ply, turn: fen.split(' ')[1] });
-          return { fen, count, ply };
-        }
-        case 'analyse':
-          return chess.analyse(request.payload ?? {});
-        case 'watch':
-          return chess.watch(request.payload ?? {});
-        case 'explain': {
-          const analysis = chess.last;
-          if (!analysis?.result.bestMove || analysis.position.fen !== request.payload?.fen)
-            throw new Error('Analyse a chess position first');
-          const pv = analysis.result.lines[0]?.moves.map(({ san }) => san).join(' ') ?? '';
-          const question = uiText(
-            'Why does Stockfish suggest this chess move?',
-            languages.value.interface,
-          );
-          settingsHost.hide();
-          restoreCompanion();
-          emit({
-            type: 'chess.explain',
-            draft: `${question}\nFEN ${analysis.position.fen}\nStockfish ${analysis.result.bestMove.san}${pv ? ` · ${pv}` : ''}`,
-          });
-          return true;
-        }
-        default:
-          chessTrace('command')('failed', { reason: 'invalid_request' });
-          throw new Error('Invalid chess action');
-      }
     });
     registerScreenIpc(handle, {
       root,
@@ -8846,7 +7597,6 @@ async function initializeDesktop() {
     handle('capri:playback-state', (value) => {
       if (typeof value !== 'boolean') throw new Error('Invalid playback state');
       callAudioDiagnostics.playback(value, voice.turn?.id);
-      if (playbackBusy && !value) nativeMusicPlaybackTail = Date.now() + 600;
       playbackBusy = value;
       for (const listener of [...reminderListeners])
         listener({ type: 'playback.state', busy: value });
@@ -8903,20 +7653,6 @@ async function initializeDesktop() {
       )
         stopNativeSystemAudio();
     });
-    handle('capri:music-status', media.music.snapshot);
-    handle('capri:music-settings', (value, { role }) => {
-      if (role !== 'settings') throw Error('Open Music listening in Settings.');
-      return media.music.configure(value, { role });
-    });
-    handle('capri:music-audio-start', () => {
-      if (audioRoutes.value.routes.music) throw Error('The selected audio source could not start.');
-      return media.music.start();
-    });
-    handle('capri:music-audio-ready', media.music.ready);
-    handle('capri:music-audio-packet', (value) => musicListening.packet(value));
-    handle('capri:music-audio-stop', (id) => media.music.stop(id));
-    handle('capri:music-audio-prepare', (id, { frame }) => musicAudio.prepare(id, frame));
-    handle('capri:music-audio-cancel', (id, { frame }) => musicAudio.cancel(id, frame));
     handle('capri:call-audio-devices', (_, { role }) => {
       if (role === 'settings')
         return listOwnerAudioDevices().then((devices) => callOutputDevices(devices));
@@ -9101,11 +7837,7 @@ async function initializeDesktop() {
     handle('capri:quit', quitAndUnload);
     handle('capri:microphone-audio', (value) => microphone.audio(value));
     handle('capri:microphone-playback', (value) => microphone.playback(value));
-    handle('capri:computer-stop', async () => {
-      return emergencyComputerStop();
-    });
     handle('capri:cancel', (id) => {
-      void computerControl.stop();
       initiative.cancel();
       if (typeof id !== 'string' || id.length > 80) throw new Error('Invalid turn');
       companionActions.approvals.cancel();
@@ -9555,26 +8287,6 @@ async function initializeDesktop() {
         };
       },
     });
-    recordingIndicator = new MinimizedChip({
-      BrowserWindow,
-      screen,
-      ipcMain,
-      restore: () => void workflows.stopRecording(),
-      url: 'capri://desktop/recording-indicator.html',
-      channel: 'capri:recording-stop',
-      width: 260,
-      height: 40,
-      top: true,
-      preload: path.join(directory, 'recording-indicator-preload.cjs'),
-      onClose: () => void workflows.stopRecording(),
-      onUnavailable: () => void workflows.stopRecording(),
-      getLabels: () => ({
-        text: uiText('RECORDING ACTIONS · ESC', languages.value.interface),
-        title: uiText('Stop recording', languages.value.interface),
-        language: languages.value.interface,
-        direction: /^(ar|he|fa|ur|ps)(-|$)/.test(languages.value.interface) ? 'rtl' : 'ltr',
-      }),
-    });
     window.on('hide', stopHiddenCompanion);
     window.on('show', () => {
       avatarComposerDismissed = false;
@@ -9679,7 +8391,6 @@ async function initializeDesktop() {
       verification,
     });
     window.webContents.on('render-process-gone', (_event, details) => {
-      stopMusicListening();
       void callCamera.stop();
       if (quitting || shuttingDown || !window || window.isDestroyed()) return;
       const reveal = window.isVisible() && !window.isMinimized();
@@ -9730,7 +8441,6 @@ async function initializeDesktop() {
       if (automaticUpdatesEnabled) void updates.startAutomaticChecks();
       console.info('Capri companion window ready.', JSON.stringify(window.getBounds()));
     });
-    window.webContents.on('did-stop-loading', restoreMusicListening);
     window.loadURL(rendererUrl).catch((error) => {
       if (rendererFailed || nextRendererRecovery) return;
       console.error('Could not load companion:', error.message);
@@ -9775,18 +8485,13 @@ async function initializeDesktop() {
     app.on('before-quit', (event) => {
       if (quitting) return;
       void callCamera.stop();
-      chess?.close();
-      void chessDiagnostics.flush();
       nativeNpu?.stop();
-      recordingIndicator?.destroy();
       userTools.close();
-      workflows?.close();
       privateMemory.close();
       brain.close();
       minimizedChip?.destroy();
       attachmentViewer?.close();
       attachmentDrafts.clear();
-      stopMusicListening();
       if (cableInstaller.snapshot().busy) {
         event.preventDefault();
         void cableInstaller.whenSettled().then(() => app.quit());
@@ -9808,11 +8513,9 @@ async function initializeDesktop() {
       externalTts.close();
       chatgpt.close();
       void localModelLoad.close();
-      void computerControl.stop();
       companionActions.close();
       sleepService.close();
       reminders?.close();
-      spotify.close();
       backendController?.abort(new Error('Desktop closed during startup'));
       voiceStartController?.abort();
       models.close();
@@ -9820,7 +8523,6 @@ async function initializeDesktop() {
       void voiceTraining.close();
       void voiceCatalog.close();
       updates.close();
-      githubAccess.close();
       void speechInstaller.close();
       confirmations.cancel();
       cancelVisual();
@@ -9837,7 +8539,6 @@ async function initializeDesktop() {
       void breezeVoice.cancel();
       microphone.close();
       requestRouter.close();
-      coding.setMonitoring(false);
       saveWindow();
       pointer?.stop();
       clearInterval(controlTimer);
@@ -9887,7 +8588,7 @@ async function initializeDesktop() {
         };
         const displayPermission = (contents, permission, origin, details) =>
           permission === 'display-capture' &&
-          (Boolean(capturePolicy.capture) || systemAudio.armed() || musicAudio.armed()) &&
+          (Boolean(capturePolicy.capture) || systemAudio.armed()) &&
           contents === window?.webContents &&
           contents.getURL() === rendererUrl &&
           details?.isMainFrame !== false &&
@@ -9970,7 +8671,7 @@ async function initializeDesktop() {
         );
         session.defaultSession.setDisplayMediaRequestHandler(
           (request, respond) => {
-            if (!musicAudio.consume(request, respond) && !systemAudio.consume(request, respond))
+            if (!systemAudio.consume(request, respond))
               void capturePolicy.consume(request, respond);
           },
           { useSystemPicker: false },
@@ -9985,7 +8686,6 @@ async function initializeDesktop() {
         installIpc();
         const preload = consumeFirstLaunchPreload(state);
         createWindow();
-        coding.setMonitoring(skillEnabled('capri.coding'));
         if (inferenceApi.config.setupRequired)
           window.once('ready-to-show', () => {
             if (!shuttingDown && !focusMode)
@@ -9995,27 +8695,20 @@ async function initializeDesktop() {
           window.once('ready-to-show', () => {
             if (!shuttingDown) void settingsHost.open('models', 'hf-query').catch(console.error);
           });
-        if (skillEnabled('capri.discord-presence')) callSkill('capri.discord-presence', 'start');
         window.on('minimize', resetCallAudio);
         powerMonitor.on('unlock-screen', () => {
           sessionLocked = false;
           if (cameraPreview) syncCameraPreview();
-          restoreMusicListening();
           void reminders.pump();
         });
         powerMonitor.on('lock-screen', () => {
           pendingMemoryDecision?.abort();
-          recordingIndicator?.hide();
           userTools.cancel();
-          workflows?.cancel();
           privateMemory.lock();
           minimizedChip?.hide();
           sessionLocked = true;
           if (cameraPreview) syncCameraPreview();
           void callCamera.stop();
-          chess?.stop();
-          stopMusicListening();
-          void computerControl.stop();
           stopMicrophoneMonitor();
           avatarClickReactions.cancel();
           avatarDetach.reset();
@@ -10023,25 +8716,15 @@ async function initializeDesktop() {
           cancelVisual();
         });
         powerMonitor.on('suspend', () => {
-          musicSuspended = true;
           void callCamera.stop();
-          chess?.stop();
           stopMicrophoneMonitor();
-          recordingIndicator?.hide();
           userTools.cancel();
-          workflows?.cancel();
           privateMemory.lock();
           minimizedChip?.hide();
-          stopMusicListening();
           avatarClickReactions.cancel();
-          void computerControl.stop();
           avatarDetach.reset();
           discardScreens('system-suspended');
           cancelVisual();
-        });
-        powerMonitor.on('resume', () => {
-          musicSuspended = false;
-          restoreMusicListening();
         });
         window.on('show', () => {
           void syncInitiative().catch((error) => {
@@ -10062,13 +8745,6 @@ async function initializeDesktop() {
                   backendState.phase === 'starting',
               ),
           );
-          computerControl.supervise({
-            indicatorVisible: Boolean(controlBorder),
-            escapeAvailable:
-              !computerControl.session?.ready ||
-              globalShortcut.isRegistered('Escape') ||
-              Boolean(nativeEscape?.active),
-          });
           if (!verification && existsSync(stopFile)) {
             unlinkSync(stopFile);
             app.quit();

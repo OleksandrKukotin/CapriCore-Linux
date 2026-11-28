@@ -19,7 +19,6 @@ import {
   openRouterFreeReplyTimeoutMs,
   readApiSettings,
 } from '../apps/desktop/inference-api.mjs';
-import { spotifyPlanner } from '../apps/desktop/spotify-planner.mjs';
 import { createGatewayConfiguration } from '../packages/runtime/src/context.mjs';
 import { settings } from '../packages/runtime/src/config/settings.mjs';
 import { buildOpenAICompletionsParams } from '@openclaw/ai/transports';
@@ -1669,35 +1668,6 @@ test('Anthropic accepts structured screen descriptions through its OpenAI-compat
   assert.equal(request.messages.at(-1).content[1].image_url.url, 'data:image/png;base64,AA==');
   assert.equal(request.max_tokens, 192);
   assert.equal(request.tools, undefined);
-});
-
-test('Spotify planning through Claude omits unsupported parameters and still validates the command', async (t) => {
-  const requests = [];
-  const model = 'claude-haiku-5-5';
-  const { api } = await fixture(
-    t,
-    async (_url, { body }) => {
-      const request = JSON.parse(body);
-      requests.push(request);
-      if ('response_format' in request || 'temperature' in request)
-        return Response.json(
-          { error: { message: 'Unsupported request parameters' } },
-          { status: 400 },
-        );
-      const content =
-        requests.length === 1 ? '{"action":"pause"}' : '{"action":"pause","unexpected":true}';
-      return Response.json({ choices: [{ message: { content }, finish_reason: 'stop' }] });
-    },
-    { ...config, baseUrl: 'https://api.anthropic.com/v1/', model },
-  );
-  const plan = spotifyPlanner({
-    url: api.url,
-    model,
-    fetchImpl: (...args) => api.localFetch(...args),
-  });
-  assert.deepEqual(await plan('Coloque o Spotify em pausa.'), { action: 'pause' });
-  await assert.rejects(plan('Pause Spotify.'), { code: 'CAPRI_SPOTIFY_PLAN_INVALID' });
-  assert.equal(requests.length, 2);
 });
 
 test('OpenRouter Nemotron reserves the output budget for visible replies unless thinking is selected', async (t) => {

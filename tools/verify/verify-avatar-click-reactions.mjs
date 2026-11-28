@@ -39,10 +39,8 @@ import { companionVoiceUrl } from './test-voice-host.mjs';
 import { AvatarDetach } from ${JSON.stringify(pathToFileURL(path.join(root, 'apps/desktop/main/avatar-detach.mjs')).href)};
 
 const visible = new WeakSet();
-if (!process.argv.includes('--music-taps-only')) {
-  BrowserWindow.prototype.show = BrowserWindow.prototype.showInactive = function () { visible.add(this); };
-  BrowserWindow.prototype.isVisible = function () { return visible.has(this); };
-}
+BrowserWindow.prototype.show = BrowserWindow.prototype.showInactive = function () { visible.add(this); };
+BrowserWindow.prototype.isVisible = function () { return visible.has(this); };
 const leave = AvatarDetach.prototype.leave;
 AvatarDetach.prototype.leave = function (...args) {
   globalThis.avatarFixture = this;
@@ -178,132 +176,6 @@ async function spritePoints(page, selector, attached = false) {
   return { ...points, body: points[bodyPart], bodyPart };
 }
 
-async function verifyFramedMusicTaps(app, page) {
-  const originalMusic = (await page.evaluate(() => window.capri.bootstrap())).musicListening;
-  const sendMusic = (state) =>
-    app.evaluate(({ BrowserWindow }, state) => {
-      BrowserWindow.getAllWindows()
-        .find((window) => window.webContents.getURL() === 'capri://desktop/index.html')
-        .webContents.send('capri:event', { type: 'music.status', ...state });
-    }, state);
-  if ((await page.evaluate(() => document.body.dataset.avatarDetach)) !== 'attached') {
-    await page.locator('#avatar-detach').click({ force: true });
-    await page.waitForFunction(() => document.body.dataset.avatarDetach === 'attached');
-  }
-  await sendMusic({
-    enabled: true,
-    hearingMusic: true,
-    phase: 'listening',
-    energy: 0.75,
-    tempo: 120,
-    tempoConfidence: 1,
-    beatAt: Date.now(),
-    settings: { enabled: true, motion: true, notes: true },
-  });
-  await page.waitForFunction(
-    () => document.querySelector('#sprite').dataset.frame === 'music-floor',
-  );
-  await page.evaluate(async () => {
-    const { MusicAnimation } = await import('./music-animation.mjs');
-    const sample = MusicAnimation.prototype.sample;
-    window.__musicTapFixture = { sample, samples: [], frames: [], reactions: [], parts: [] };
-    window.__musicTapFixture.unsubscribe = window.capri.onEvent((event) => {
-      if (event.type === 'avatar.tap') window.__musicTapFixture.parts.push(event.part);
-    });
-    MusicAnimation.prototype.sample = function (...args) {
-      const value = sample.apply(this, args);
-      window.__musicTapFixture.samples.push({
-        listening: value.listening,
-        frameId: value.frameId,
-        angle: value.angle,
-        notes: value.notes.length,
-      });
-      return value;
-    };
-  });
-  await page.waitForFunction(() =>
-    window.__musicTapFixture.samples.some((sample) => sample.notes > 0),
-  );
-  await page.evaluate(() => {
-    const fixture = window.__musicTapFixture;
-    fixture.observer = new MutationObserver((records) => {
-      for (const record of records) {
-        if (record.type === 'attributes') fixture.frames.push(record.target.dataset.frame);
-        for (const node of record.addedNodes) {
-          if (!(node instanceof Element)) continue;
-          if (node.matches('.avatar-headpat-plate, .avatar-tap-spark'))
-            fixture.reactions.push(node.className);
-        }
-      }
-    });
-    fixture.observer.observe(document.getElementById('avatar-viewport'), {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ['data-frame'],
-    });
-  });
-  try {
-    for (const part of ['head', 'body']) {
-      const points = await spritePoints(page, '#sprite', true);
-      assert.ok(points[part], 'Music pose has an opaque ' + part + ' click target.');
-      await page.mouse.move(points[part].x, points[part].y);
-      await page.evaluate(() => {
-        window.__musicTapFixture.samples = [];
-      });
-      await page.mouse.down();
-      await delay(160);
-      const held = await page.evaluate(() => ({
-        frame: document.querySelector('#sprite').dataset.frame,
-        samples: window.__musicTapFixture.samples,
-      }));
-      assert.equal(held.frame, 'music-floor', 'A stationary press keeps the music pose.');
-      assert(held.samples.length >= 1, 'The held press receives a real music animation tick.');
-      assert(held.samples.every((sample) => sample.listening && sample.frameId === 'music-floor'));
-      await page.mouse.up();
-      await page.locator('.avatar-headpat-hearts i').first().waitFor({ state: 'visible' });
-      await page.evaluate(() => {
-        window.__musicTapFixture.samples = [];
-      });
-      await delay(350);
-      const during = await page.evaluate(() => ({
-        frame: document.querySelector('#sprite').dataset.frame,
-        activity: document.body.dataset.activity,
-        plateCount: document.querySelectorAll('.avatar-headpat-plate').length,
-        heartCount: document.querySelectorAll('.avatar-headpat-hearts i').length,
-        samples: window.__musicTapFixture.samples,
-        frames: window.__musicTapFixture.frames,
-        reactions: window.__musicTapFixture.reactions,
-        lastPart: window.__musicTapFixture.parts.at(-1),
-      }));
-      assert.equal(during.frame, 'music-floor');
-      assert.equal(during.activity, 'Music listening');
-      assert.equal(during.plateCount, 0);
-      assert.equal(during.heartCount, 4);
-      assert.equal(during.lastPart, part === 'head' ? 'head' : points.bodyPart);
-      assert(during.samples.length >= 2);
-      assert(
-        during.samples.every((sample) => sample.listening && sample.frameId === 'music-floor'),
-      );
-      assert(new Set(during.samples.map((sample) => sample.angle)).size > 1);
-      assert(during.samples.some((sample) => sample.notes > 0));
-      assert(during.frames.every((frame) => frame === 'music-floor'));
-      assert.deepEqual(during.reactions, []);
-      await page.locator('.avatar-headpat-hearts').waitFor({ state: 'detached' });
-    }
-  } finally {
-    await page.evaluate(async () => {
-      const { MusicAnimation } = await import('./music-animation.mjs');
-      const fixture = window.__musicTapFixture;
-      MusicAnimation.prototype.sample = fixture.sample;
-      fixture.unsubscribe();
-      fixture.observer.disconnect();
-      delete window.__musicTapFixture;
-    });
-    await sendMusic(originalMusic);
-  }
-}
-
 async function verifyRasterRegions(page) {
   const catalog = requireCapriAvatar(root);
   const frames = [...new Set([...catalog.portraitFrames, ...catalog.desktopPoseFrames])].map(
@@ -407,11 +279,7 @@ try {
   delete env.ELECTRON_RUN_AS_NODE;
   app = await electron.launch({
     executablePath: createRequire(import.meta.url)('electron'),
-    args: [
-      entry,
-      '--verification',
-      ...(process.argv.includes('--music-taps-only') ? ['--music-taps-only'] : []),
-    ],
+    args: [entry, '--verification'],
     env,
     timeout: 60000,
   });
@@ -440,12 +308,7 @@ try {
     );
   });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  if (process.argv.includes('--music-taps-only')) {
-    await verifyFramedMusicTaps(app, page);
-    console.log(
-      'PASS framed music-floor head and body hearts preserve pose, held presses, motion and notes',
-    );
-  } else {
+  {
     await page.evaluate(() => {
       window.__avatarTaps = [];
       window.__avatarPartTaps = [];

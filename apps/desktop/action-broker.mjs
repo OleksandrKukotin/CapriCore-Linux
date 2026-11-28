@@ -31,16 +31,6 @@ export class ActionBroker {
       'journal',
       'find_app',
       'launch_executable',
-      'begin_control',
-      'run_task',
-      'end_control',
-      'control_status',
-      'observe',
-      'press_keys',
-      'move_pointer',
-      'click',
-      'scroll',
-      'enter_text',
       'list',
       'find',
       'read_text',
@@ -80,7 +70,6 @@ export class ActionBroker {
             'fullComputerAccess',
             'notepad',
             'calculator',
-            'spotify',
             'languages',
             'models',
           ].includes(input.args?.setting)
@@ -152,9 +141,7 @@ export class ActionBroker {
             'settings_control',
             'desktop_control',
             'filesystem_control',
-            'spotify_control',
             'application_control',
-            'workflow_control',
           ].includes(input.tool) &&
             !/^capri_tool_(0[1-9]|1\d|20)$/.test(input.tool)) ||
           Object.keys(input).some((key) => !['tool', 'id', 'args'].includes(key)) ||

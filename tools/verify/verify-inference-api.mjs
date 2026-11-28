@@ -22,16 +22,6 @@ const desktopBroker = new ActionBroker({
   root: folder,
   execute: async ({ tool, args }) => {
     assert.equal(tool, 'desktop_control');
-    if (args.action === 'run_task') {
-      assert.equal(args.goal, 'Open Chrome, enter the requested draft and verify it.');
-      return {
-        ok: true,
-        status: 'completed',
-        verified: true,
-        steps: 2,
-        summary: 'Draft verified.',
-      };
-    }
     assert.deepEqual(args, { action: 'browser_input', query: 'Google Chrome', text: 'Capri' });
     return { ok: true, typed: true, submitted: false };
   },
@@ -77,9 +67,7 @@ const options = {
     if (scopedPhase) {
       const expected = {
         calculator: 'application_control',
-        spotify: 'spotify_control',
         desktop: 'desktop_control',
-        'desktop-task': 'desktop_control',
       }[scopedPhase];
       const desktop = scopedPhase.startsWith('desktop');
       assert.deepEqual(
@@ -87,16 +75,14 @@ const options = {
         desktop ? [expected, 'settings_control'] : [expected],
       );
       const calculation = scopedPhase === 'calculator';
-      const task = scopedPhase === 'desktop-task';
       const toolReply = payload.messages.find((m) => m.role === 'tool');
       if (calculation && toolReply) {
         assert.match(JSON.stringify(toolReply), /32[.]18695387886216/);
         report.scientificToolRoundTrip = true;
       }
       if (desktop && toolReply) {
-        assert.match(JSON.stringify(toolReply), task ? /Draft verified/ : /typed/);
+        assert.match(JSON.stringify(toolReply), /typed/);
         report.desktopToolRoundTrip = true;
-        if (task) report.computerTaskRoundTrip = true;
       }
       const choice =
         (calculation || desktop) && !toolReply
@@ -113,12 +99,7 @@ const options = {
                       name: expected,
                       arguments: JSON.stringify(
                         desktop
-                          ? task
-                            ? {
-                                action: 'run_task',
-                                goal: 'Open Chrome, enter the requested draft and verify it.',
-                              }
-                            : { action: 'browser_input', query: 'Google Chrome', text: 'Capri' }
+                          ? { action: 'browser_input', query: 'Google Chrome', text: 'Capri' }
                           : {
                               action: 'calculate',
                               app: 'calculator',
@@ -218,9 +199,6 @@ rt.inferenceUrl = api.url;
 rt.remoteProxyToken = api.proxyToken;
 initialize(rt);
 const gatewayConfig = JSON.parse(readFileSync(rt.configPath, 'utf8'));
-gatewayConfig.plugins.load.paths.push(path.join(root, 'integrations/spotify'));
-gatewayConfig.plugins.entries['capri-spotify'] = { enabled: true, config: {} };
-gatewayConfig.tools.allow.push('spotify_control');
 const appState = path.join(folder, 'applications');
 mkdirSync(appState, { recursive: true });
 writeFileSync(
@@ -258,14 +236,14 @@ try {
     assert.match(JSON.stringify(social), /Hello/);
   }
   socialPhase = false;
-  for (const scope of ['calculator', 'spotify', 'desktop', 'desktop-task']) {
+  for (const scope of ['calculator', 'desktop']) {
     scopedPhase = scope;
     const scoped = await request(rt.gatewayUrl + '/v1/chat/completions', {
       method: 'POST',
       timeout: 120000,
       headers: {
         ...headers(rt),
-        'x-capri-tools-once': scope.startsWith('desktop') ? 'desktop' : scope,
+        'x-capri-tools-once': scope,
         'x-openclaw-message-channel': 'webchat',
         'x-openclaw-session-key': 'agent:capri:scope-fixture-' + scope,
       },
@@ -275,7 +253,7 @@ try {
         messages: [
           {
             role: 'user',
-            content: scope === 'calculator' ? 'Square root of 1036?' : 'Spotify controls fixture.',
+            content: scope === 'calculator' ? 'Square root of 1036?' : 'Desktop controls fixture.',
           },
         ],
       }),
@@ -317,7 +295,6 @@ try {
   assert.match(JSON.stringify(afterAction), /Hello/);
   assert.equal(report.calls, 13);
   assert.equal(report.dialogueCalls, 3);
-  assert.equal(report.computerTaskRoundTrip, true);
   assert.equal(report.scientificToolRoundTrip, true);
   assert.equal(report.desktopToolRoundTrip, true);
   assert.match(JSON.stringify(result), /Ready/);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, utimesSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync } from 'node:fs';
 import path from 'node:path';
 import { inflateRawSync, crc32 } from 'node:zlib';
 import { runInNewContext } from 'node:vm';
@@ -17,7 +17,6 @@ import { SETTINGS_CHANNELS } from '../apps/desktop/main/settings-channels.mjs';
 import { readFileSync } from 'node:fs';
 import { ACTIVE_AVATAR_CATALOG } from '../apps/desktop/avatar-catalog.mjs';
 import { probeResourceUsage } from '../apps/desktop/diagnostics/resources.mjs';
-import { ChessDiagnostics } from '../apps/desktop/chess/diagnostics.mjs';
 import {
   privateLog,
   privateLogRecord,
@@ -110,60 +109,6 @@ test('bounded diagnostic logs preserve the latest reply failure after more than 
   assert.equal(output.includes('PRIVATE-LOG-CANARY'), false);
 });
 
-test('Chess diagnostics keep technical events in the report and strip board and browser data', async () => {
-  const base = fixture();
-  const file = path.join(base, 'logs/chess.jsonl');
-  const log = new ChessDiagnostics(file);
-  const canary = 'PRIVATE-CHESS-DATA-255';
-  const trace = log.start('watch', { source: 'display', fen: canary });
-  trace('access', {
-    provider: 'chess-com',
-    localized: true,
-    reason: 'route_rejected',
-    url: canary,
-  });
-  trace('result', { searchMs: 275, depth: 21, move: canary, screenshot: canary });
-  await log.flush();
-  const disk = readFileSync(file, 'utf8');
-  assert.ok(!disk.includes(canary));
-  const rotated = 'logs/chess.jsonl.1';
-  put(
-    base,
-    rotated,
-    JSON.stringify({
-      ...JSON.parse(disk.trim().split('\n').at(-1)),
-      message: canary,
-      path: canary,
-      reason: canary,
-    }) + '\n',
-  );
-  for (const name of ['logs/chess.jsonl', rotated]) utimesSync(path.join(base, name), 1, 1);
-  for (let i = 0; i < 25; i++) put(base, `logs/noise-${i}.log`, 'started');
-  const options = {
-    root: base,
-    hardware: async () => ({}),
-    pythonProbe: async () => ({}),
-    installerDirectory: null,
-  };
-  const report = unpack(
-    (await createDiagnosticReport({ ...options, input: { includeLogs: true } })).bytes,
-  );
-  const rows = report
-    .get('logs/chess.jsonl')
-    .split('\n')
-    .map((line) => JSON.parse(line));
-  assert.equal(rows[1].reason, 'route_rejected');
-  assert.equal(rows[1].localized, true);
-  assert.equal(rows[2].searchMs, 275);
-  assert.equal(rows[2].traceId, rows[0].traceId);
-  assert.equal(JSON.parse(report.get(rotated)).depth, 21);
-  assert.ok(![...report.values()].join('\n').includes(canary));
-  const withoutLogs = unpack(
-    (await createDiagnosticReport({ ...options, input: { includeLogs: false } })).bytes,
-  );
-  assert.equal(withoutLogs.has('logs/chess.jsonl'), false);
-});
-
 test('diagnostic ZIP keeps the active model ID and reply flag without keys, prompts or private paths', async () => {
   const base = fixture();
   const model = 'nvidia/nemotron-3.5-super-vl:free';
@@ -246,10 +191,10 @@ test('diagnostic ZIP keeps the active model ID and reply flag without keys, prom
           elapsedMs: 20305,
         },
       },
-      spotifyPlanning: {
+      computerPlanning: {
         lastFailure: {
-          phase: 'spotify-planning',
-          code: 'CAPRI_SPOTIFY_PLAN_HTTP_ERROR',
+          phase: 'planning',
+          code: 'CAPRI_GATEWAY_HTTP_ERROR',
           httpStatus: 400,
           receivedText: false,
           message: privateText,
@@ -289,10 +234,10 @@ test('diagnostic ZIP keeps the active model ID and reply flag without keys, prom
   assert.equal(session.voiceCatalog.lastFailure.exitCode, 1);
   assert.equal(session.response.lastFailure.receivedText, false);
   assert.equal(session.response.lastFailure.code, 'CAPRI_GATEWAY_REPORTED_ERROR');
-  assert.equal(session.spotifyPlanning.lastFailure.phase, 'spotify-planning');
-  assert.equal(session.spotifyPlanning.lastFailure.code, 'CAPRI_SPOTIFY_PLAN_HTTP_ERROR');
-  assert.equal(session.spotifyPlanning.lastFailure.httpStatus, 400);
-  assert(!JSON.stringify(session.spotifyPlanning).includes(privateText));
+  assert.equal(session.computerPlanning.lastFailure.phase, 'planning');
+  assert.equal(session.computerPlanning.lastFailure.code, 'CAPRI_GATEWAY_HTTP_ERROR');
+  assert.equal(session.computerPlanning.lastFailure.httpStatus, 400);
+  assert(!JSON.stringify(session.computerPlanning).includes(privateText));
   assert.equal(session.musicListening.phase, 'listening');
   assert.equal(session.musicListening.tempo, 124);
   assert.equal(session.musicListening.tempoConfidence, 0.8);
@@ -452,47 +397,6 @@ test('a crash ZIP includes the exit and recent technical logs without private pr
   assert.match(files.get('REPORT.md'), /Capri closed unexpectedly/);
   assert.ok([...files.keys()].some((name) => name.endsWith('desktop.stderr.log')));
   assert.ok([...files.values()].every((body) => !body.includes('private-crash-canary')));
-});
-
-test('exported computer-task traces preserve safe stop reasons across both privacy passes', async () => {
-  const privateText = 'PRIVATE_DISCORD_MESSAGE_AND_DESTINATION';
-  const report = await createDiagnosticReport({
-    root: fixture(),
-    input: { category: 'other', includeLogs: false },
-    snapshot: {
-      computerTask: {
-        phase: 'stopped',
-        steps: 1,
-        lastFailure: null,
-        lastOutcome: { status: 'needs_user', reason: 'discord_control_unresolved', steps: 1 },
-        actions: [
-          { action: 'launch', outcome: 'applied' },
-          { action: 'enter_text', outcome: 'discord_structured_step_required' },
-        ],
-        text: privateText,
-        goal: privateText,
-        channel: privateText,
-        draft: privateText,
-        discordPaneId: 'ab'.repeat(32),
-      },
-    },
-    hardware: async () => ({}),
-    pythonProbe: async () => ({}),
-    installerDirectory: null,
-  });
-  const files = unpack(report.bytes);
-  const task = JSON.parse(files.get('session.json')).computerTask;
-  assert.equal(task.lastFailure, null);
-  assert.equal(task.lastOutcome.reason, 'discord_control_unresolved');
-  assert.equal(task.lastOutcome.status, 'needs_user');
-  assert.equal(task.actions[1].outcome, 'discord_structured_step_required');
-  assert.match(
-    files.get('REPORT.md'),
-    /computer task ended with needs_user after 1 input steps; discord_control_unresolved/,
-  );
-  const all = [...files.values()].join('\n');
-  assert(!all.includes(privateText));
-  assert(!all.includes('ab'.repeat(32)));
 });
 
 test('a useful report survives missing voice components and includes bounded redacted logs', async () => {

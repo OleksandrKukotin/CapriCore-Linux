@@ -13,7 +13,6 @@ import {
 } from '../apps/desktop/owner-notes.mjs';
 import { ScreenObservation } from '../apps/desktop/screen-observation.mjs';
 import { SAMPLE_BYTES } from '../apps/desktop/renderer/screen-change.mjs';
-import { explicitSteamGame } from '../apps/desktop/steam-task-state.mjs';
 import { showComposerSkill, skillPreferences } from '../packages/skills/src/settings-catalog.mjs';
 
 test('composer buttons are independent of toolbar buttons', () => {
@@ -97,12 +96,4 @@ test('background observation samples quiet screens once a minute and prioritizes
   assert.equal(observation.sample(packet(2, 250)).analyse, false);
   now++;
   assert.equal(observation.sample(packet(2, 250)).analyse, true);
-});
-
-test('specific launch intent stays scoped to Steam without capturing multi-app requests', () => {
-  assert.equal(
-    explicitSteamGame('Use full computer access, launch Portal 2 in Steam.'),
-    'Portal 2',
-  );
-  assert.equal(explicitSteamGame('Launch Portal 2 in Steam and open Discord'), null);
 });

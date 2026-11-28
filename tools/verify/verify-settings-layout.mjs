@@ -130,7 +130,7 @@ verifyLayout: try {
     assert.equal(await width(), 120);
     await settings.locator('#language-interface').selectOption('ar');
     await settings.waitForFunction(() => document.documentElement.dir === 'rtl');
-    const beta = sidebar.locator('[data-section="chess"] .beta-badge');
+    const beta = sidebar.locator('[data-section="computer"] .beta-badge');
     await beta.scrollIntoViewIfNeeded();
     assert.equal(await beta.textContent(), 'BETA');
     const betaBounds = await beta.evaluate((badge) => ({

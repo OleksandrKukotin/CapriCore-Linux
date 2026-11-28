@@ -531,7 +531,6 @@ try {
     false,
   );
   assert.equal(await owner.locator('#subtitle-pause').count(), 0);
-  assert.equal(await owner.locator('[data-quick="spotify"]').count(), 0);
   page = await settingsView(application, 'bug');
   await page.locator('#bug-description').fill('Synthetic voice diagnostic UI check.');
   await page.locator('#bug-steps').fill('Enable voice and send a synthetic message.');

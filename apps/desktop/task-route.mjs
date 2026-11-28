@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { companionDialogueQuestion, conversationOnly } from './conversation-route.mjs';
 import {
-  computerModeRequest,
-  dedicatedMusicRequest,
+  accessCommand,
   mentionsComputerMode,
   rejectsDesktopAction,
 } from './computer-mode-request.mjs';
 import { isScientificExpression } from '../../integrations/desktop-actions/math-expression.mjs';
-import { youtubeMusicRequest } from './youtube-music-request.mjs';
 
 const number = String.raw`-?\d{1,60}(?:\.\d{1,60})?`;
 const root = new RegExp(
@@ -43,8 +41,7 @@ function computerAccessDiscussion(text) {
     )
   )
     return true;
-  if (!mentionsComputerMode(text.replace(/["“”«»]/gu, '')) || computerModeRequest(text))
-    return false;
+  if (!mentionsComputerMode(text.replace(/["“”«»]/gu, '')) || accessCommand(text)) return false;
   const unquoted = text.replace(/"[^"\n]*"|“[^”\n]*”|«[^»\n]*»/gu, '');
   if (
     unquoted
@@ -56,7 +53,7 @@ function computerAccessDiscussion(text) {
           .replace(/^(?:please)[,\s]+/iu, '')
           .replace(/^(?:can|could|would)\s+you\s+(?:please\s+)?/iu, '');
         return (
-          computerModeRequest(part) ||
+          accessCommand(part) ||
           /^(?:enable|disable|activate|deactivate|turn\s+(?:on|off)|open|launch|start|find|search|type|write|click|press|move|create|copy|delete|play|calculate)(?=\s)/iu.test(
             command,
           )
@@ -82,25 +79,8 @@ export function toolDomain(text, state, routing) {
   const value = String(text).normalize('NFKC');
   if (rejectsDesktopAction(value)) return 'conversation';
   if (computerAccessDiscussion(value)) return 'conversation';
-  if (mentionsComputerMode(value) || computerModeRequest(value)?.run) return 'desktop';
+  if (mentionsComputerMode(value)) return 'desktop';
   if (companionDialogueQuestion(value)) return 'conversation';
-  if (youtubeMusicRequest(value, state)) return 'conversation';
-  if (
-    /\bspotify\b/iu.test(value) &&
-    /\b(?:click|press|drag|cursor|mouse|keyboard|button|search\s+bar|type|write)\b/iu.test(value)
-  )
-    return 'desktop';
-  if (dedicatedMusicRequest(value))
-    return state.spotify
-      ? state.spotify.enabled && state.spotify.prepared
-        ? 'spotify'
-        : 'conversation'
-      : null;
-  if (
-    /\bspotify\b/iu.test(value) &&
-    /^(?:do\s+you\s+have\s+access|can\s+you\s+(?:use|control))/iu.test(value.trim())
-  )
-    return 'conversation';
   const temporal = /\b(?:timer|stopwatch|remind|reminder|alarm|schedule)\b/iu.test(value);
   const mathematics =
     /(?:\d\s*[-+*/^%]\s*\d)|\b(?:sqrt|square|squared|cube|cubed|root|logarithm|logarithmic|sine|cosine|tangent|factorial|plus|minus|divided by|multiplied by|calculate)\b/iu.test(
@@ -113,12 +93,6 @@ export function toolDomain(text, state, routing) {
   const browserTask =
     /\b(?:chrome|edge|browser|search bar|address bar)\b/iu.test(value) &&
     /\b(?:open|launch|start|type|write|enter|search|find|look up)\b/iu.test(value);
-  if (
-    browserTask &&
-    state.spotify?.enabled &&
-    /\b(?:play|pause|resume|skip)\b.*\b(?:music|song|spotify)\b/iu.test(value)
-  )
-    return null;
   if (!temporal && !nonMath && browserTask && state.fullComputerAccess) return 'desktop';
   if (
     !temporal &&
@@ -127,7 +101,5 @@ export function toolDomain(text, state, routing) {
     (state.applications?.calculator || state.fullComputerAccess)
   )
     return 'calculator';
-  // A music topic is not a player action. Only an actual request above may
-  // require a Spotify receipt; otherwise the normal model path can discuss it.
   return conversationOnly(value, routing) ? 'conversation' : null;
 }

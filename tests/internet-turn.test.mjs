@@ -329,18 +329,6 @@ test('ordinary Internet questions never invoke a desktop intent model, even with
       let nativeCalls = 0;
       const f = fixture({
         interfaceState: () => ({ fullComputerAccess }),
-        computerIntent: async () => {
-          classifications++;
-          return { intent: 'task_with_access', usesPrevious: true };
-        },
-        computerAccess: () => {
-          nativeCalls++;
-          return { ok: true };
-        },
-        computerTask: () => {
-          nativeCalls++;
-          return { status: 'completed', steps: 1, summary: 'Unexpected' };
-        },
         searchWeb: async () => {
           if (!searchAvailable) throw Error('Synthetic search outage');
           return searchResult();
@@ -368,9 +356,6 @@ test('ordinary Internet questions never invoke a desktop intent model, even with
 test('Internet cannot resume an earlier computer task from a short follow-up', async () => {
   const f = fixture({
     interfaceState: () => ({ fullComputerAccess: true }),
-    computerIntent: () => assert.fail('An old computer goal cannot replace Internet search'),
-    computerAccess: () => assert.fail('No desktop grant was requested'),
-    computerTask: () => assert.fail('No desktop execution was requested'),
   });
   f.messages[0].text = 'Use full computer control to open the fixture application.';
   f.messages[1].computerTask = { status: 'incomplete', steps: 1 };
@@ -388,14 +373,12 @@ test('model-generated desktop escalation is rejected by the Internet host guard 
       assert.equal(request.headers['x-capri-tools-once'], 'conversation');
       const host = {
         authorizeAction: (tool, args) => f.chat.assertToolAllowed(tool, args),
-        runComputerTask: () => nativeCalls++,
-        computer: { execute: () => nativeCalls++ },
         desktop: { execute: () => nativeCalls++, operation: () => nativeCalls++ },
         requestComputerAccess: () => nativeCalls++,
       };
       const execute = (tool, args) =>
         CompanionActions.prototype.executeAction.call(host, tool, randomUUID(), args);
-      for (const action of ['begin_control', 'observe', 'run_task', 'click', 'launch'])
+      for (const action of ['launch', 'open_url', 'browser_input', 'type_text'])
         await assert.rejects(
           execute('desktop_control', { action, goal: 'Model invented a GUI task' }),
           { code: 'INTERNET_SEARCH_ONLY' },
@@ -408,8 +391,6 @@ test('model-generated desktop escalation is rejected by the Internet host guard 
         }),
         { code: 'INTERNET_SEARCH_ONLY' },
       );
-      for (const action of ['end_control', 'control_status'])
-        f.chat.assertToolAllowed('desktop_control', { action });
       f.chat.assertToolAllowed('settings_control', { setting: 'fullComputerAccess', value: false });
       assert.equal(nativeCalls, 0);
       return stream();
@@ -418,29 +399,6 @@ test('model-generated desktop escalation is rejected by the Internet host guard 
   await f.send('Find the founding date of the fixture school.', { internet: true });
   assert.equal(f.events.at(-1).type, 'turn.completed');
   assert.equal(nativeCalls, 0);
-});
-
-test('an explicit current computer command still works while Internet is enabled', async () => {
-  for (const [question, flags] of [
-    ['Use full computer control to open the fixture app.', {}],
-    ['Open the fixture application.', { mode: 'computer' }],
-  ]) {
-    let executions = 0;
-    const f = fixture({
-      interfaceState: () => ({ fullComputerAccess: true }),
-      computerAccess: async () => ({ ok: true }),
-      computerTask: async () => {
-        f.chat.assertToolAllowed('desktop_control', { action: 'run_task' });
-        executions++;
-        return { status: 'completed', steps: 1, summary: 'The fixture app opened.' };
-      },
-    });
-    await f.send(question, { internet: true, ...flags });
-    assert.equal(f.events.at(-1).type, 'turn.completed');
-    assert.equal(executions, 1);
-    assert.equal(f.searches.length, 0);
-    assert.equal(f.requests.length, 0);
-  }
 });
 
 test('web mode keeps an explicitly routed calculator task and its verification', async () => {

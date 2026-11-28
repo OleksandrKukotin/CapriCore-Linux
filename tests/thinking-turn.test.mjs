@@ -125,15 +125,6 @@ test('task-specific thinking briefing follows preparation, bypasses fast routing
   assert.equal(f.requests[1].headers['x-capri-thinking-once'], 'off');
 });
 
-test('thinking can use the classified dialogue scope without enabling tools or losing its reasoning setting', async () => {
-  const f = fixture({ computerIntent: async () => ({ intent: 'chat', usesPrevious: false }) });
-  await f.send('Prove an equation.', true);
-  assert.equal(f.requests[0].headers['x-capri-thinking-once'], 'medium');
-  assert.equal(f.requests[0].headers['x-capri-tools-once'], 'dialogue');
-  assert(f.requests[0].body.includes(THINKING_INSTRUCTION));
-  assert.equal(f.events.at(-1).type, 'turn.completed');
-});
-
 test('default thinking generates one final reply and voices only that answer without a briefing', async () => {
   const spoken = [];
   const voice = new VoiceService({
@@ -255,24 +246,6 @@ test('Escape cancellation during thinking preparation cannot dispatch a late mod
   assert.equal(f.requests.length, 0);
   assert.equal(f.events.at(-1).type, 'turn.cancelled');
   assert.equal(f.chat.active, null);
-});
-
-test('thinking cannot replace the dedicated Spotify path or grant desktop tools', async () => {
-  let briefings = 0;
-  const f = fixture({
-    prepareThinking: () => {
-      briefings++;
-      return null;
-    },
-    interfaceState: () => ({
-      spotify: { enabled: true, prepared: true },
-      fullComputerAccess: true,
-    }),
-  });
-  await f.send('Play music in Spotify.', true);
-  assert.equal(f.requests[0].headers['x-capri-tools-once'], 'spotify');
-  assert.equal(f.requests[0].headers['x-capri-thinking-once'], 'off');
-  assert.equal(briefings, 0);
 });
 
 test('briefing errors, malformed results and absent callbacks silently preserve the answer', async () => {

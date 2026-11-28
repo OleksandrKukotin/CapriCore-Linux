@@ -184,7 +184,7 @@ body.settings-window {
   background: var(--theme-background, #07131c);
 }
 /* New local-feature panels share the existing palette, sizes and keyboard focus. */
-:is(#knowledge-panel, #workflows-panel, #user-tools-panel, #saved-memory-view)
+:is(#knowledge-panel, #user-tools-panel, #saved-memory-view)
   :is(input:not([type='checkbox']), textarea),
 #installed-app-query {
   inline-size: 100%;
@@ -198,14 +198,14 @@ body.settings-window {
   color: var(--theme-text, #d7eeed);
   font: inherit;
 }
-:is(#knowledge-panel, #workflows-panel, #user-tools-panel, #saved-memory-view) textarea {
+:is(#knowledge-panel, #user-tools-panel, #saved-memory-view) textarea {
   resize: vertical;
 }
-:is(#knowledge-panel, #workflows-panel, #user-tools-panel) pre {
+:is(#knowledge-panel, #user-tools-panel) pre {
   max-block-size: 220px;
   overflow: auto;
 }
-:is(#knowledge-panel, #workflows-panel, #user-tools-panel) :is(input, textarea):focus-visible,
+:is(#knowledge-panel, #user-tools-panel) :is(input, textarea):focus-visible,
 #installed-app-query:focus-visible {
   outline: 1px solid var(--cyan, #8ef5ed);
   outline-offset: 1px;
@@ -732,22 +732,6 @@ body.settings-window {
   color: var(--cyan, #79eeea);
   font-variant-numeric: tabular-nums;
 }
-.chess-settings .chess-board-frame {
-  position: relative;
-  width: min(100%, 420px);
-  margin-block: 8px;
-  aspect-ratio: 1;
-}
-.chess-settings {
-  display: grid;
-  gap: var(--settings-section-gap);
-}
-.chess-settings .settings-card > label:first-child {
-  margin-block-start: 0;
-}
-.settings-window .chess-settings .general-toggle:has(> input:disabled) {
-  cursor: wait;
-}
 .resource-display-settings {
   padding-block: 8px;
   border-block-start: 1px solid var(--settings-card-line);
@@ -774,74 +758,6 @@ body.settings-window {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
   column-gap: 14px;
   margin-block-start: 6px;
-}
-.chess-reactions fieldset {
-  min-inline-size: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-.chess-reactions fieldset:disabled {
-  opacity: 0.55;
-}
-.chess-reaction-events {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
-  gap: 4px 12px;
-  margin-block-start: 8px;
-}
-#chess-reactions-status:empty {
-  display: none;
-}
-#chess-engine-status:empty,
-#chess-status:empty {
-  display: none;
-}
-#chess-board {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  grid-template-rows: repeat(8, 1fr);
-  width: 100%;
-  height: 100%;
-  container-type: inline-size;
-}
-#chess-board button {
-  min-width: 0;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  color: #121a20;
-  background: #bed5cd;
-  font:
-    clamp(16px, 9cqw, 38px) / 1 'Segoe UI Symbol',
-    sans-serif;
-}
-#chess-board button.chess-dark {
-  background: #6d938b;
-}
-#chess-board button.chess-doubtful {
-  box-shadow: inset 0 0 0 2px #ffd25a;
-}
-#chess-board button:focus-visible {
-  outline: 2px solid #0d1624;
-  outline-offset: -3px;
-}
-#chess-board-arrow {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-#chess-result {
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-#chess-preview img {
-  display: block;
-  max-width: min(100%, 256px);
-  aspect-ratio: 1;
 }
 .skill-settings-header:not([hidden]) + :is(.settings-heading, h2) {
   display: none;
@@ -996,68 +912,6 @@ body.settings-window {
 .settings-window .settings-actions {
   gap: 7px;
   margin-block: 8px 0;
-}
-#coding-panel .coding-activity {
-  display: grid;
-  gap: 4px;
-  max-block-size: 12rem;
-  overflow: auto;
-  padding: 0;
-  list-style: none;
-}
-#coding-panel .coding-activity li,
-#coding-panel .coding-files button {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 4px 10px;
-  text-align: start;
-  overflow-wrap: anywhere;
-}
-#coding-panel .coding-activity small {
-  color: var(--settings-subtle);
-}
-#coding-panel .coding-files {
-  display: grid;
-  gap: 5px;
-}
-#coding-panel .coding-files button[aria-pressed='true'] {
-  border-color: var(--settings-title);
-  background: color-mix(in srgb, var(--settings-title) 15%, var(--settings-control-fill));
-}
-#coding-panel .coding-file-stat {
-  flex: none;
-  font-variant-numeric: tabular-nums;
-  color: var(--settings-subtle);
-}
-#coding-panel .coding-diff {
-  max-block-size: 22rem;
-  min-inline-size: 0;
-  margin-block: 8px;
-  overflow: auto;
-  overscroll-behavior: contain;
-  border: 1px solid var(--settings-card-line);
-  background: var(--settings-panel-surface);
-  font-size: 11px;
-  line-height: 1.5;
-  tab-size: 4;
-  text-align: left;
-  user-select: text;
-}
-#coding-panel .coding-diff-line {
-  display: block;
-  min-inline-size: max-content;
-  padding-inline: 8px;
-}
-#coding-panel .coding-diff-line[data-type='added'] {
-  background: color-mix(in srgb, #63ce93 17%, transparent);
-}
-#coding-panel .coding-diff-line[data-type='removed'] {
-  background: color-mix(in srgb, #ff7186 18%, transparent);
-}
-#coding-panel .coding-diff-line[data-type='gap'] {
-  color: var(--settings-subtle);
 }
 .settings-window .call-camera-background-actions {
   align-items: center;
@@ -1542,11 +1396,6 @@ body.settings-window {
   border-color: color-mix(in srgb, var(--cyan) 65%, transparent);
   background: color-mix(in srgb, var(--cyan) 8%, transparent);
   box-shadow: none;
-}
-.computer-task-actions #computer-task-status {
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
 }
 #updates-changelog {
   max-height: 18rem;

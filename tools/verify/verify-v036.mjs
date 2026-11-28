@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** Native UI and Windows credential fixture; no real GitHub token, GPU models or owner history. */
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
-import { GitHubAccess, credentialStorage } from '../../apps/desktop/github-access.mjs';
 import { saveSettings, settingsView } from './settings-view.mjs';
 import path from 'node:path';
 import { _electron as electron } from 'playwright-core';
@@ -85,54 +84,7 @@ try {
   await settingsView(application, 'updates');
   await controls.locator('#updates-panel').waitFor({ state: 'visible' });
   await hover('#updates-check');
-  await controls.locator('#updates-access-details > summary').click({ force: true });
-  await hover('#updates-connect');
-  assert.equal(await controls.locator('#updates-token').getAttribute('type'), 'password');
-  checks.push(
-    'settings/update/auth controls have visible hover feedback and token entry is masked',
-  );
-  const nativeStorage = {
-    isAsyncEncryptionAvailable: () =>
-      application.evaluate(({ safeStorage }) => safeStorage.isAsyncEncryptionAvailable()),
-    encryptStringAsync: async (value) =>
-      Buffer.from(
-        await application.evaluate(
-          async ({ safeStorage }, text) =>
-            (await safeStorage.encryptStringAsync(text)).toString('base64'),
-          value,
-        ),
-        'base64',
-      ),
-    decryptStringAsync: (value) =>
-      application.evaluate(
-        ({ safeStorage }, encoded) =>
-          safeStorage.decryptStringAsync(Buffer.from(encoded, 'base64')),
-        value.toString('base64'),
-      ),
-  };
-  const access = new GitHubAccess({
-    root: path.join(folder, 'auth-fixture'),
-    storage: credentialStorage(nativeStorage),
-    verify: async () => [],
-  });
-  const fixtureToken = 'github_pat_' + 'fixture'.repeat(8),
-    authStatus = await access.connect(fixtureToken);
-  const encrypted = {
-    connected: authStatus.connected,
-    notPlaintext: !readFileSync(access.file, 'utf8').includes(fixtureToken),
-    roundTrip: (await access.credential()) === fixtureToken,
-  };
-  await access.remove();
-  encrypted.removed = !existsSync(access.file);
-  assert.deepEqual(encrypted, {
-    connected: true,
-    notPlaintext: true,
-    roundTrip: true,
-    removed: true,
-  });
-  checks.push(
-    'real Electron 45 Windows encrypted storage persists and decrypts a fixture token; no real credential used',
-  );
+  checks.push('settings/update controls have visible hover feedback');
   await controls.locator('#updates-panel').evaluate((node) => node.remove());
   await controls.evaluate(async () => {
     const { UpdatesPanel } = await import('./updates-panel.mjs');
@@ -249,7 +201,6 @@ try {
     passed: true,
     folder,
     checks,
-    realGitHubAccess: false,
     ownerHistoryChanged: false,
   };
   writeFileSync(path.join(folder, 'result.json'), JSON.stringify(result, null, 2) + '\n');

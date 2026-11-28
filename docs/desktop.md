@@ -42,8 +42,6 @@ service can take time to finish releasing its work.
   requests a more considered answer with a short spoken introduction; the latter
   enables ordinary web research. Internet mode alone does not grant computer
   control.
-- **Music listening** is next to the speaker control. It uses permitted system
-  audio, with optional BPM-driven animation; see [music listening](music-listening.md).
 - **Conversation history** opens the full conversation, including supported
   attachments and image previews. Its active state is highlighted. Close it with
   its button, cross or Escape; Escape can then stop the current reply.
@@ -53,9 +51,8 @@ service can take time to finish releasing its work.
 
 Screen observation and application access have independent controls and grants.
 Their toolbar state does not grant unrestricted access to other files or desktop
-actions. Read [screen observation](screen-observation.md),
-[application access](application-actions.md) and [computer control](computer-control.md)
-when enabling these features.
+actions. Read [screen observation](screen-observation.md)
+and [application access](application-actions.md) when enabling these features.
 
 ## Character, frame and floating controls
 

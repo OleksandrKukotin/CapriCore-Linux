@@ -25,10 +25,8 @@ export class ApplicationAccess {
   assertAllowed(tool, args) {
     if (
       this.enabled ||
-      !['desktop_control', 'application_control', 'spotify_control', 'workflow_control'].includes(
-        tool,
-      ) ||
-      ['status', 'apps', 'control_status'].includes(args?.action)
+      !['desktop_control', 'application_control'].includes(tool) ||
+      ['status', 'apps'].includes(args?.action)
     )
       return;
     throw Object.assign(

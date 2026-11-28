@@ -54,101 +54,6 @@ function client(options = {}) {
   });
 }
 
-test('the YouTube Music chat path verifies dedicated receipts without touching Spotify or the gateway', async () => {
-  const youtubeMusic = { enabled: true, preferred: true };
-  const commands = [];
-  const service = client({
-    interfaceState: () => ({ youtubeMusic, spotify: { enabled: true, prepared: true } }),
-    prepareYouTubeMusic: async (text) => {
-      if (text === 'play lo-fi music') return { action: 'search', query: 'lo-fi' };
-      assert.equal(text, 'Play Bohemian Rhapsody');
-      return { action: 'play', query: 'Invented title' };
-    },
-    localMusic: () => assert.fail('YouTube Music request reached Spotify'),
-    prepareModel: () => assert.fail('Common commands should bypass model preparation'),
-    fetchImpl: () => assert.fail('Common commands should bypass the gateway'),
-    localYouTubeMusic: async (_input, command, signal) => {
-      signal.throwIfAborted();
-      commands.push(command);
-      if (command.action === 'start')
-        return { ok: true, status: 'playing', playing: true, track: 'Recommendation' };
-      if (command.action === 'resume') return { ok: false, status: 'player_unavailable' };
-      if (command.action === 'volume') {
-        if (command.value === 47) return { ok: false, status: 'control_unverified' };
-        const volume = command.value ?? Math.max(0, Math.min(100, 40 + command.delta));
-        return { ok: true, status: 'volume_set', volume };
-      }
-      return command.action === 'play'
-        ? { ok: true, status: 'playing', playing: true, track: command.query }
-        : { ok: false, status: 'tab_not_found' };
-    },
-  });
-  async function ask(text, expectedPhases = ['start', 'result']) {
-    const events = [];
-    await service.send({ id: randomUUID(), text }, (event) => events.push(event));
-    assert.equal(events.at(-1).type, 'turn.completed');
-    assert.deepEqual(
-      events.filter(({ tool }) => tool === 'youtube_music_control').map(({ phase }) => phase),
-      expectedPhases,
-    );
-    return events.at(-1).assistant.text;
-  }
-  assert.equal(await ask('Play Believer on YouTube Music'), 'Playing on YouTube Music: Believer.');
-  assert.equal(
-    await ask('play c four one eight drayton'),
-    'Playing on YouTube Music: C418 Dreiton.',
-  );
-  assert.equal(
-    await ask('Play C four one eight Drayton on Youtube Music'),
-    'Playing on YouTube Music: C418 Dreiton.',
-  );
-  assert.equal(await ask('Play Bohemian Rhapsody'), 'Playing on YouTube Music: Bohemian Rhapsody.');
-  assert.equal(await ask('play lo-fi music'), 'Playing on YouTube Music: lo-fi music.');
-  assert.equal(
-    await ask('Capri play the music via YouTube music.'),
-    'Playing on YouTube Music: Recommendation.',
-  );
-  assert.equal(await ask('Resume YouTube Music'), 'YouTube Music is not playing anything.');
-  assert.match(await ask('Pause'), /tab not found/i);
-  assert.equal(await ask('Increse the volume a bit'), 'YouTube Music volume: 50%.');
-  assert.equal(await ask('Set the music volume to 100%'), 'YouTube Music volume: 100%.');
-  assert.equal(
-    await ask('Increased YouTube music volume by one hundred percent.'),
-    'YouTube Music volume: 100%.',
-  );
-  assert.equal(
-    await ask('Increase the volume of YouTube Music to fifty-five percent.'),
-    'YouTube Music volume: 55%.',
-  );
-  assert.equal(
-    await ask('Decrease the YouTube Music volume by ten percent.'),
-    'YouTube Music volume: 30%.',
-  );
-  assert.equal(
-    await ask('Increase the YouTube Music volume by 140%.', []),
-    'Say a YouTube Music volume from 0 to 100%.',
-  );
-  assert.match(await ask('Set the music volume to 47%'), /did not confirm/i);
-  youtubeMusic.enabled = false;
-  assert.match(await ask('Pause YouTube Music'), /Enable YouTube Music/i);
-  assert.deepEqual(commands, [
-    { action: 'play', query: 'Believer' },
-    { action: 'play', query: 'C418 Dreiton' },
-    { action: 'play', query: 'C418 Dreiton' },
-    { action: 'play', query: 'Bohemian Rhapsody' },
-    { action: 'play', query: 'lo-fi music' },
-    { action: 'start' },
-    { action: 'resume' },
-    { action: 'pause' },
-    { action: 'volume', delta: 10 },
-    { action: 'volume', value: 100 },
-    { action: 'volume', delta: 100 },
-    { action: 'volume', value: 55 },
-    { action: 'volume', delta: -10 },
-    { action: 'volume', value: 47 },
-  ]);
-});
-
 test('a local model stuck repeating the same answer is stopped without retrying the turn', async () => {
   const fragment = 'Capri uses local models and can look up public information when asked. ';
   let sent = 0;
@@ -629,26 +534,6 @@ test('opening Chrome cannot hide a later failed typing step behind an opening re
   assert.equal(events.at(-1).assistant.text, 'Chrome is open, but no text was entered.');
 });
 
-test('an incomplete computer task reports the executor result instead of asking for access again', async () => {
-  const events = [];
-  const service = client({
-    fetchImpl: async () => {
-      service.recordToolResult(
-        'desktop_control',
-        { action: 'run_task' },
-        { ok: false, status: 'incomplete', steps: 1, summary: 'The foreground window changed.' },
-      );
-      return response('Please give me the green light again.');
-    },
-  });
-  await service.send({ id: randomUUID(), text: 'Get the Discord window ready, please.' }, (event) =>
-    events.push(event),
-  );
-  assert.equal(events.at(-1).type, 'turn.completed');
-  assert.equal(events.at(-1).assistant.text, 'The foreground window changed.');
-  assert.deepEqual(events.at(-1).assistant.computerTask, { status: 'incomplete', steps: 1 });
-});
-
 test('a later tool failure invalidates an earlier successful receipt rather than concealing incomplete work', async () => {
   const events = [];
   const service = client({
@@ -672,133 +557,6 @@ test('a later tool failure invalidates an earlier successful receipt rather than
   assert.match(events.at(-1).assistant.text, /could not verify/);
 });
 
-test('music acknowledgements use local verified volume, and an invented completion is never displayed or spoken', async () => {
-  const events = [];
-  let verified = false;
-  const service = client({
-    interfaceState: () => ({
-      spotify: { enabled: true, prepared: true },
-      languages: { conversation: 'en' },
-    }),
-    fetchImpl: async (_url, options) => {
-      assert.equal(options.headers['x-capri-tools-once'], 'spotify');
-      if (verified)
-        service.recordToolResult(
-          'spotify_control',
-          { action: 'volume', delta: -10 },
-          { ok: true, data: { volumePercent: 25 } },
-        );
-      return response('Volume set even lower. What is on your mind?');
-    },
-  });
-  await service.send({ id: randomUUID(), text: 'Set the volume even lower.' }, (e) =>
-    events.push(e),
-  );
-  assert.match(events.at(-1).assistant.text, /Spotify did not confirm/);
-  assert.doesNotMatch(
-    events
-      .filter((e) => e.type === 'turn.delta')
-      .map((e) => e.text)
-      .join(''),
-    /Volume set even lower/,
-  );
-  verified = true;
-  events.length = 0;
-  await service.send({ id: randomUUID(), text: 'Set the volume even lower.' }, (e) =>
-    events.push(e),
-  );
-  assert.equal(events.at(-1).assistant.text, 'Spotify volume: 25%.');
-  assert.equal(events.at(-1).assistant.followUp, false);
-});
-
-test('music opinions keep the model answer without requiring a player action, including after playback', async () => {
-  const events = [];
-  const opinion = 'I like its rhythm.';
-  let action = true;
-  let playerCalls = 0;
-  const service = client({
-    interfaceState: () => ({
-      spotify: { enabled: true, prepared: true },
-      fullComputerAccess: true,
-      languages: { conversation: 'en' },
-    }),
-    requestRouter: { classify: () => ({ mode: 'normal', reason: 'task-cue' }) },
-    computerIntent: () => assert.fail('Music discussion must not start desktop intent'),
-    fetchImpl: async (_url, options) => {
-      if (action) {
-        assert.equal(options.headers['x-capri-tools-once'], 'spotify');
-        playerCalls++;
-        service.recordToolResult(
-          'spotify_control',
-          { action: 'pause' },
-          { ok: true, data: { playing: false } },
-        );
-        return response('Paused.');
-      }
-      assert.notEqual(options.headers['x-capri-tools-once'], 'spotify');
-      assert.match(JSON.parse(options.body).messages[0].content, /ordinary conversation/);
-      return response(opinion);
-    },
-  });
-  await service.send({ id: randomUUID(), text: 'Pause Spotify.' }, (e) => events.push(e));
-  assert.equal(events.at(-1).assistant.text, 'Paused.');
-  action = false;
-  for (const text of [
-    'Do you like this music?',
-    'Do you like to play music?',
-    'What do you think of this song?',
-    '¿Te gusta esta música de Spotify?',
-    'Tu aimes cette chanson sur Spotify ?',
-    'Gefällt dir dieses Lied auf Spotify?',
-    'Você gosta desta música no Spotify?',
-    'Spotifyのこの曲は好き？',
-    'هل تعجبك هذه الأغنية على Spotify؟',
-  ]) {
-    events.length = 0;
-    await service.send({ id: randomUUID(), text }, (e) => events.push(e));
-    assert.equal(events.at(-1).type, 'turn.completed', text);
-    assert.equal(events.at(-1).assistant.text, opinion, text);
-    assert.equal(
-      events
-        .filter((e) => e.type === 'turn.delta')
-        .map((e) => e.text)
-        .join(''),
-      opinion,
-      text,
-    );
-    assert.equal(playerCalls, 1, text);
-  }
-});
-
-test('unfamiliar Spotify wording keeps normal model tools without implicit computer control', async () => {
-  const events = [];
-  const service = client({
-    interfaceState: () => ({
-      fullComputerAccess: true,
-      spotify: { enabled: true, prepared: true },
-    }),
-    computerIntent: () => assert.fail('Spotify must not implicitly become a desktop task'),
-    computerTask: () => assert.fail('No computer session was requested'),
-    fetchImpl: () => {
-      assert.throws(() => service.assertToolAllowed('desktop_control', { action: 'run_task' }), {
-        code: 'SPOTIFY_DEDICATED_ACTION_REQUIRED',
-      });
-      service.assertToolAllowed('spotify_control', { action: 'play' });
-      service.recordToolResult(
-        'spotify_control',
-        { action: 'play' },
-        { ok: true, data: { playing: true } },
-      );
-      return response('Resumed.');
-    },
-  });
-  await service.send({ id: randomUUID(), text: 'Reproduce esta canción en Spotify.' }, (e) =>
-    events.push(e),
-  );
-  assert.equal(events.at(-1).type, 'turn.completed');
-  assert.equal(events.at(-1).assistant.text, 'Resumed.');
-});
-
 test('a calculator answer comes from its verified numeric result rather than generated arithmetic', async () => {
   const events = [];
   const service = client({
@@ -815,180 +573,6 @@ test('a calculator answer comes from its verified numeric result rather than gen
   });
   await service.send({ id: randomUUID(), text: 'Square root of 1036?' }, (e) => events.push(e));
   assert.equal(events.at(-1).assistant.text, 'Result: 32.18695387886216');
-});
-
-test('explicit named Spotify play executes once without model preparation or generated tool syntax', async () => {
-  const events = [],
-    calls = [];
-  const service = client({
-    interfaceState: () => ({ spotify: { enabled: true, prepared: true } }),
-    prepareModel: () => assert.fail('A named Spotify command must not load the LLM'),
-    fetchImpl: () => assert.fail('A named Spotify command must not reach the gateway'),
-    localMusic: (input, args, signal) => {
-      calls.push({ id: input.id, args });
-      assert.equal(signal.aborted, false);
-      return Promise.resolve({ ok: true, data: { playing: true } });
-    },
-  });
-  const id = randomUUID();
-  await service.send({ id, text: 'Play Example Artist - Example Title on Spotify' }, (e) =>
-    events.push(e),
-  );
-  assert.deepEqual(calls, [
-    { id, args: { action: 'play', query: 'Example Artist - Example Title' } },
-  ]);
-  assert.equal(events.at(-1).type, 'turn.completed');
-  assert.equal(events.at(-1).assistant.text, 'Resumed.');
-  assert.deepEqual(
-    events.filter((e) => e.type === 'turn.tool').map((e) => e.phase),
-    ['start', 'result'],
-  );
-});
-
-test('named Spotify play respects permissions and never claims unverified playback or retries', async () => {
-  let enabled = false,
-    prepared = true,
-    calls = 0;
-  const service = client({
-    interfaceState: () => ({ spotify: { enabled, prepared } }),
-    fetchImpl: () => response('Hello.'),
-    localMusic: async () => {
-      calls++;
-      return { ok: true, data: { playing: false } };
-    },
-  });
-  await service.send(
-    { id: randomUUID(), text: 'Play Example Artist - Example Title on Spotify' },
-    () => {},
-  );
-  enabled = true;
-  prepared = false;
-  await service.send(
-    { id: randomUUID(), text: 'Play Example Artist - Example Title on Spotify' },
-    () => {},
-  );
-  assert.equal(calls, 0);
-  prepared = true;
-  for (const execute of [
-    async () => ({ ok: true, data: { playing: false } }),
-    async () => ({ ok: false }),
-    async () => {
-      throw new Error('No player receipt');
-    },
-  ]) {
-    service.localMusic = () => {
-      calls++;
-      return execute();
-    };
-    const events = [];
-    await service.send(
-      { id: randomUUID(), text: 'Play Example Artist - Example Title on Spotify' },
-      (e) => events.push(e),
-    );
-    assert.equal(
-      events.at(-1).assistant.text,
-      'Spotify did not confirm this action. Check the player.',
-    );
-  }
-  assert.equal(calls, 3);
-});
-
-test('ordinary music and unqualified artist requests use an isolated plan and verified Spotify receipts', async () => {
-  const calls = [],
-    plans = [],
-    events = [];
-  const service = client({
-    interfaceState: () => ({ spotify: { enabled: true, prepared: true } }),
-    fetchImpl: () => assert.fail('Music must not use the general gateway conversation'),
-    prepareModel: () => assert.fail('Isolated planning owns its inference'),
-    computerTask: () => assert.fail('No desktop session for music'),
-    prepareMusic: async (text) => {
-      plans.push(text);
-      return text.includes('Artist')
-        ? { action: 'play', query: 'Example Artist' }
-        : { action: 'resume' };
-    },
-    localMusic: async (_input, args) => {
-      calls.push(args);
-      return { ok: true, data: { playing: true } };
-    },
-  });
-  const requests = [
-    'Play some nice music',
-    'Play Example Artist',
-    'Mets de la musique sur Spotify',
-  ];
-  for (const text of requests)
-    await service.send({ id: randomUUID(), text }, (e) => events.push(e));
-  assert.deepEqual(plans, requests);
-  assert.deepEqual(calls, [
-    { action: 'resume' },
-    { action: 'play', query: 'Example Artist' },
-    { action: 'resume' },
-  ]);
-  assert.equal(events.filter((e) => e.type === 'turn.completed').length, requests.length);
-  assert(
-    events.filter((e) => e.type === 'turn.completed').every((e) => e.assistant.text === 'Resumed.'),
-  );
-});
-
-test('Spotify planning respects permissions, cancellation and non-music verdicts without side effects', async () => {
-  let enabled = false,
-    modelCalls = 0,
-    planning = 0;
-  const service = client({
-    interfaceState: () => ({ spotify: { enabled, prepared: true } }),
-    prepareMusic: async () => {
-      planning++;
-      return null;
-    },
-    localMusic: () => assert.fail('A rejected plan must never execute'),
-    fetchImpl: () => {
-      modelCalls++;
-      return response('Hello.');
-    },
-  });
-  await service.send({ id: randomUUID(), text: 'Play Example Artist' }, () => {});
-  assert.equal(planning, 0);
-  enabled = true;
-  await service.send({ id: randomUUID(), text: 'Play chess' }, () => {});
-  assert.equal(planning, 1);
-  assert.equal(modelCalls, 2);
-  const id = randomUUID(),
-    events = [];
-  service.prepareMusic = async () => {
-    service.cancel(id);
-    return { action: 'resume' };
-  };
-  await service.send({ id, text: 'Play some nice music' }, (e) => events.push(e));
-  assert.equal(events.at(-1).type, 'turn.cancelled');
-});
-
-test('failed Spotify preflight preserves diagnostic codes without attempting an action or blaming the local core in API mode', async () => {
-  const events = [];
-  const service = client({
-    externalInference: true,
-    interfaceState: () => ({ spotify: { enabled: true, prepared: true } }),
-    prepareMusic: async () => {
-      throw Object.assign(new Error('PRIVATE-UPSTREAM-BODY'), {
-        code: 'CAPRI_SPOTIFY_PLAN_HTTP_ERROR',
-        httpStatus: 400,
-      });
-    },
-    localMusic: () => assert.fail('An invalid plan must never change playback'),
-    computerTask: () => assert.fail('Music cannot fall back to a computer session'),
-    fetchImpl: () => assert.fail('A failed preflight must not retry through the gateway'),
-  });
-  await service.send({ id: randomUUID(), text: 'play something cool' }, (event) =>
-    events.push(event),
-  );
-  assert.equal(events.at(-1).type, 'turn.failed');
-  assert.match(events.at(-1).message, /API provider returned HTTP 400/);
-  assert.doesNotMatch(events.at(-1).message, /local core|PRIVATE/);
-  assert.equal(service.lastFailure.code, 'CAPRI_SPOTIFY_PLAN_HTTP_ERROR');
-  assert.equal(service.lastFailure.httpStatus, 400);
-  assert.equal(service.lastFailure.phase, 'spotify-planning');
-  assert.equal(service.active, null);
 });
 
 test('standalone calculator requests return the local result without preparing a model or opening a window', async () => {
@@ -1482,29 +1066,6 @@ test('desktop sends only new input and hot-read persona to the existing shared s
   assert.equal(service.store.snapshot().length, 4);
 });
 
-test('desktop music instructions reflect actual disabled and enabled Spotify settings', async () => {
-  const prompts = [];
-  let spotify = { enabled: false, prepared: false };
-  const service = client({
-    interfaceState: () => ({
-      spotify,
-      activeSkills: new Set(spotify.enabled ? ['capri.spotify'] : []),
-    }),
-    fetchImpl: async (_url, options) => {
-      prompts.push(JSON.parse(options.body).messages);
-      return response('Fixture.');
-    },
-  });
-  await service.send({ id: randomUUID(), text: 'Can you use Spotify?' }, () => {});
-  assert.doesNotMatch(prompts[0][0].content, /Settings → Skills → Spotify|spotify_control/);
-  assert.doesNotMatch(prompts[0][1].content, /"spotify":/);
-  spotify = { enabled: true, prepared: true };
-  await service.send({ id: randomUUID(), text: 'Can you use Spotify?' }, () => {});
-  assert.match(prompts[1][0].content, /Only when spotify_control is actually listed/);
-  assert.equal(turnState(prompts[1][1].content).spotify.enabled, true);
-  assert.notEqual(prompts[0][0].content, prompts[1][0].content);
-});
-
 test('aborted request releases the active turn; duplicates and concurrent sends are rejected', async () => {
   let received;
   const service = client({
@@ -1611,7 +1172,7 @@ test('social routing preserves shared history and leaves task tools available on
     },
   });
   await service.send({ id: randomUUID(), text: 'Hello Capri.' }, (e) => events.push(e));
-  await service.send({ id: randomUUID(), text: 'Check Spotify volume.' }, (e) => events.push(e));
+  await service.send({ id: randomUUID(), text: 'Find the missing file.' }, (e) => events.push(e));
   assert.equal(seen[0].headers['x-capri-thinking-once'], 'off');
   assert.equal(seen[0].headers['x-capri-tools-once'], 'dialogue');
   assert.equal(seen[1].headers['x-capri-tools-once'], undefined);
@@ -1620,57 +1181,14 @@ test('social routing preserves shared history and leaves task tools available on
     seen[0].headers['x-openclaw-session-key'],
     seen[1].headers['x-openclaw-session-key'],
   );
-  assert.deepEqual(requests, [{ text: 'Check Spotify volume.', context: ['Hello Capri.'] }]);
-  assert.equal(userText(seen[1].body.messages[1].content), 'Check Spotify volume.');
-  assert.doesNotMatch(seen[0].body.messages[0].content, /spotify_control/);
-  assert.match(seen[1].body.messages[0].content, /spotify_control/);
+  assert.deepEqual(requests, [{ text: 'Find the missing file.', context: ['Hello Capri.'] }]);
+  assert.equal(userText(seen[1].body.messages[1].content), 'Find the missing file.');
+  assert.doesNotMatch(seen[0].body.messages[0].content, /filesystem_control/);
+  assert.match(seen[1].body.messages[0].content, /filesystem_control/);
   assert.deepEqual(
     events.filter((e) => e.type === 'turn.routing').map((e) => e.mode),
     ['normal'],
   );
-});
-
-test('a classified conversation cannot inherit action tools, while the next feature request keeps them', async () => {
-  const seen = [],
-    events = [];
-  const service = client({
-    requestRouter: { classify: async () => ({ mode: 'normal', reason: 'unavailable' }) },
-    computerIntent: async (text) => ({
-      intent:
-        text === 'Set a timer for ten minutes.'
-          ? 'feature'
-          : text === 'What is my favourite game?'
-            ? 'memory'
-            : 'chat',
-      usesPrevious: false,
-    }),
-    interfaceState: () => ({ fullComputerAccess: true }),
-    computerTask: () => assert.fail('Conversation and built-in features must not control the PC'),
-    fetchImpl: async (_url, options) => {
-      seen.push({ headers: options.headers, body: JSON.parse(options.body) });
-      return response('No worries. We can just hang out.');
-    },
-  });
-  for (const text of [
-    'Not much, just chilling.',
-    'Та нічого особливого.',
-    'Rien de spécial.',
-    'Set a timer for ten minutes.',
-    'What is my favourite game?',
-  ])
-    await service.send({ id: randomUUID(), text }, (event) => events.push(event));
-  for (const request of seen.slice(0, 3)) {
-    assert.equal(request.headers['x-capri-tools-once'], 'dialogue');
-    assert.match(request.body.messages[0].content, /Tools are unavailable/);
-    assert.doesNotMatch(request.body.messages[0].content, /filesystem_control trash/);
-  }
-  assert.equal(seen[3].headers['x-capri-tools-once'], undefined);
-  assert.match(seen[3].body.messages[0].content, /timer/);
-  assert.equal(seen[4].headers['x-capri-tools-once'], 'conversation');
-  assert.match(seen[4].body.messages[0].content, /memory tools/);
-  assert.equal(new Set(seen.map((request) => request.headers['x-openclaw-session-key'])).size, 1);
-  assert.equal(events.filter((event) => event.type === 'turn.completed').length, 5);
-  assert(!events.some((event) => event.type === 'turn.failed'));
 });
 
 test('ordinary local chat bypasses the tool loop and preserves previous turns and action routes', async () => {
@@ -1680,13 +1198,10 @@ test('ordinary local chat bypasses the tool loop and preserves previous turns an
   const service = client({
     requestRouter: {
       classify: async (text) =>
-        text === 'Not much, just chilling.'
+        ['Not much, just chilling.', 'Tell me about your day.'].includes(text)
           ? { mode: 'fast', reason: 'simple-dialogue' }
           : { mode: 'normal', reason: 'unavailable' },
     },
-    computerIntent: async (text) => ({
-      intent: text.startsWith('Set a timer') ? 'feature' : 'chat',
-    }),
     interfaceState: () => ({ fullComputerAccess: true, languages: { conversation: 'en' } }),
     prepareContext: () => ({ userToolContext: '\n\nUSER_TOOL_INSTRUCTIONS' }),
     avatarSprites: [{ id: 'attentive', pose: 'standing', expression: 'attentive' }],
@@ -1699,7 +1214,11 @@ test('ordinary local chat bypasses the tool loop and preserves previous turns an
       return response('Timer reply.');
     },
   });
-  for (const text of ['Not much, just chilling.', 'How about you?', 'Set a timer for ten minutes.'])
+  for (const text of [
+    'Not much, just chilling.',
+    'Tell me about your day.',
+    'Set a timer for ten minutes.',
+  ])
     await service.send({ id: randomUUID(), text }, (event) => events.push(event));
   assert.equal(direct.length, 2);
   assert.equal(direct[1].messages[1].content, 'Not much, just chilling.');
@@ -1713,7 +1232,7 @@ test('ordinary local chat bypasses the tool loop and preserves previous turns an
   assert.equal(gateway[0].headers['x-capri-tools-once'], undefined);
   assert.match(gateway[0].body.messages[1].content, /^Set a timer/);
   assert.deepEqual(turnState(gateway[0].body.messages[1].content).previousDialogue, {
-    user: 'How about you?',
+    user: 'Tell me about your day.',
     reply: 'Sounds good.',
   });
   assert.equal(events.filter(({ type }) => type === 'turn.completed').length, 3);
@@ -1960,7 +1479,7 @@ test('a completed chat reply wrapped inside an invalid avatar marker is delivere
   let calls = 0;
   const service = client({
     externalInference: true,
-    computerIntent: async () => ({ intent: 'chat' }),
+    requestRouter: { classify: async () => ({ mode: 'fast', reason: 'simple-dialogue' }) },
     fetchImpl: async (_url, { headers }) => {
       assert.equal(headers['x-capri-tools-once'], 'dialogue');
       calls++;
@@ -2271,13 +1790,15 @@ test('duplicate tool starts and unmatched results cannot postpone a stalled acti
               stream.enqueue(
                 Buffer.from(
                   'data: ' +
-                    JSON.stringify({ capri: { type: 'tool', name: 'spotify_control', ...value } }) +
+                    JSON.stringify({
+                      capri: { type: 'tool', name: 'application_control', ...value },
+                    }) +
                     '\n\n',
                 ),
               );
-            progress({ phase: 'start', callId: 'music-1' });
+            progress({ phase: 'start', callId: 'app-1' });
             const tick = setInterval(() => {
-              progress({ phase: 'start', callId: 'music-1' });
+              progress({ phase: 'start', callId: 'app-1' });
               progress({ phase: 'result', callId: 'unknown' });
             }, 5);
             signal.addEventListener(
@@ -2294,10 +1815,12 @@ test('duplicate tool starts and unmatched results cannot postpone a stalled acti
       );
     },
   });
-  await service.send({ id: randomUUID(), text: 'Play a song.' }, (event) => events.push(event));
+  await service.send({ id: randomUUID(), text: 'Open the text editor.' }, (event) =>
+    events.push(event),
+  );
   assert.equal(calls, 1);
   assert.equal(events.at(-1).type, 'turn.failed');
-  assert.match(events.at(-1).message, /Check the player before trying again/);
+  assert.match(events.at(-1).message, /took too long/);
   assert.equal(events.filter((e) => e.type === 'turn.tool').length, 1);
 });
 

@@ -11,20 +11,15 @@ import { webSearchSettings } from '../../../packages/skills/src/web-search/setti
 
 const protectedCommands = {
   'capri.microphone': ['start', 'confirm', 'listen'],
-  'capri.music': ['start', 'ready'],
   'capri.reasoning': ['prepare'],
   'capri.web-search': ['prepare'],
-  'capri.coding': ['run'],
   'capri.computer': ['run'],
   'capri.avatar-interaction': ['react'],
   'capri.initiative': ['test'],
   'capri.attachment-viewer': ['open'],
   'capri.applications': ['execute'],
   'capri.calculator': ['calculate'],
-  'capri.spotify': ['execute'],
-  'capri.youtube-music': ['execute'],
   'capri.files': ['execute', 'trash'],
-  'capri.workflows': ['list', 'run', 'record'],
   'capri.user-tools': ['run', 'test'],
   'capri.private-memory': ['unlock', 'list', 'add', 'remove'],
 };
@@ -52,17 +47,7 @@ export class SkillSettings {
       throw new SkillError('skill_disabled', 'Enable this skill in Settings → Skills first.');
   }
 
-  set({
-    id,
-    enabled,
-    showButton,
-    showComposer,
-    effort,
-    search,
-    showWindow,
-    automatic,
-    preferred,
-  } = {}) {
+  set({ id, enabled, showButton, showComposer, effort, search, showWindow, automatic } = {}) {
     const changes = Object.entries({
       enabled,
       showButton,
@@ -71,7 +56,6 @@ export class SkillSettings {
       search,
       showWindow,
       automatic,
-      preferred,
     }).filter(([, value]) => value !== undefined);
     if (
       !Object.hasOwn(SKILL_BY_ID, id) ||
@@ -88,8 +72,7 @@ export class SkillSettings {
           : typeof changes[0][1] !== 'boolean') ||
       (showComposer !== undefined && !Object.hasOwn(COMPOSER_SKILLS, id)) ||
       (showWindow !== undefined && id !== 'capri.calculator') ||
-      (automatic !== undefined && id !== 'capri.owner-memory') ||
-      (preferred !== undefined && id !== 'capri.youtube-music')
+      (automatic !== undefined && id !== 'capri.owner-memory')
     )
       throw new SkillError('invalid_skill_input', 'Invalid skill setting.');
     const next = this.snapshot();
@@ -116,7 +99,6 @@ export class SkillSettings {
       (['capri.reasoning', 'capri.web-search'].includes(skillId) &&
         command === 'setMode' &&
         input === true) ||
-      (skillId === 'capri.coding' && command === 'mode' && input === true) ||
       (skillId === 'capri.voice-output' && command === 'setEnabled' && input === true) ||
       (skillId === 'capri.computer' && command === 'requestAccess' && input === true) ||
       (skillId === 'capri.owner-memory' && command === 'save') ||

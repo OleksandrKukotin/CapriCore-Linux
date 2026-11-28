@@ -3,7 +3,7 @@ import { saveSettings, settingsView } from './settings-view.mjs';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
-import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, rmdirSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { _electron } from 'playwright-core';
@@ -95,117 +95,25 @@ try {
       { timeout: 20000 },
     );
   };
-  const codingHint = 'Choose and save a project folder to enable coding mode.';
   const setSkill = (id, enabled) =>
     settings.evaluate(({ id, enabled }) => window.capri.setSkill({ id, enabled }), { id, enabled });
   const skill = (id) => settings.locator('[data-skill="' + id + '"]');
-  assert.equal(await skill('capri.coding').isChecked(), false);
   assert.deepEqual(
     await page
       .locator('#quick-actions [data-skill-button]:not([hidden])')
       .evaluateAll((buttons) => buttons.map((button) => button.dataset.skillButton)),
     ['capri.microphone', 'capri.voice-output'],
   );
-  await navigate('coding');
-  assert.equal(await settings.locator('[data-code="folder"]').isEnabled(), true);
+  await navigate('reasoning');
+  const reasoningEnabled = await skill('capri.reasoning').isChecked();
   await settings.locator('#skill-show-button').check();
-  await page.waitForSelector('#coding-toggle:not([hidden])', { state: 'attached' });
-  assert.equal(await skill('capri.coding').isChecked(), false);
-  await page.evaluate(() => document.getElementById('coding-toggle').click());
-  await settings.waitForSelector('[data-section="coding"][aria-current="page"]');
-  assert.equal(await settings.locator('#skill-settings-title').textContent(), 'Coding mode');
-  await skill('capri.coding').check();
-  await page.waitForSelector('#coding-toggle[data-skill-enabled="true"]', { state: 'attached' });
-  await page.waitForFunction(
-    () => document.getElementById('coding-toggle').dataset.skillEnabled === 'true',
-  );
-  await page.evaluate(() => document.getElementById('coding-toggle').click());
-  await page.waitForFunction(
-    (hint) => document.getElementById('notice-message').textContent === hint,
-    codingHint,
-  );
-  assert.equal(await page.locator('#notice').getAttribute('data-severity'), 'warning');
-  assert.equal(await page.locator('#notice-report').isVisible(), false);
-  assert.equal(await page.locator('#coding-toggle').getAttribute('aria-pressed'), 'false');
-  await settings.evaluate(() => document.querySelector('[data-code="enable"]').click());
-  await settings.waitForFunction(
-    (hint) => document.querySelector('[data-code="status"]').textContent === hint,
-    codingHint,
-  );
-  const codingProject = mkdtempSync(path.join(parent, 'coding-project-'));
-  try {
-    const codingEditor = { executable: process.execPath, kind: 'vscode' };
-    await settings.evaluate((value) => window.capri.coding({ op: 'save', value }), {
-      workspace: codingProject,
-      editor: codingEditor,
-      tasks: [],
-      bridge: true,
-    });
-    await navigate('general');
-    await navigate('coding');
-    const codingControl = (key) => settings.locator(`#coding-panel [data-code="${key}"]`);
-    assert.equal(await codingControl('bridge').isChecked(), true);
-    assert.equal(await codingControl('installBridge').isEnabled(), true);
-    await codingControl('kind').selectOption('notepad++');
-    assert.equal(await codingControl('bridgeOptions').isVisible(), false);
-    assert.equal(await codingControl('bridge').isChecked(), false);
-    assert.equal(await codingControl('editor').inputValue(), '');
-    const editors = await settings.evaluate(() => window.capri.coding({ op: 'editors' }));
-    const notepad = editors.find(({ kind }) => kind === 'notepad++');
-    if (notepad) {
-      await codingControl('detect').click();
-      await codingControl('editors')
-        .getByRole('button', { name: notepad.name, exact: true })
-        .click();
-    } else {
-      await codingControl('editor').evaluate(
-        (input, executable) => (input.value = executable),
-        process.execPath,
-      );
-    }
-    assert.equal(
-      await codingControl('editor').inputValue(),
-      notepad?.executable ?? process.execPath,
-    );
-    assert.equal(await codingControl('installBridge').isVisible(), false);
-    await codingControl('save').click();
-    await settings.waitForFunction(async (executable) => {
-      const { config } = await window.capri.coding({ op: 'status' });
-      return (
-        config.editor?.kind === 'notepad++' &&
-        config.editor.executable === executable &&
-        config.bridge === false
-      );
-    }, notepad?.executable ?? process.execPath);
-    record('Switching from VS Code to Notepad++ saves without the live editor bridge', {
-      installedEditor: Boolean(notepad),
-    });
-    await settings.evaluate(() => document.querySelector('[data-code="enable"]').click());
-    await page.waitForSelector('#coding-toggle[aria-pressed="true"]', { state: 'attached' });
-    assert.equal(await page.locator('#notice').isVisible(), false);
-    await settings.evaluate(() => document.querySelector('[data-code="enable"]').click());
-    await page.waitForSelector('#coding-toggle[aria-pressed="false"]', { state: 'attached' });
-    await settings.evaluate(() =>
-      window.capri.coding({ op: 'save', value: { workspace: '', editor: null, tasks: [] } }),
-    );
-  } finally {
-    rmdirSync(codingProject);
-  }
-  record('Coding mode without a project opens setup and shows guidance without a report button');
-  await skill('capri.coding').uncheck();
+  await page.waitForSelector('#thinking-toggle:not([hidden])', { state: 'attached' });
+  assert.equal(await skill('capri.reasoning').isChecked(), reasoningEnabled);
+  await page.evaluate(() => document.getElementById('thinking-toggle').click());
   await settings.locator('#skill-show-button').uncheck();
-  await page.waitForSelector('#coding-toggle[hidden]', { state: 'attached' });
+  await page.waitForSelector('#thinking-toggle[hidden]', { state: 'attached' });
   record('Disabled skills remain configurable and toolbar visibility is independent');
-  const betaSkills = [
-    'applications',
-    'chess',
-    'computer',
-    'initiative',
-    'music',
-    'screen',
-    'spotify',
-    'youtube-music',
-  ];
+  const betaSkills = ['applications', 'computer', 'initiative', 'music', 'screen'];
   for (const [section] of SETTINGS_GROUPS.find(({ id }) => id === 'skills').sections) {
     await navigate(section);
     assert.ok(await settings.locator('#skill-settings-description').textContent());
@@ -227,66 +135,6 @@ try {
   assert.equal(await settings.locator('#language-recognition').isVisible(), true);
   await settings.screenshot({ path: path.join(folder, 'settings-skills.png') });
   record('Every disabled skill opens its own settings with an independent toolbar switch');
-  const youtubeMusicId = 'capri.youtube-music';
-  await navigate('youtube-music');
-  assert.equal(await settings.locator('#skill-settings-title').textContent(), 'YouTube Music');
-  assert.equal(await skill(youtubeMusicId).isChecked(), false);
-  const youtubeMusicOpen = settings.locator('#youtube-music-open');
-  const youtubeMusicCheck = settings.locator('#youtube-music-check');
-  const youtubeMusicPreferred = settings.locator('#youtube-music-preferred');
-  assert.equal(await youtubeMusicOpen.isEnabled(), false);
-  assert.equal(await youtubeMusicCheck.isEnabled(), false);
-  assert.equal(await youtubeMusicPreferred.isEnabled(), false);
-  await skill(youtubeMusicId).check();
-  await youtubeMusicPreferred.check();
-  await settings.waitForFunction(
-    async (id) => (await window.capri.bootstrap()).skills[id].preferred === true,
-    youtubeMusicId,
-  );
-  await settings.waitForSelector('#youtube-music-open:enabled');
-  assert.equal(await youtubeMusicCheck.isEnabled(), true);
-  assert.equal(
-    (await settings.evaluate(() => window.capri.youtubeMusic({ op: 'status' }))).configured,
-    true,
-  );
-  const savedYouTubeMusic = JSON.parse(
-    readFileSync(path.join(folder, 'desktop', 'skills.json'), 'utf8'),
-  ).settings[youtubeMusicId];
-  assert.equal(savedYouTubeMusic.enabled && savedYouTubeMusic.preferred, true);
-  await application.evaluate(({ shell }) => {
-    globalThis.settingsVerificationOpenExternal = shell.openExternal;
-    globalThis.settingsVerificationExternalUrls = [];
-    shell.openExternal = async (url) => {
-      globalThis.settingsVerificationExternalUrls.push(url);
-    };
-  });
-  try {
-    await youtubeMusicOpen.click();
-    await settings.waitForFunction(
-      () => document.getElementById('youtube-music-status').textContent === 'Opened YouTube Music.',
-    );
-    const reply = await page.evaluate(async () => {
-      await window.capri.send({ id: crypto.randomUUID(), text: 'Open YouTube Music' });
-      return (await window.capri.bootstrap()).messages.at(-1).text;
-    });
-    assert.equal(reply, 'Opened YouTube Music.');
-    assert.deepEqual(
-      await application.evaluate(() => globalThis.settingsVerificationExternalUrls),
-      ['https://music.youtube.com/', 'https://music.youtube.com/'],
-    );
-  } finally {
-    await application.evaluate(({ shell }) => {
-      shell.openExternal = globalThis.settingsVerificationOpenExternal;
-      delete globalThis.settingsVerificationOpenExternal;
-      delete globalThis.settingsVerificationExternalUrls;
-    });
-  }
-  await settings.screenshot({ path: path.join(folder, 'settings-youtube-music.png') });
-  await youtubeMusicPreferred.uncheck();
-  await skill(youtubeMusicId).uncheck();
-  record(
-    'YouTube Music saves the preferred service and opens its official site from Settings and chat',
-  );
   await navigate('general');
   const navigation = settings.locator('#settings-navigation');
   const groupedSections = await navigation
@@ -626,57 +474,6 @@ try {
     0,
   );
   await navigate('computer');
-  assert.equal(await settings.locator('#computer-fx-enabled').isChecked(), true);
-  await settings.locator('#computer-fx-theme').selectOption('blackwall');
-  await saveSettings(settings);
-  await settings.waitForFunction(
-    async () => (await window.capri.computerAppearance()).theme === 'blackwall',
-  );
-  await settings.locator('#computer-fx-intensity').fill('72');
-  await settings.locator('#computer-fx-intensity').dispatchEvent('change');
-  await saveSettings(settings);
-  await settings.waitForFunction(
-    async () => (await window.capri.computerAppearance()).intensity === 72,
-  );
-  await settings.locator('#computer-fx-enabled').uncheck();
-  await saveSettings(settings);
-  await settings.waitForFunction(
-    async () => (await window.capri.computerAppearance()).enabled === false,
-  );
-  assert.equal(await settings.locator('#computer-fx-intensity').isDisabled(), true);
-  assert.equal((await settings.evaluate(() => window.capri.computerTaskStatus())).active, false);
-  await settings.locator('#computer-fx-enabled').check();
-  await saveSettings(settings);
-  await settings.locator('#settings-draft-actions').waitFor({ state: 'hidden' });
-  await settings.evaluate(() => window.capri.previewComputerAppearance());
-  assert.equal(
-    await application.evaluate(
-      ({ BrowserWindow }) =>
-        BrowserWindow.getAllWindows().filter((w) =>
-          w.webContents.getURL().endsWith('/control-overlay.html'),
-        ).length,
-    ),
-    0,
-  );
-  await navigate('general');
-  await navigate('computer');
-  assert.equal(await settings.locator('#computer-fx-theme').inputValue(), 'blackwall');
-  record(
-    'Control effects persist, disable cleanly and preview without granting or starting control',
-  );
-  assert.equal(await settings.locator('#computer-task-goal').isVisible(), true);
-  assert.equal(await settings.locator('#computer-task-run').isDisabled(), true);
-  const deniedTask = await settings.evaluate(async () => {
-    try {
-      await window.capri.runComputerTask('Open a fixture');
-      return '';
-    } catch (error) {
-      return error.message;
-    }
-  });
-  assert.match(deniedTask, /Full computer access/);
-  assert.equal((await settings.evaluate(() => window.capri.computerTaskStatus())).active, false);
-  await settings.screenshot({ path: path.join(folder, 'computer-task-panel.png') });
   await settings.locator('#computer-access-toggle').click();
   const fullAccessDialog = settings.locator('#confirmation-dialog[open]');
   await fullAccessDialog.waitFor();
@@ -888,22 +685,11 @@ try {
         await settings.locator('#skill-composer-control span').textContent(),
         'Schaltfläche in der Nachrichtenleiste anzeigen',
       );
-      await navigate('spotify');
-      assert.equal(
-        await settings.locator('#skill-settings-description').textContent(),
-        'Findet Titel, steuert die Wiedergabe und passt die Spotify-Lautstärke an.',
-      );
-      assert.equal(
-        await settings.locator('label:has(#skill-show-button) span').textContent(),
-        'Schaltfläche in Capris Symbolleiste anzeigen',
-      );
       assert.equal(
         await settings.locator('[data-section="avatar-skill"]').textContent(),
         'Avatar-Interaktion',
       );
-      record(
-        'German skill settings translate the Spotify description and both visibility switches',
-      );
+      record('German skill settings translate the visibility switches');
     }
     await settings.screenshot({ path: path.join(folder, 'settings-' + locale + '.png') });
   }
@@ -961,15 +747,8 @@ try {
   await settings.waitForFunction(() => document.querySelector('.model-progress-card').hidden);
   record('Idle model selection has no download progress card');
   await navigate('updates');
-  const githubAccess = settings.locator('#updates-access-details');
-  await githubAccess.evaluate((node) => (node.open = true));
-  assert.equal(await githubAccess.locator('#updates-token').isVisible(), true);
-  await githubAccess.locator('details').evaluate((node) => (node.open = true));
-  assert.equal(await githubAccess.locator('#updates-token-page').isVisible(), true);
-  assert.equal(await githubAccess.locator('#updates-classic-token-page').isVisible(), true);
-  assert.match(await githubAccess.textContent(), /Contents: Read-only/);
-  assert.match(await githubAccess.textContent(), /classic token scopes are broader/);
-  record('GitHub access explains the read-only token and classic fallback scopes');
+  await settings.locator('#updates-panel').waitFor({ state: 'visible' });
+  record('Updates panel opens');
   await application.evaluate(({ BrowserWindow }) => {
     const owner = BrowserWindow.getAllWindows().find(
       (w) => w.webContents.getURL() === 'capri://desktop/index.html',

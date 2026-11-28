@@ -145,33 +145,6 @@ try {
     .locator('#applications-panel')
     .screenshot({ path: path.join(folder, 'applications.png') });
   report.checks.push('Direct memory save confirms a real write');
-  await settingsView(application, 'workflows');
-  await settings.locator('#workflow-record').click();
-  await settings.waitForFunction(() => !document.querySelector('#workflow-stop').disabled);
-  let indicator;
-  for (let attempt = 0; attempt < 60; attempt++) {
-    indicator = application
-      .windows()
-      .find((view) => view.url().includes('recording-indicator.html'));
-    if (indicator) break;
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-  assert(indicator, 'Recording needs a visible independent stop control');
-  await indicator.locator('b').click();
-  await settings.waitForFunction(() => !document.querySelector('#workflow-record').disabled);
-  await settings
-    .locator('#workflows-panel')
-    .screenshot({ path: path.join(folder, 'workflows.png') });
-  report.checks.push('Task training starts a hidden recorder and stops from its visible indicator');
-  await settings.locator('#workflow-record').click();
-  await settings.waitForFunction(() => !document.querySelector('#workflow-stop').disabled);
-  await application.evaluate(({ BrowserWindow }) => {
-    BrowserWindow.getAllWindows()
-      .find((view) => view.webContents.getURL().includes('recording-indicator.html'))
-      .close();
-  });
-  await settings.waitForFunction(() => !document.querySelector('#workflow-record').disabled);
-  report.checks.push('Closing the recording indicator stops recording safely');
   await settingsView(application, 'user-tools');
   await settings.locator('#user-tools-example').click();
   await settings.locator('#user-tools-list article').waitFor();

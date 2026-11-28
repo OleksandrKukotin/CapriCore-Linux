@@ -2,15 +2,10 @@ import { InferencePanel } from './inference-panel.mjs';
 import { ExternalTtsPanel } from './external-tts-panel.mjs';
 import { finishSettingsLoading, panelLoading } from './settings-loading.mjs';
 import { KnowledgePanel } from './knowledge-panel.mjs';
-import { WorkflowsPanel } from './workflows-panel.mjs';
-import { CodingPanel } from './coding-panel.mjs';
-import { ChessPanel } from './chess-panel.mjs';
 import { UserToolsPanel } from './user-tools-panel.mjs';
 import { CreditsPanel } from './credits-panel.mjs';
 import { DeveloperPanel } from './developer-panel.mjs';
 import { inferencePrivacy } from './inference-privacy.mjs';
-import { DiscordPanel } from './discord-panel.mjs';
-import { MusicListeningPanel } from './music-listening-panel.mjs';
 import { AudioRoutingPanel } from './audio-routing-panel.mjs';
 import { bindAudioOutput, createAudioOutputContext } from './local-audio-output.mjs';
 // SPDX-License-Identifier: GPL-3.0-only
@@ -147,7 +142,6 @@ if (!response.ok) throw new Error('Settings forms unavailable');
 const template = new DOMParser().parseFromString(await response.text(), 'text/html');
 for (const form of template.querySelectorAll('.preferences-panel, #dimming-panel'))
   $('settings-forms').append(form.cloneNode(true));
-const chess = new ChessPanel({ api: raw.chess, ui, host: $('settings-forms') });
 const general = document.createElement('section');
 general.id = 'general-panel';
 general.className = 'preferences-panel';
@@ -266,38 +260,9 @@ function showAudioRouting(snapshot) {
   }
 }
 const knowledge = new KnowledgePanel({ api, ui, onError: notice });
-const workflows = new WorkflowsPanel({ api, ui, onError: notice });
-const coding = new CodingPanel({ api, ui, onError: notice });
 const userTools = new UserToolsPanel({ api, ui, onError: notice });
 const credits = new CreditsPanel({ ui });
 const developer = new DeveloperPanel({ api, ui, onError: notice });
-const discord = new DiscordPanel(shared);
-const music = new MusicListeningPanel({
-  api,
-  ui,
-  onError: notice,
-  revision: () => revisions.musicListening,
-  onChange: () => {
-    syncDraftActions();
-    queuePreview();
-  },
-  onCommitted: (snapshot) => {
-    if (snapshot.settingsVersions?.musicListening !== undefined)
-      revisions.musicListening = snapshot.settingsVersions.musicListening;
-    if (
-      snapshot.settings &&
-      ['enabled', 'notes', 'motion'].every((key) => music.draft()[key] === snapshot.settings[key])
-    ) {
-      deferred.delete(music.panel.id);
-      captureDrafts(music.panel.id);
-    }
-    syncDraftActions();
-    queuePreview();
-  },
-});
-raw.onEvent((event) => {
-  if (event.type === 'discord.presence') discord.status(event.settings);
-});
 const effects = new VoiceEffectsPanel({ ...shared, onSettings: () => {}, deferDrafts: true });
 const files = new FileAccessPanel(shared),
   applications = new ApplicationsPanel({
@@ -391,62 +356,6 @@ $('web-search-save').onclick = () =>
     },
   });
 skillPanel('private-memory', $('private-memory-controls'));
-const spotifyAccess = applications.panel.querySelector('.spotify-access');
-spotifyAccess.classList.add('settings-card');
-skillPanel('spotify', spotifyAccess);
-const youtubeMusicAccess = document.createElement('section');
-youtubeMusicAccess.className = 'settings-card';
-youtubeMusicAccess.innerHTML = `
-  <p id="youtube-music-help">Use YouTube Music in your browser. Sign in there to use your account. Capri controls only the YouTube Music tab.</p>
-  <label><input id="youtube-music-preferred" type="checkbox"> <span>Use YouTube Music for music requests</span></label>
-  <div class="settings-actions">
-    <button id="youtube-music-open" type="button" aria-describedby="youtube-music-help">Open YouTube Music</button>
-    <button id="youtube-music-check" type="button">Verify connection</button>
-  </div>
-  <p id="youtube-music-status" role="status" data-untranslated></p>`;
-skillPanel('youtube-music', youtubeMusicAccess);
-const youtubeMusicSkill = SKILL_BY_SECTION['youtube-music'];
-let youtubeMusicStatus = '';
-let youtubeMusicRequest;
-function showYouTubeMusicSettings() {
-  const saved = skillState[youtubeMusicSkill.id];
-  const pending = pendingSkills.get(youtubeMusicSkill.id);
-  const enabled = (pending?.enabled ?? saved?.enabled) === true;
-  const preferred = $('youtube-music-preferred');
-  preferred.checked = (pending?.preferred ?? saved?.preferred) === true;
-  preferred.disabled = !enabled || Boolean(pending);
-  $('youtube-music-open').disabled = $('youtube-music-check').disabled =
-    !enabled || Boolean(youtubeMusicRequest || pending);
-  const status =
-    youtubeMusicRequest?.op === 'verify'
-      ? 'Checking YouTube Music connection…'
-      : youtubeMusicStatus || 'YouTube Music control is enabled.';
-  $('youtube-music-status').textContent = ui.text(
-    enabled ? status : 'Enable YouTube Music in Settings → Skills first.',
-  );
-}
-async function runYouTubeMusic(op) {
-  if (youtubeMusicRequest || !skillState[youtubeMusicSkill.id]?.enabled) return;
-  const request = { op };
-  youtubeMusicRequest = request;
-  showYouTubeMusicSettings();
-  try {
-    const result = await raw.youtubeMusic(request);
-    if (youtubeMusicRequest === request) youtubeMusicStatus = result.message;
-  } catch {
-    if (youtubeMusicRequest === request)
-      youtubeMusicStatus = 'YouTube Music did not confirm this action. Check the player.';
-  } finally {
-    if (youtubeMusicRequest === request) {
-      youtubeMusicRequest = undefined;
-      showYouTubeMusicSettings();
-    }
-  }
-}
-$('youtube-music-open').onclick = () => void runYouTubeMusic('open');
-$('youtube-music-check').onclick = () => void runYouTubeMusic('verify');
-$('youtube-music-preferred').onchange = ({ currentTarget }) =>
-  void changeSkill(youtubeMusicSkill, { preferred: currentTarget.checked });
 const calculatorPermission = $('application-calculator').closest('label');
 const calculatorDisplay = document.createElement('label');
 calculatorDisplay.innerHTML =
@@ -464,8 +373,6 @@ $('application-access-pause').closest('.settings-card').hidden = true;
 $('application-access-pause').closest('.settings-card').setAttribute('aria-hidden', 'true');
 $('brain-enabled').closest('label').hidden = true;
 $('brain-enabled').closest('label').setAttribute('aria-hidden', 'true');
-$('discord-enabled').closest('label').hidden = true;
-$('discord-enabled').closest('label').setAttribute('aria-hidden', 'true');
 const voiceContent = effects.panel.querySelector('.preferences-content');
 function moveLanguageControls(id, host) {
   const card = $('language-' + id + '-controls');
@@ -1392,7 +1299,6 @@ for (const [section, controller, apply, fields, preview] of [
     () => JSON.stringify(initiative.draft()),
     () => ({ initiative: initiative.draft() }),
   ],
-  ['discord', discord, () => discord.save(), () => fieldsValue([discord.panel])],
 ])
   addDraft(
     section,
@@ -1435,30 +1341,12 @@ addDraft(
   () => updates.saveSettings(),
   () => updates.show(updates.value, { resetSettings: true }),
 );
-addDraft(
-  'music',
-  music.panel.id,
-  () => JSON.stringify(music.draft()),
-  () => music.save(),
-  () => music.show(deferred.get(music.panel.id) ?? music.value),
-  () => ({ musicListening: music.draft() }),
-);
-const computerAppearance = applications.appearance;
-addDraft(
-  'computer',
-  'computer-access-panel',
-  () => JSON.stringify(computerAppearance.draft()),
-  () => computerAppearance.save(),
-  () => computerAppearance.open(),
-  () => ({ computerAppearance: computerAppearance.draft() }),
-);
 for (const id of [
   'companion-save',
   'personality-save',
   'speech-apply',
   'language-apply',
   'initiative-apply',
-  'discord-save',
 ])
   $(id).hidden = true;
 const screenInterval = $('screen-watch-interval');
@@ -1622,18 +1510,7 @@ const navigation = $('settings-navigation');
 const search = $('settings-search');
 const results = $('settings-search-items');
 const svgNamespace = 'http://www.w3.org/2000/svg';
-const betaSections = new Set([
-  'audio',
-  'api',
-  'screen',
-  'applications',
-  'chess',
-  'spotify',
-  'youtube-music',
-  'music',
-  'initiative',
-  'computer',
-]);
+const betaSections = new Set(['audio', 'api', 'screen', 'applications', 'initiative', 'computer']);
 function appendBetaBadge(element) {
   const badge = document.createElement('small');
   badge.className = 'beta-badge';
@@ -1680,7 +1557,6 @@ function showSkillSettings() {
     $('skill-settings-title').textContent = ui.text(skill.name);
     $('skill-settings-beta').hidden = !betaSections.has(skill.section);
     $('skill-settings-description').textContent = ui.text(skill.description);
-    if (skill === youtubeMusicSkill) showYouTubeMusicSettings();
     $('skill-show-button').checked =
       pendingSkills.get(skill.id)?.showButton ??
       skillState[skill.id]?.showButton ??
@@ -1975,38 +1851,17 @@ async function navigate(id, focus = null, match = null) {
     if (id === 'api') await inference.open();
     if (id === 'knowledge') await knowledge.open({ privateMemory: false });
     if (id === 'private-memory') await knowledge.privateMemory.open();
-    if (id === 'workflows') await workflows.open();
-    if (id === 'coding') await coding.open();
-    if (id === 'chess') await chess.open();
     if (id === 'user-tools') await userTools.open();
     if (id === 'developer') await developer.open();
-    if (id === 'discord') {
-      const pending = dirty.has('discord-panel');
-      await discord.open({ refresh: pending });
-      if (!pending) captureDrafts('discord-panel');
-    }
     if (id === 'updates') await updates.open(true);
     if (id === 'applications') await applications.open(true);
-    if (id === 'computer') {
-      applications.showComputerAccess(await raw.computerAccessStatus());
-      applications.showComputerTask(await raw.computerTaskStatus());
-      if (!dirty.has('computer-access-panel')) {
-        await applications.appearance.open();
-        captureDrafts('computer-access-panel');
-      }
-    }
+    if (id === 'computer') applications.showComputerAccess(await raw.computerAccessStatus());
     if (id === 'languages') await language.open(true);
     if (id === 'audio') await audioRouting.open();
     if (id === 'time') await time.refresh();
     if (id === 'files') await files.recovery();
     if (id === 'screen') await screenCommand({ action: 'state' });
     if (id === 'calls') await runCallAudio('state');
-    if (id === 'youtube-music') void runYouTubeMusic('status');
-    if (id === 'music') {
-      const pending = dirty.has(music.panel.id);
-      await music.open({ preserveDraft: pending });
-      if (!pending) captureDrafts(music.panel.id);
-    }
     captureDrafts();
     syncDraftActions();
     queuePreview();
@@ -2023,7 +1878,6 @@ async function navigate(id, focus = null, match = null) {
     panelLoading(false);
     finishSettingsLoading();
     restoreLocation();
-    if (id === 'coding') coding.revealPending();
     if (id === 'credits') void credits.open();
     if (match) revealSearchMatch(match, panel);
     else if (id === 'models' && ['context', 'devices', 'model'].includes(focus)) {
@@ -2092,8 +1946,6 @@ function applyReset(value) {
   initiative.show(value.initiative);
   latest.screenSettings = value.screenSettings;
   showScreenOptions(value.screenSettings);
-  computerAppearance.show(value.computerAppearance);
-  if (value.musicListening) music.show(value.musicListening);
   for (const panel of [
     companionPanelId,
     'dimming-panel',
@@ -2102,8 +1954,6 @@ function applyReset(value) {
     speech.panel.id,
     initiative.panel.id,
     'screen-panel',
-    'computer-access-panel',
-    music.panel.id,
     ...windowToggles.map(({ id }) => id),
   ]) {
     deferred.delete(panel);
@@ -2120,7 +1970,6 @@ function show(snapshot) {
   showCallCamera();
   inferencePrivacy(snapshot.inference, ui);
   revisions = snapshot.settingsVersions;
-  applications.showSpotify(snapshot.spotify);
   models.setConversationLanguage(snapshot.languages.conversation);
   models.show(snapshot.models);
   updates.show(snapshot.updates);
@@ -2137,7 +1986,6 @@ function show(snapshot) {
   initiative.show(snapshot.initiative);
   initiative.status(snapshot.awareness);
   speech.show(snapshot.speech);
-  music.show(snapshot.musicListening);
   time.show(snapshot.time);
   dimming(snapshot.dimming);
   windowToggles[0].saved = snapshot.windowSettings?.alwaysOnTop !== false;
@@ -2157,19 +2005,11 @@ function event(value) {
     void companion.savedMemory.load();
     return;
   }
-  if (value.type?.startsWith('coding.')) {
-    coding.onEvent(value);
-    return;
-  }
   if (value.type === 'audio-routing.changed') {
     showAudioRouting(value);
     return;
   }
   if (value.type === 'skills.settings') {
-    if (value.changed === youtubeMusicSkill.id) {
-      youtubeMusicStatus = '';
-      youtubeMusicRequest = undefined;
-    }
     skillState = value.settings;
     showSkillSettings();
     return;
@@ -2203,20 +2043,6 @@ function event(value) {
     void queuePreview(true).catch((error) => notice(error.message));
     return;
   }
-  if (value.type === 'music.status' || value.type === 'music-listening.status') {
-    const snapshot = value.state ?? value;
-    latest.musicListening = snapshot;
-    if (dirty.has(music.panel.id)) {
-      music.status(snapshot);
-      deferred.set(music.panel.id, snapshot);
-    } else {
-      music.show(snapshot);
-      captureDrafts(music.panel.id);
-    }
-    if (value.settingsVersions?.musicListening !== undefined)
-      revisions.musicListening = value.settingsVersions.musicListening;
-    return;
-  }
   if (value.type === 'window.focus-mode') {
     showGeneralToggle(focusButton, value.active);
     return;
@@ -2242,10 +2068,6 @@ function event(value) {
     stopMicrophoneMonitor();
     return;
   }
-  if (value.type === 'computer.task') {
-    applications.showComputerTask(value);
-    return;
-  }
   if (value.type === 'computer-access') {
     applications.showComputerAccess(value.settings);
     return;
@@ -2260,10 +2082,6 @@ function event(value) {
   }
   if (value.type === 'private-memory.status') {
     knowledge.privateMemory.show(value.settings);
-    return;
-  }
-  if (value.type === 'workflow.status') {
-    workflows.status(value.settings);
     return;
   }
   if (value.type === 'settings.resume') {
@@ -2359,13 +2177,10 @@ function event(value) {
     'speech.settings': [speech, 'show'],
     'models.status': [models, 'show'],
     'updates.status': [updates, 'show'],
-    'spotify.settings': [applications, 'showSpotify'],
   };
   if (value.type === 'huggingface.status') models.hub.show(value);
   if (value.type === 'voice-catalog.status') models.voices.show(value);
   if (value.type === 'voice-training.status') models.voices.trainingStatus(value);
-  if (value.type === 'chess.engine') chess.showEngine(value.engine);
-  if (value.type === 'chess.watch') chess.updateTracking(value);
   if (value.type === 'initiative.status') {
     initiative.status(value.settings);
     return;
@@ -2513,8 +2328,7 @@ try {
   show(snapshot);
   await companion.loadPersonality().catch((error) => notice(error.message));
   for (const draft of drafts)
-    if (!['microphone-device', 'discord-panel', 'computer-access-panel'].includes(draft.panel))
-      draft.baseline = draft.read();
+    if (!['microphone-device'].includes(draft.panel)) draft.baseline = draft.read();
   settingsInitialized = true;
   for (const value of eventsDuringInitialization.values()) event(value);
   eventsDuringInitialization.clear();

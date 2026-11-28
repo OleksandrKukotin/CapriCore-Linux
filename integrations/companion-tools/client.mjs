@@ -27,10 +27,7 @@ export async function desktopAction(root, input, signal) {
     redirect: 'error',
     headers: { authorization: 'Bearer ' + endpoint.token, 'content-type': 'application/json' },
     body: JSON.stringify(input),
-    signal: AbortSignal.any([
-      ...(signal ? [signal] : []),
-      AbortSignal.timeout(input.tool === 'spotify_control' ? 75000 : 15000),
-    ]),
+    signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(15000)]),
   });
   const value = await response.json();
   if (!response.ok)

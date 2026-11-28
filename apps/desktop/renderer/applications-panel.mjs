@@ -1,4 +1,3 @@
-import { ComputerAppearancePanel } from './computer-appearance-panel.mjs';
 export class ApplicationsPanel {
   constructor({
     api,
@@ -93,23 +92,6 @@ export class ApplicationsPanel {
     controlPanel.innerHTML =
       '<h2>Computer control <small class="beta-badge">BETA</small></h2><div class="preferences-content"></div>';
     controlPanel.querySelector('.preferences-content').append(access);
-    const task = document.createElement('div');
-    task.className = 'settings-card computer-task-card';
-    task.innerHTML = `<h3>Computer control</h3>
-      <p class="settings-help">Describe the whole task. Capri will act, check each result and stop when finished. Press Esc to stop.</p>
-      <label for="computer-task-goal">Message Capri</label>
-      <textarea id="computer-task-goal" rows="4" maxlength="8000"></textarea>
-      <div class="settings-actions computer-task-actions"><button id="computer-task-run" type="button">Test</button>
-      <p id="computer-task-status" role="status" aria-live="polite"></p>
-      <button id="computer-task-stop" class="danger-action" type="button" hidden>Stop computer control (Esc)</button></div>`;
-    controlPanel.querySelector('.preferences-content').append(task);
-    this.appearance = new ComputerAppearancePanel({
-      api,
-      ui,
-      onError,
-      deferDrafts,
-      container: controlPanel.querySelector('.preferences-content'),
-    });
     document.getElementById('companion').append(controlPanel);
     const shortcut = document.createElement('button');
     shortcut.type = 'button';
@@ -141,22 +123,6 @@ export class ApplicationsPanel {
         this.showComputerAccess(await api.computerAccessStatus());
       }
     };
-    document.getElementById('computer-task-run').onclick = async () => {
-      const text = document.getElementById('computer-task-goal').value.trim();
-      if (!text || this.taskPending || this.taskStatus?.active) return;
-      this.taskPending = true;
-      this.showComputerTask({ active: true, phase: 'planning', steps: 0 });
-      try {
-        await api.runComputerTask(text);
-      } catch (error) {
-        onError(error.message);
-      } finally {
-        this.taskPending = false;
-        this.showComputerTask(await api.computerTaskStatus());
-      }
-    };
-    document.getElementById('computer-task-stop').onclick = () =>
-      api.stopComputerControl().catch((error) => onError(error.message));
     document.getElementById('catalog-add').onclick = async () => {
       try {
         this.showCatalog(await api.addCatalogApp());
@@ -176,23 +142,6 @@ export class ApplicationsPanel {
       }
     };
     document.getElementById('applications-close').addEventListener('click', () => this.open(false));
-    for (const [id, work] of [
-      ['spotify-access', () => api.setSpotifyAccess(!this.spotify?.enabled)],
-      ['spotify-repair', () => api.setSpotifyAccess(true)],
-      ['spotify-check', () => api.checkSpotify()],
-    ]) {
-      document.getElementById(id).onclick = async () => {
-        document.getElementById(id).disabled = true;
-        try {
-          const value = await work();
-          if (value && typeof value === 'object') this.showSpotify(value);
-        } catch (error) {
-          this.onError(error.message);
-        } finally {
-          this.showSpotify(await api.spotifyStatus().catch(() => this.spotify));
-        }
-      };
-    }
     for (const app of ['notepad', 'calculator'])
       document.getElementById('application-' + app).addEventListener('change', async () => {
         const value = {
@@ -243,30 +192,6 @@ export class ApplicationsPanel {
         : value.enabled
           ? 'Full computer access is enabled.'
           : 'Individual application and folder grants are in use.',
-    );
-    if (this.taskStatus) this.showComputerTask(this.taskStatus);
-    else document.getElementById('computer-task-run').disabled = !value.enabled || value.paused;
-  }
-  showComputerTask(value) {
-    this.taskStatus = value;
-    document.getElementById('computer-task-run').disabled =
-      !this.computerAccess?.enabled ||
-      this.computerAccess?.paused ||
-      value.active ||
-      this.taskPending;
-    document.getElementById('computer-task-stop').hidden = !value.active && !this.taskPending;
-    document.getElementById('computer-task-goal').disabled = value.active || this.taskPending;
-    const labels = {
-      observing: 'Observing the current window',
-      planning: 'Thinking',
-      acting: 'Performing the action',
-      verifying: 'Checking the result',
-      completed: 'Ready',
-      stopped: 'Stopped',
-      idle: 'Ready',
-    };
-    document.getElementById('computer-task-status').textContent = this.ui.text(
-      labels[value.phase] ?? 'Ready',
     );
   }
   showCatalog(apps) {
@@ -322,45 +247,12 @@ export class ApplicationsPanel {
       list.append(card);
     }
   }
-  showSpotify(value) {
-    if (!value) return;
-    this.spotify = value;
-    const busy = ['preparing', 'applying', 'checking'].includes(value.phase);
-    document.getElementById('spotify-status').textContent = this.ui.text(
-      value.phase === 'preparing'
-        ? 'Preparing Spotify integration...'
-        : value.phase === 'applying'
-          ? 'Applying Spotify access...'
-          : value.phase === 'checking'
-            ? 'Checking Spotify connection...'
-            : value.enabled && value.prepared
-              ? 'Spotify control is enabled.'
-              : value.enabled
-                ? 'Spotify needs local setup. Repair the integration or disable access.'
-                : 'Spotify control is disabled.',
-    );
-    const toggle = document.getElementById('spotify-access');
-    toggle.disabled = busy;
-    toggle.textContent = this.ui.text(value.enabled ? 'Disable Spotify' : 'Enable Spotify');
-    const repair = document.getElementById('spotify-repair');
-    repair.hidden = !value.enabled || value.prepared;
-    repair.disabled = busy;
-    document.getElementById('spotify-check').disabled = busy || !value.enabled || !value.prepared;
-    document.getElementById('spotify-result').textContent = value.error
-      ? this.ui.text(value.error)
-      : value.connection === 'connected'
-        ? this.ui.text('Connected to Spotify.')
-        : value.connection === 'not-running'
-          ? this.ui.text('Open Spotify and sign in, then check again.')
-          : '';
-  }
   async open(open) {
     if ((await this.onOpen(open)) === false) return false;
     this.panel.hidden = !open;
     if (open) {
       this.showAccess(await this.api.applicationAccess());
       this.showComputerAccess(await this.api.computerAccessStatus());
-      this.showSpotify(await this.api.spotifyStatus());
       this.showCatalog(await this.api.appCatalog());
     }
     document.getElementById(open ? 'application-notepad' : 'settings-open').focus();

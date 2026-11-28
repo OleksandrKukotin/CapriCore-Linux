@@ -140,19 +140,6 @@
               </svg>
             </button>
             <button
-              id="music-toggle"
-              type="button"
-              aria-label="Music listening"
-              title="Music listening"
-              aria-pressed="false"
-            >
-              <svg viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M7 14V4l10-2v10M7 7l10-2" />
-                <ellipse cx="4.5" cy="15" rx="2.5" ry="2" />
-                <ellipse cx="14.5" cy="13" rx="2.5" ry="2" />
-              </svg>
-            </button>
-            <button
               id="history-toggle"
               type="button"
               aria-label="Open conversation history"
@@ -482,17 +469,6 @@
           <button id="attachment-open" type="button" title="Attach files" aria-label="Attach files">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M8 12v5a4 4 0 0 0 8 0V7a3 3 0 0 0-6 0v9a1 1 0 0 0 2 0V8" />
-            </svg>
-          </button>
-          <button
-            id="coding-toggle"
-            type="button"
-            aria-label="Coding mode"
-            aria-pressed="false"
-            title="Coding mode"
-          >
-            <svg viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M6 5l-4 5 4 5M14 5l4 5-4 5M12 3L8 17" />
             </svg>
           </button>
           <button
@@ -866,25 +842,6 @@
               <pre id="catalog-journal" data-untranslated></pre>
             </div>
           </details>
-          <section class="settings-card spotify-access" aria-labelledby="spotify-title">
-            <h3 id="spotify-title">Spotify</h3>
-            <p class="settings-help">
-              Allow Capri to control the signed-in Spotify desktop app: search and play music,
-              pause, skip tracks, manage the visible queue and adjust Spotify volume. Other apps and
-              system volume are separate.
-            </p>
-            <p id="spotify-status" role="status"></p>
-            <div class="settings-actions">
-              <button id="spotify-access" type="button">Enable Spotify</button>
-              <button id="spotify-repair" type="button" hidden>Repair Spotify</button>
-              <button id="spotify-check" type="button" disabled>Check connection</button>
-            </div>
-            <p class="settings-help">
-              Open Spotify and sign in before using music control. Setup is local; no Spotify
-              password or API key is requested. Enabling or disabling access restarts Capri.
-            </p>
-            <p id="spotify-result" role="status"></p>
-          </section>
         </div>
       </section>
       <section
@@ -1170,15 +1127,6 @@
           </section>
         </div>
       </section>
-      <button id="computer-control-stop" class="danger-action" type="button" data-hit-region hidden>
-        Stop computer control (Esc)
-      </button>
-      <output
-        id="computer-task-live"
-        class="computer-task-status"
-        aria-live="polite"
-        hidden
-      ></output>
       <aside id="time-alert" role="status" data-hit-region data-panel-cut="12" hidden>
         <strong>Reminder</strong>
         <p id="time-alert-text" data-untranslated></p>

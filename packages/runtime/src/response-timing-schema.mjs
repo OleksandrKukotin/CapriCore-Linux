@@ -10,9 +10,6 @@ const stages = new Set([
   'intent_start',
   'intent_ready',
   'computer_outcome',
-  'youtube_music_planning',
-  'youtube_music_start',
-  'youtube_music_result',
   'context_start',
   'context_ready',
   'gateway_dispatch',
@@ -117,41 +114,6 @@ const submissionReasons = new Set([
   'skill_disabled',
   'internal',
 ]);
-const youtubeMusicActions = new Set([
-  'open',
-  'search',
-  'play',
-  'start',
-  'pause',
-  'resume',
-  'next',
-  'previous',
-  'volume',
-  'status',
-]);
-const youtubeMusicResults = new Set([
-  'ready',
-  'opened',
-  'search_opened',
-  'playing',
-  'resumed',
-  'paused',
-  'skipped',
-  'previous',
-  'volume_set',
-  'disabled',
-  'unsupported',
-  'tab_not_found',
-  'ambiguous_tab',
-  'no_results',
-  'player_unavailable',
-  'helper_unavailable',
-  'browser_open_failed',
-  'playback_unverified',
-  'control_unavailable',
-  'control_unverified',
-  'error',
-]);
 const counters = new Set([
   'contextShift',
   'truncate',
@@ -230,10 +192,6 @@ export function responseTimingRecord(value) {
     if (Number.isFinite(value[key]) && value[key] >= 0 && value[key] <= 1e12)
       result[key] = Math.round(value[key] * 1000) / 1000;
   if (value.stage === 'failed' && value.source === 'desktop' && submissionReasons.has(value.reason))
-    result.reason = value.reason;
-  if (value.stage === 'youtube_music_start' && youtubeMusicActions.has(value.action))
-    result.action = value.action;
-  if (value.stage === 'youtube_music_result' && youtubeMusicResults.has(value.reason))
     result.reason = value.reason;
   if (value.stage === 'computer_outcome') {
     if (computerReasons.has(value.reason)) result.reason = value.reason;

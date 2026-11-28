@@ -6,7 +6,6 @@ const string = (value) => typeof value === 'string';
 const optionalRecord = (value) => noInput(value) || isRecord(value);
 const desktopSources = ['host', 'companion', 'settings'];
 const sessionId = (value) => typeof value === 'string' && value.length > 0 && value.length <= 160;
-const optionalSessionId = (value) => value === undefined || sessionId(value);
 const activeState = (value) => isRecord(value) && boolean(value.active);
 const enabledState = (value) => isRecord(value) && boolean(value.enabled);
 const microphoneDevice = (value) =>
@@ -62,22 +61,6 @@ export const microphoneSkill = lifecycleSkill(
     selectDevice: { input: string, output: microphoneDevice, sources: desktopSources },
   },
   { sectionId: 'microphone', labelKey: 'Microphone settings' },
-);
-
-export const musicSkill = lifecycleSkill(
-  'capri.music',
-  {
-    start: { input: noInput, output: captureStart, sources: ['companion'] },
-    ready: { input: sessionId, output: boolean, sources: ['companion'] },
-    stop: {
-      input: optionalSessionId,
-      output: enabledState,
-      sources: ['companion', 'settings', 'host'],
-    },
-    snapshot: { input: noInput, output: enabledState, sources: desktopSources },
-    configure: { input: optionalRecord, output: enabledState, sources: ['settings'] },
-  },
-  { sectionId: 'music', labelKey: 'Music listening' },
 );
 
 export const screenSkill = lifecycleSkill(

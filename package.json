@@ -18,7 +18,6 @@
   "dependencies": {
     "@js-temporal/polyfill": "0.5.1",
     "@scoriiu/fenshot": "0.1.5",
-    "chess.js": "1.4.0",
     "mathjs": "15.2.0",
     "onnxruntime-web": "1.31.1",
     "openclaw": "2026.10.6",
@@ -65,9 +64,6 @@
     "configure:dialogue": "node tools/configuration/configure-dialogue.mjs",
     "configure:performance": "node tools/configuration/configure-performance.mjs",
     "configure:context": "node tools/configuration/configure-context.mjs",
-    "setup:spotify": "node integrations/spotify/provision.mjs && node tools/configuration/configure-spotify.mjs",
-    "verify:spotify": "node tools/verify/verify-spotify.mjs",
-    "verify:spotify:dialogue": "node tools/verify/verify-spotify-dialogue.mjs",
     "verify:visuals": "node tools/verify/verify-visuals.mjs",
     "build:sprites": "node tools/assets/build-sprite-catalog.mjs",
     "clean:cache": "node tools/maintenance/clean-cache.mjs",

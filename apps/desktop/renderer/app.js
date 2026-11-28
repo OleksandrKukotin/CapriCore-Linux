@@ -35,9 +35,6 @@ import { TimePanel } from './time-panel.mjs';
 import { MicrophoneClient } from './microphone.mjs';
 import { microphoneButtonState, setMicrophoneButtonBusy } from './microphone-button.mjs';
 import { CallMicrophone } from './call-microphone.mjs';
-import { SystemMusicClient } from './system-music-capture.mjs';
-import { MusicAnimation, MusicPoseLayer, MusicNotesLayer } from './music-animation.mjs';
-import { musicAnimationReady } from './music-listening-settings.mjs';
 import { SpeechPanel } from './speech-panel.mjs';
 import { dimmingFeatherWidth, validateDimming, shadeBounds } from './dimming-settings.mjs';
 import { DimmingMask } from './dimming-mask.mjs';
@@ -118,54 +115,6 @@ const internetMode = new InternetMode({
     }
   },
 });
-let codingEnabled = false;
-const codingProjectHint = 'Choose and save a project folder to enable coding mode.';
-const codingButton = document.getElementById('coding-toggle');
-function showCodingMode(value) {
-  codingEnabled = value?.enabled === true;
-  codingButton.setAttribute('aria-pressed', String(codingEnabled));
-  codingButton.title = ui.text(codingEnabled ? 'Coding mode: On' : 'Coding mode: Off');
-  if (value?.projectRequired) notice(codingProjectHint, 'warning');
-  else if (codingEnabled && noticeSource === codingProjectHint) notice();
-}
-codingButton.onclick = async () => {
-  try {
-    showCodingMode(await api.coding({ op: 'mode', enabled: !codingEnabled }));
-  } catch (error) {
-    notice(error.message);
-  }
-};
-let musicState = {
-  enabled: false,
-  hearingMusic: false,
-  settings: { enabled: false, notes: true, motion: true },
-};
-let musicNotes, currentMusicMotion;
-const musicAnimation = new MusicAnimation(),
-  musicPose = new MusicPoseLayer();
-const musicButton = document.getElementById('music-toggle');
-function renderMusicState() {
-  const busy = ['starting', 'preparing'].includes(musicState.phase);
-  musicButton.setAttribute('aria-pressed', String(musicState.enabled));
-  musicButton.setAttribute('aria-busy', String(busy));
-  musicButton.dataset.loading = String(busy);
-  musicButton.disabled = musicState.supported === false;
-  document.body.dataset.musicListening = String(musicAnimationReady(musicState));
-  signalFx?.invalidate();
-}
-const musicClient = new SystemMusicClient({
-  api,
-  onState: () => renderMusicState(),
-  onError: () => notice('Music listening could not start. Try again from Settings.', 'warning'),
-});
-window.capriStartMusicListening = async () => {
-  if (!(await musicClient.start()))
-    throw Error('Music listening could not start. Try again from Settings.');
-};
-musicButton.onclick = () =>
-  api
-    .setSkill({ id: 'capri.music', enabled: !skillState['capri.music']?.enabled })
-    .catch((error) => notice(error.message, 'warning'));
 const memoryHUD = new MemoryHUD({
   element: document.getElementById('memory-hud'),
   contextButton: document.getElementById('context-hud'),
@@ -188,7 +137,6 @@ const stopwatchHUD = new StopwatchHUD({
 let pendingAction = null;
 let pendingActionTimer;
 let dueReminder;
-let computerTaskLabel;
 new ButtonFeedback();
 const confirmDialog = new ConfirmationDialog({
   ui,
@@ -430,7 +378,6 @@ function syncSleepingVisual() {
   }
 }
 let activeTurnId = null;
-const pendingMusicTools = new Map();
 let submitting = false;
 let clearingHistory = false;
 const responsePaintStarts = new Map();
@@ -782,10 +729,6 @@ const voicePlayer = new VoicePlayer({
     microphoneClient?.playback({
       speaking: Boolean(value.text),
       text: value.text ?? '',
-      outputBusy: value.busy && !value.waiting,
-    });
-    musicClient.playback({
-      speaking: Boolean(value.text),
       outputBusy: value.busy && !value.waiting,
     });
     controls();
@@ -1746,7 +1689,6 @@ function setPacketOrigin(origin) {
       initiative: 'CAPRI // INITIATIVE',
       screen: 'YOU // SNAPSHOT',
       'avatar-click': 'CAPRI',
-      'chess-reaction': 'Chess',
     }[origin] ?? 'YOU';
   packetOriginLabel.textContent = ui.text(packetOrigin);
 }
@@ -1828,7 +1770,6 @@ function animateCharacter(now, snapshot, reduced) {
   if (avatarDetachPhase !== 'attached' && companionSettings?.detachedStyle === 'dialogue') return;
   if (startupIntro?.active && presence.sleeping) startupIntro.cancel();
   if (startupIntro?.active) {
-    musicNotes?.clear();
     startupIntro.tick(now);
     return;
   }
@@ -1845,7 +1786,6 @@ function animateCharacter(now, snapshot, reduced) {
   if (avatarDetachPhase === 'attached')
     portraitMouth.update(headpat.image(elements.sprite), mouthShape, renderedFrame?.id);
   if (!director || (!detached && avatarDetachPhase !== 'attached')) {
-    musicNotes?.clear();
     return;
   }
   const state = director.tick(now, {
@@ -1859,40 +1799,6 @@ function animateCharacter(now, snapshot, reduced) {
     sleeping: presence.sleeping,
   });
   if (!state) return;
-  // Moving Capri or her window changes placement, not the current music pose.
-  const musicActive = Boolean(
-    musicAnimationReady(musicState) &&
-      !portraitWave.image &&
-      !presence.sleeping &&
-      !activeTurnId &&
-      !elements.message.value.trim() &&
-      !microphoneText &&
-      !startupIntro?.pending &&
-      !headpat.frameId,
-  );
-  if (musicActive && frameCatalog.has('music-floor')) {
-    state.frameId = 'music-floor';
-    state.activity = 'Music listening';
-    state.effect = null;
-  }
-  currentMusicMotion = musicAnimation.sample(now, {
-    active: musicActive && avatarDetachPhase === 'attached',
-    strength: musicState.energy,
-    autoBpm: musicState.settings.autoBpm !== false,
-    tempo: musicState.tempo ?? 0,
-    tempoConfidence: musicState.tempoConfidence ?? 0,
-    beatAt: musicState.beatAt ?? 0,
-    reduced,
-    frameId: renderedFrame?.id,
-  });
-  if (musicState.settings.motion === false)
-    currentMusicMotion = { ...currentMusicMotion, angle: 0, dy: 0 };
-  if (avatarDetachPhase === 'attached' && musicState.settings.notes !== false)
-    musicNotes?.update(currentMusicMotion, {
-      rect: elements.sprite.getBoundingClientRect(),
-      clip: document.getElementById('avatar-viewport').getBoundingClientRect(),
-    });
-  else musicNotes?.clear();
   const effect = document.getElementById('avatar-effect');
   effect.hidden = detached || !state.effect || !snapshot.expanded;
   if (!effect.hidden) {
@@ -2084,8 +1990,6 @@ function refreshInterface() {
     packetOriginLabel.textContent = ui.text(packetOrigin);
     if (packetPrompt) setPacketInput('', packetPrompt);
     subtitleController.render();
-    if (computerTaskLabel)
-      document.getElementById('computer-task-live').textContent = ui.text(computerTaskLabel);
     if (dueReminder && !dueReminder.title)
       document.getElementById('time-alert-text').textContent = ui.text('Timer finished.');
     stopwatchHUD.draw();
@@ -2150,11 +2054,7 @@ function controls() {
     if (elements.reconnect.textContent !== label) elements.reconnect.textContent = label;
   }
   const status = ui.text(
-    activeTurnId
-      ? (pendingMusicTools.values().next().value ?? 'Capri is replying…')
-      : voiceBusy
-        ? 'Capri is speaking…'
-        : backend.message,
+    activeTurnId ? 'Capri is replying…' : voiceBusy ? 'Capri is speaking…' : backend.message,
   );
   if (elements.status.textContent !== status) elements.status.textContent = status;
   document.body.dataset.phase = backend.phase;
@@ -2437,16 +2337,11 @@ function onEvent(event) {
   }
   if (event.type === 'skills.settings') {
     skillState = event.settings;
-    if (!skillState['capri.music']?.enabled && musicClient.run) musicClient.stop(false);
     if (event.changed === 'capri.attachment-viewer' && !skillState[event.changed]?.enabled)
       attachmentComposer.clear();
     skillButtons.render(event.settings);
     voiceVolumeMenu.position();
     publishAvatarComposer();
-    return;
-  }
-  if (event.type === 'coding.settings') {
-    showCodingMode(event);
     return;
   }
   if (event.type === 'application.access') {
@@ -2463,27 +2358,6 @@ function onEvent(event) {
   }
   if (event.type === 'internet.settings') {
     internetMode.configure(event.settings);
-    return;
-  }
-  if (event.type === 'music.status') {
-    const wasHearingMusic = musicState.hearingMusic;
-    const wasReady = musicAnimationReady(musicState);
-    musicState = { ...musicState, ...event };
-    musicClient.setState(event);
-    renderMusicState();
-    // Decode while BPM is being acquired, without selecting a music pose yet.
-    if (!wasHearingMusic && musicState.hearingMusic)
-      frameImages?.get('music-floor').catch(() => {});
-    if (!wasReady && musicAnimationReady(musicState) && ready)
-      animateCharacter(
-        performance.now(),
-        presence.snapshot(),
-        matchMedia('(prefers-reduced-motion: reduce)').matches,
-      );
-    return;
-  }
-  if (event.type === 'music.stop-requested') {
-    if (musicClient.run) musicClient.stop(false);
     return;
   }
   if (event.type === 'avatar.composer.action') {
@@ -2625,10 +2499,6 @@ function onEvent(event) {
     scheduleRegions();
     return;
   }
-  if (event.type === 'spotify.settings') {
-    applicationsPanel.showSpotify(event.settings);
-    return;
-  }
   if (event.type === 'models.status') {
     modelsPanel.show(event);
     scheduleRegions();
@@ -2682,13 +2552,6 @@ function onEvent(event) {
   }
   if (event.type === 'monitor.error') {
     notice(event.message);
-    return;
-  }
-  if (event.type === 'chess.explain') {
-    const draft = elements.message.value.trimEnd();
-    elements.message.value = draft ? `${draft}\n\n${event.draft}` : event.draft;
-    elements.message.dispatchEvent(new Event('input', { bubbles: true }));
-    elements.message.focus();
     return;
   }
   if (event.type === 'settings.renderer-lost') {
@@ -2783,31 +2646,6 @@ function onEvent(event) {
   }
   if (event.type === 'open-screen') {
     screenPanel.open(true);
-    return;
-  }
-  if (event.type === 'computer.control') {
-    const stop = document.getElementById('computer-control-stop');
-    stop.hidden = !event.active;
-    stop.onclick = () => window.capri.stopComputerControl();
-    sizeInput();
-    scheduleRegions();
-    return;
-  }
-  if (event.type === 'computer.task') {
-    const status = document.getElementById('computer-task-live');
-    const labels = {
-      'call-focus': 'Switch to the meeting tab',
-      observing: 'Observing the current window',
-      planning: 'Thinking',
-      acting: 'Performing the action',
-      verifying: 'Checking the result',
-      completed: 'Ready',
-      stopped: 'Stopped',
-    };
-    status.hidden = !event.active;
-    computerTaskLabel = labels[event.phase] ?? 'Computer control';
-    status.textContent = ui.text(computerTaskLabel);
-    scheduleRegions();
     return;
   }
   if (event.type === 'screen.status') {
@@ -3023,7 +2861,6 @@ function onEvent(event) {
     thinkingMode.begin(event.turnId);
     internetMode.begin(event.turnId);
     if (event.source === 'attachment') attachmentComposer?.clear();
-    pendingMusicTools.clear();
     director?.attend(performance.now(), true);
     frameTicket++;
     wantedFrame = '';
@@ -3038,11 +2875,7 @@ function onEvent(event) {
     presence.voiceBusy = voiceBusy;
     setPacketOrigin(event.source);
     if (event.user?.text != null) setPacketInput(event.user.text);
-    else
-      setPacketInput(
-        '',
-        ['avatar-click', 'chess-reaction'].includes(event.source) ? '' : 'A thought of her own.',
-      );
+    else setPacketInput('', event.source === 'avatar-click' ? '' : 'A thought of her own.');
     activeTurnId = event.turnId;
     activeAssistantId = null;
     followOutput = true;
@@ -3066,23 +2899,7 @@ function onEvent(event) {
     return;
   }
   if (thinkingMode.event(event)) return;
-  if (event.type === 'turn.tool') {
-    if (
-      event.turnId === activeTurnId &&
-      ['spotify_control', 'youtube_music_control'].includes(event.tool)
-    ) {
-      if (event.phase === 'start')
-        pendingMusicTools.set(
-          event.callId,
-          event.tool === 'spotify_control'
-            ? 'Working with Spotify…'
-            : 'Working with YouTube Music…',
-        );
-      else pendingMusicTools.delete(event.callId);
-      controls();
-    }
-    return;
-  }
+  if (event.type === 'turn.tool') return;
   if (event.type === 'turn.delta') {
     presence.text(event.turnId);
     const current = messages.get(activeAssistantId);
@@ -3107,7 +2924,6 @@ function onEvent(event) {
     return;
   }
   if (['turn.completed', 'turn.failed', 'turn.cancelled'].includes(event.type)) {
-    pendingMusicTools.clear();
     if (event.type === 'turn.completed' && event.assistant?.text?.trim())
       presence.text(event.turnId);
     presence.finish(event.turnId);
@@ -3669,7 +3485,7 @@ signalFx = new SignalFX({
   getSpriteImage: () =>
     startupIntro?.texture ??
     portraitWave.image ??
-    musicPose.image(portraitMouth.image(headpat.image(elements.sprite)), currentMusicMotion),
+    portraitMouth.image(headpat.image(elements.sprite)),
   frame: document.getElementById('portrait-panel'),
   audioLevel: () => voicePlayer.level,
   onLayout: () => {
@@ -3691,9 +3507,6 @@ window.addEventListener(
     startupIntro?.destroy();
     portraitWave.stop();
     microphoneClient.stop();
-    void musicClient.stop();
-    musicNotes?.destroy();
-    musicPose.clear();
     signalFx.destroy();
     voicePlayer.stop();
     subtitleController.dispose();
@@ -3719,20 +3532,12 @@ try {
   showApplicationAccess(snapshot.applicationAccess ?? { enabled: true });
   thinkingMode.configure(snapshot.thinking);
   internetMode.configure(snapshot.internet);
-  showCodingMode(snapshot.coding);
-  if (snapshot.musicListening) musicState = snapshot.musicListening;
-  renderMusicState();
-  musicNotes = new MusicNotesLayer(
-    document.getElementById('avatar-viewport'),
-    snapshot.musicArtwork?.notes ?? [],
-  );
   allowModelCallAudio = snapshot.allowModelCallAudio === true;
   voicePlayer.setCallVoiceVolume(snapshot.callVoiceVolume);
   applyAudioRouting(snapshot.audioRouting);
   inference = snapshot.inference;
   attachmentVision = snapshot.attachmentVision === true;
   screenPanel.visionBlocked = Boolean(inference?.remote && !inference.vision);
-  applicationsPanel.showSpotify(snapshot.spotify);
   modelsPanel.show(snapshot.models);
   // A check can finish while the renderer loads its locale after bootstrap.
   const updateStatus = updatesPanel.value ?? snapshot.updates;
@@ -3792,10 +3597,7 @@ try {
     }
   }
   if (snapshot.animation) {
-    const animationFrames = [
-      ...snapshot.animation.frames,
-      ...(snapshot.musicArtwork?.frames ?? []),
-    ];
+    const animationFrames = snapshot.animation.frames;
     frameCatalog = new Map(animationFrames.map((frame) => [frame.id, frame]));
     frameImages = new SpriteImages(animationFrames);
     director = new AnimationDirector({

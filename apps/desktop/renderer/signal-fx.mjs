@@ -208,14 +208,7 @@ export class SignalFX {
       !motion.active &&
       ((reduced && snapshot.state !== 'speaking') ||
         now - this.lastDraw <
-          1000 /
-            (reduced
-              ? 12
-              : intro === 'playing' || document.body.dataset.musicListening === 'true'
-                ? 60
-                : snapshot.expanded
-                  ? 30
-                  : 24))
+          1000 / (reduced ? 12 : intro === 'playing' ? 60 : snapshot.expanded ? 30 : 24))
     )
       return;
     this.dirty = false;

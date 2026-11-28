@@ -17,12 +17,9 @@ const skillPanels = {
   initiative: 'initiative-panel',
   calls: 'call-audio-panel',
   computer: 'computer-access-panel',
-  coding: 'coding-panel',
   files: 'file-access-panel',
   knowledge: 'knowledge-panel',
   'private-memory': 'private-memory-panel',
-  discord: 'discord-panel',
-  workflows: 'workflows-panel',
   'user-tools': 'user-tools-panel',
 };
 export const SETTINGS_GROUPS = Object.freeze([
