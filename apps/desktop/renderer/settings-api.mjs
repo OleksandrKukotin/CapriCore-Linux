@@ -10,7 +10,6 @@ const draftMethods = {
   setVoiceEffects: 'voice-effects-panel',
   setInitiative: 'initiative-panel',
   setComputerAppearance: 'computer-access-panel',
-  setMusicSettings: 'music-listening-panel',
 };
 const revisionGroups = {
   setCompanionSettings: 'companion',

@@ -371,43 +371,6 @@ export class AvatarDetach {
     if (this.available) this.updateParked('setMouth', shape).catch(() => {});
   }
 
-  sendMusic(value) {
-    if (
-      !value ||
-      typeof value !== 'object' ||
-      Array.isArray(value) ||
-      (value.autoBpm !== undefined && typeof value.autoBpm !== 'boolean') ||
-      ['enabled', 'hearingMusic', 'notes', 'motion'].some(
-        (key) => typeof value[key] !== 'boolean',
-      ) ||
-      !Number.isFinite(value.energy) ||
-      value.energy < 0 ||
-      value.energy > 1 ||
-      !Number.isFinite(value.tempo) ||
-      (value.tempo !== 0 && value.tempo < 40) ||
-      value.tempo > 240 ||
-      (value.tempoConfidence !== undefined &&
-        (!Number.isFinite(value.tempoConfidence) ||
-          value.tempoConfidence < 0 ||
-          value.tempoConfidence > 1)) ||
-      (value.beatAt !== undefined && (!Number.isFinite(value.beatAt) || value.beatAt < 0))
-    )
-      return false;
-    this.music = {
-      enabled: value.enabled,
-      hearingMusic: value.hearingMusic,
-      notes: value.notes,
-      motion: value.motion,
-      ...(value.autoBpm !== undefined ? { autoBpm: value.autoBpm } : {}),
-      energy: value.energy,
-      tempo: value.tempo,
-      ...(value.tempoConfidence !== undefined ? { tempoConfidence: value.tempoConfidence } : {}),
-      ...(value.beatAt !== undefined ? { beatAt: value.beatAt } : {}),
-    };
-    if (this.available) this.updateParked('setMusic', this.music).catch(() => {});
-    return true;
-  }
-
   async updateParked(method, value) {
     const contents = this.overlay?.webContents;
     if (!contents || this.overlay.isDestroyed() || contents.getURL() !== overlayUrl) return false;
@@ -755,7 +718,6 @@ export class AvatarDetach {
       if (this.reply) this.sendReply(this.reply);
       if (this.status) this.sendStatus(this.status);
       if (this.mouth) this.sendMouth(this.mouth);
-      if (this.music) this.sendMusic(this.music);
       return true;
     } finally {
       if (this.relocation === token) {
@@ -1579,7 +1541,6 @@ export class AvatarDetach {
         if (this.reply) this.sendReply(this.reply);
         if (this.status) this.sendStatus(this.status);
         if (this.mouth) this.sendMouth(this.mouth);
-        if (this.music) this.sendMusic(this.music);
       }
       return true;
     } catch (error) {

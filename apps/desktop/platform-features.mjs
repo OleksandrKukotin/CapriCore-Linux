@@ -8,8 +8,6 @@
 export const platformFeatures = Object.freeze({
   /** Named audio endpoints for call routing (PipeWire). */
   audioRouting: false,
-  /** System-audio music detection (PipeWire monitor source). */
-  musicListening: false,
   /** Browser tab awareness for "wild tabs" reactions (MPRIS / foreign-toplevel). */
   browserTabs: false,
   /** Tray balloon notices for available updates (use Notification on Linux). */

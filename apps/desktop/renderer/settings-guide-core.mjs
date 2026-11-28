@@ -146,16 +146,6 @@ export const coreGuides = {
       ],
     ],
     [
-      '#audio-route-music',
-      [
-        'Isolate the music signal',
-        'Select a recording input or a playback device under Loopback. For a virtual cable, send the player into the cable and choose its recording end here.',
-      ],
-      {
-        help: '[data-audio-settings="music"]',
-      },
-    ],
-    [
       '#audio-route-system',
       [
         'Choose system audio in calls',

@@ -27,17 +27,10 @@ import { replyBubbleOutline } from './reply-bubble-outline.mjs';
 import { AvatarMouthLayer, avatarPoseLandmarks } from './avatar-mouth.mjs';
 import { AvatarDragTether } from './avatar-drag-tether.mjs';
 import { applyInterfaceTheme } from './interface-theme.mjs';
-import { musicAnimationReady } from './music-listening-settings.mjs';
 import { SIGNAL_STATES } from './presence-model.mjs';
 import { avatarGripPose, avatarGripSwing } from '../avatar-grip-rig.mjs';
 import { avatarSeatHinge, avatarSeatSwing } from '../avatar-body-regions.mjs';
 import { avatarPoseSegments, avatarPoseSwing } from '../avatar-pose-motion.mjs';
-import {
-  MusicAnimation,
-  MusicNotesLayer,
-  MUSIC_NOTE_ASSETS,
-  MUSIC_POSES,
-} from './music-animation.mjs';
 
 const effect = document.getElementById('teleport-effect');
 const parked = document.getElementById('parked-avatar');
@@ -132,29 +125,17 @@ let motionFrame = 0;
 let lastSwing;
 let blinkTimer;
 let mouthShape = 'closed';
-let music = {
-  enabled: false,
-  hearingMusic: false,
-  energy: 0.5,
-  tempo: 0,
-  notes: true,
-  motion: true,
-};
-let musicFrame = 0,
-  musicNotes,
-  musicDragging = false;
-const musicAnimation = new MusicAnimation();
+let tethered = false;
 let sleeping = false;
 const wave = new AvatarWave(parked, {
   canPlay: () => !parked.hidden && !flight && document.body.dataset.presentation !== 'dialogue',
-  onChange: ensureMusicAnimation,
 });
 const surface = new AvatarSurfacePerformance(stage, {
   canPlay: () =>
     !parked.hidden &&
     !flight &&
     !sleeping &&
-    !musicDragging &&
+    !tethered &&
     !wave.run &&
     !document.hidden &&
     !motionPreference.matches &&
@@ -162,7 +143,6 @@ const surface = new AvatarSurfacePerformance(stage, {
   onChange() {
     animatePose();
     scheduleBlink();
-    ensureMusicAnimation();
   },
 });
 let replyTurn = '',
@@ -178,113 +158,6 @@ function redrawMouth() {
     parked.hidden ? 'closed' : mouthShape,
     frameIdFor(parkedImage.src),
   );
-  ensureMusicAnimation();
-}
-
-function setMusic(value) {
-  if (
-    !value ||
-    typeof value !== 'object' ||
-    Array.isArray(value) ||
-    (value.autoBpm !== undefined && typeof value.autoBpm !== 'boolean') ||
-    ['enabled', 'hearingMusic', 'notes', 'motion'].some((key) => typeof value[key] !== 'boolean') ||
-    !Number.isFinite(value.energy) ||
-    value.energy < 0 ||
-    value.energy > 1 ||
-    !Number.isFinite(value.tempo) ||
-    (value.tempo !== 0 && value.tempo < 40) ||
-    value.tempo > 240 ||
-    (value.tempoConfidence !== undefined &&
-      (!Number.isFinite(value.tempoConfidence) ||
-        value.tempoConfidence < 0 ||
-        value.tempoConfidence > 1)) ||
-    (value.beatAt !== undefined && (!Number.isFinite(value.beatAt) || value.beatAt < 0))
-  )
-    return false;
-  music = {
-    enabled: value.enabled,
-    hearingMusic: value.hearingMusic,
-    notes: value.notes,
-    motion: value.motion,
-    autoBpm: value.autoBpm !== false,
-    energy: value.energy,
-    tempo: value.tempo,
-    tempoConfidence: value.tempoConfidence ?? (value.tempo ? 1 : 0),
-    beatAt: value.beatAt ?? 0,
-  };
-  ensureMusicAnimation();
-  return true;
-}
-
-function ensureMusicAnimation() {
-  if (document.body.dataset.presentation === 'dialogue') return;
-  if (!musicFrame) musicFrame = requestAnimationFrame(animateMusic);
-}
-
-function animateMusic(now) {
-  musicFrame = 0;
-  const id = frameIdFor(parkedImage.src),
-    pose = MUSIC_POSES[id];
-  const reduced = motionPreference.matches;
-  const allowed = Boolean(
-    pose &&
-      musicAnimationReady(music) &&
-      !sleeping &&
-      !wave.image &&
-      !surface.active &&
-      !flight &&
-      !parked.hidden &&
-      !document.hidden &&
-      !musicDragging &&
-      pat.image(parkedImage) === parkedImage,
-  );
-  if (!pose) musicAnimation.reset();
-  const state = musicAnimation.sample(now, {
-    active: allowed,
-    strength: music.energy,
-    autoBpm: music.autoBpm !== false,
-    tempo: music.tempo,
-    tempoConfidence: music.tempoConfidence,
-    beatAt: music.beatAt,
-    reduced,
-    frameId: id,
-  });
-  if (pose) {
-    stage.style.transformOrigin = `${(pose.anchor[0] / 1254) * 100}% ${(pose.anchor[1] / 1254) * 100}%`;
-    stage.style.transform = music.motion && state.active ? `rotate(${state.angle}deg)` : '';
-  } else {
-    stage.style.transform = '';
-    stage.style.transformOrigin = '';
-  }
-  if (
-    !music.notes ||
-    reduced ||
-    !pose ||
-    !music.enabled ||
-    sleeping ||
-    wave.image ||
-    surface.active ||
-    flight ||
-    parked.hidden ||
-    document.hidden ||
-    musicDragging
-  )
-    state.notes = [];
-  if (state.notes.length) musicNotes ??= new MusicNotesLayer(document.body, MUSIC_NOTE_ASSETS);
-  musicNotes?.update(state, {
-    rect: parked.getBoundingClientRect(),
-    clip: { x: 0, y: 0, width: innerWidth, height: innerHeight },
-  });
-  if (
-    !reduced &&
-    !document.hidden &&
-    pose &&
-    !flight &&
-    !parked.hidden &&
-    (music.motion || music.notes) &&
-    (allowed || state.active)
-  )
-    ensureMusicAnimation();
 }
 
 function frameIdFor(url) {
@@ -636,14 +509,7 @@ function animatePose() {
 function scheduleBlink() {
   clearTimeout(blinkTimer);
   if (document.body.dataset.presentation === 'dialogue') return;
-  if (
-    parked.hidden ||
-    surface.active ||
-    !rasterPose?.eyes ||
-    motionPreference.matches ||
-    Object.hasOwn(MUSIC_POSES, frameIdFor(parkedImage.src))
-  )
-    return;
+  if (parked.hidden || surface.active || !rasterPose?.eyes || motionPreference.matches) return;
   blinkTimer = setTimeout(
     () => {
       if (!pat.frameId && !pat.hearts) pat.react(parkedImage, frameIdFor(parkedImage.src), 'blink');
@@ -657,11 +523,9 @@ motionPreference.addEventListener('change', () => {
   if (motionPreference.matches) surface.stop();
   animatePose();
   scheduleBlink();
-  ensureMusicAnimation();
 });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) surface.stop();
-  ensureMusicAnimation();
 });
 
 function parkedState() {
@@ -1020,7 +884,6 @@ function setStatus(value) {
     status.style.getPropertyValue('--avatar-signal'),
   );
   showHud();
-  ensureMusicAnimation();
   return replyState();
 }
 
@@ -1131,7 +994,6 @@ function complete(run = flight) {
     showPose(parkedImage.src, arrival?.dock);
     parked.hidden = false;
     redrawMouth();
-    ensureMusicAnimation();
     animatePose();
     scheduleBlink();
     showHud();
@@ -1248,10 +1110,6 @@ async function play(startAt) {
 function pulse({ x, y, count, tone }) {
   if (sleeping || parked.hidden || ![x, y, count].every(Number.isFinite)) return;
   surface.stop();
-  if (Object.hasOwn(MUSIC_POSES, frameIdFor(parkedImage.src))) {
-    headpat({ x, y });
-    return;
-  }
   if (!pat.hearts) pat.react(parkedImage, frameIdFor(parkedImage.src), tone);
   showAvatarTapEffect(document.body, { x, y, count, tone, id: 'avatar-tap' });
 }
@@ -1263,8 +1121,7 @@ function headpat(point) {
       parkedImage,
       point,
       undefined,
-      !perchSprite.test(parkedImage.src) &&
-        !Object.hasOwn(MUSIC_POSES, frameIdFor(parkedImage.src)),
+      !perchSprite.test(parkedImage.src),
       frameIdFor(parkedImage.src),
     );
   }
@@ -1289,12 +1146,8 @@ function setPresentation(value) {
   if (changed && value === 'dialogue') {
     surface.stop();
     wave.stop();
-    cancelAnimationFrame(musicFrame);
-    musicFrame = 0;
     clearTimeout(motionFrame);
     clearTimeout(blinkTimer);
-    musicNotes?.destroy();
-    musicNotes = undefined;
     pat.clear();
     stage.style.transform = '';
   } else if (changed) {
@@ -1309,12 +1162,10 @@ globalThis.capriAvatarDetach = Object.freeze({
   setPresentation,
   setTheme: (theme) => applyInterfaceTheme(theme),
   setTether: (value) => {
-    musicDragging = Boolean(value);
-    if (musicDragging) surface.stop();
+    tethered = Boolean(value);
+    if (tethered) surface.stop();
     tether.draw(value);
-    ensureMusicAnimation();
   },
-  setMusic,
   prepare,
   park,
   play,

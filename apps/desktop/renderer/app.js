@@ -35,9 +35,6 @@ import { TimePanel } from './time-panel.mjs';
 import { MicrophoneClient } from './microphone.mjs';
 import { microphoneButtonState, setMicrophoneButtonBusy } from './microphone-button.mjs';
 import { CallMicrophone } from './call-microphone.mjs';
-import { SystemMusicClient } from './system-music-capture.mjs';
-import { MusicAnimation, MusicPoseLayer, MusicNotesLayer } from './music-animation.mjs';
-import { musicAnimationReady } from './music-listening-settings.mjs';
 import { SpeechPanel } from './speech-panel.mjs';
 import { dimmingFeatherWidth, validateDimming, shadeBounds } from './dimming-settings.mjs';
 import { DimmingMask } from './dimming-mask.mjs';
@@ -118,37 +115,6 @@ const internetMode = new InternetMode({
     }
   },
 });
-let musicState = {
-  enabled: false,
-  hearingMusic: false,
-  settings: { enabled: false, notes: true, motion: true },
-};
-let musicNotes, currentMusicMotion;
-const musicAnimation = new MusicAnimation(),
-  musicPose = new MusicPoseLayer();
-const musicButton = document.getElementById('music-toggle');
-function renderMusicState() {
-  const busy = ['starting', 'preparing'].includes(musicState.phase);
-  musicButton.setAttribute('aria-pressed', String(musicState.enabled));
-  musicButton.setAttribute('aria-busy', String(busy));
-  musicButton.dataset.loading = String(busy);
-  musicButton.disabled = musicState.supported === false;
-  document.body.dataset.musicListening = String(musicAnimationReady(musicState));
-  signalFx?.invalidate();
-}
-const musicClient = new SystemMusicClient({
-  api,
-  onState: () => renderMusicState(),
-  onError: () => notice('Music listening could not start. Try again from Settings.', 'warning'),
-});
-window.capriStartMusicListening = async () => {
-  if (!(await musicClient.start()))
-    throw Error('Music listening could not start. Try again from Settings.');
-};
-musicButton.onclick = () =>
-  api
-    .setSkill({ id: 'capri.music', enabled: !skillState['capri.music']?.enabled })
-    .catch((error) => notice(error.message, 'warning'));
 const memoryHUD = new MemoryHUD({
   element: document.getElementById('memory-hud'),
   contextButton: document.getElementById('context-hud'),
@@ -764,10 +730,6 @@ const voicePlayer = new VoicePlayer({
     microphoneClient?.playback({
       speaking: Boolean(value.text),
       text: value.text ?? '',
-      outputBusy: value.busy && !value.waiting,
-    });
-    musicClient.playback({
-      speaking: Boolean(value.text),
       outputBusy: value.busy && !value.waiting,
     });
     controls();
@@ -1809,7 +1771,6 @@ function animateCharacter(now, snapshot, reduced) {
   if (avatarDetachPhase !== 'attached' && companionSettings?.detachedStyle === 'dialogue') return;
   if (startupIntro?.active && presence.sleeping) startupIntro.cancel();
   if (startupIntro?.active) {
-    musicNotes?.clear();
     startupIntro.tick(now);
     return;
   }
@@ -1826,7 +1787,6 @@ function animateCharacter(now, snapshot, reduced) {
   if (avatarDetachPhase === 'attached')
     portraitMouth.update(headpat.image(elements.sprite), mouthShape, renderedFrame?.id);
   if (!director || (!detached && avatarDetachPhase !== 'attached')) {
-    musicNotes?.clear();
     return;
   }
   const state = director.tick(now, {
@@ -1840,40 +1800,6 @@ function animateCharacter(now, snapshot, reduced) {
     sleeping: presence.sleeping,
   });
   if (!state) return;
-  // Moving Capri or her window changes placement, not the current music pose.
-  const musicActive = Boolean(
-    musicAnimationReady(musicState) &&
-      !portraitWave.image &&
-      !presence.sleeping &&
-      !activeTurnId &&
-      !elements.message.value.trim() &&
-      !microphoneText &&
-      !startupIntro?.pending &&
-      !headpat.frameId,
-  );
-  if (musicActive && frameCatalog.has('music-floor')) {
-    state.frameId = 'music-floor';
-    state.activity = 'Music listening';
-    state.effect = null;
-  }
-  currentMusicMotion = musicAnimation.sample(now, {
-    active: musicActive && avatarDetachPhase === 'attached',
-    strength: musicState.energy,
-    autoBpm: musicState.settings.autoBpm !== false,
-    tempo: musicState.tempo ?? 0,
-    tempoConfidence: musicState.tempoConfidence ?? 0,
-    beatAt: musicState.beatAt ?? 0,
-    reduced,
-    frameId: renderedFrame?.id,
-  });
-  if (musicState.settings.motion === false)
-    currentMusicMotion = { ...currentMusicMotion, angle: 0, dy: 0 };
-  if (avatarDetachPhase === 'attached' && musicState.settings.notes !== false)
-    musicNotes?.update(currentMusicMotion, {
-      rect: elements.sprite.getBoundingClientRect(),
-      clip: document.getElementById('avatar-viewport').getBoundingClientRect(),
-    });
-  else musicNotes?.clear();
   const effect = document.getElementById('avatar-effect');
   effect.hidden = detached || !state.effect || !snapshot.expanded;
   if (!effect.hidden) {
@@ -2414,7 +2340,6 @@ function onEvent(event) {
   }
   if (event.type === 'skills.settings') {
     skillState = event.settings;
-    if (!skillState['capri.music']?.enabled && musicClient.run) musicClient.stop(false);
     if (event.changed === 'capri.attachment-viewer' && !skillState[event.changed]?.enabled)
       attachmentComposer.clear();
     skillButtons.render(event.settings);
@@ -2436,27 +2361,6 @@ function onEvent(event) {
   }
   if (event.type === 'internet.settings') {
     internetMode.configure(event.settings);
-    return;
-  }
-  if (event.type === 'music.status') {
-    const wasHearingMusic = musicState.hearingMusic;
-    const wasReady = musicAnimationReady(musicState);
-    musicState = { ...musicState, ...event };
-    musicClient.setState(event);
-    renderMusicState();
-    // Decode while BPM is being acquired, without selecting a music pose yet.
-    if (!wasHearingMusic && musicState.hearingMusic)
-      frameImages?.get('music-floor').catch(() => {});
-    if (!wasReady && musicAnimationReady(musicState) && ready)
-      animateCharacter(
-        performance.now(),
-        presence.snapshot(),
-        matchMedia('(prefers-reduced-motion: reduce)').matches,
-      );
-    return;
-  }
-  if (event.type === 'music.stop-requested') {
-    if (musicClient.run) musicClient.stop(false);
     return;
   }
   if (event.type === 'avatar.composer.action') {
@@ -3609,7 +3513,7 @@ signalFx = new SignalFX({
   getSpriteImage: () =>
     startupIntro?.texture ??
     portraitWave.image ??
-    musicPose.image(portraitMouth.image(headpat.image(elements.sprite)), currentMusicMotion),
+    portraitMouth.image(headpat.image(elements.sprite)),
   frame: document.getElementById('portrait-panel'),
   audioLevel: () => voicePlayer.level,
   onLayout: () => {
@@ -3631,9 +3535,6 @@ window.addEventListener(
     startupIntro?.destroy();
     portraitWave.stop();
     microphoneClient.stop();
-    void musicClient.stop();
-    musicNotes?.destroy();
-    musicPose.clear();
     signalFx.destroy();
     voicePlayer.stop();
     subtitleController.dispose();
@@ -3659,12 +3560,6 @@ try {
   showApplicationAccess(snapshot.applicationAccess ?? { enabled: true });
   thinkingMode.configure(snapshot.thinking);
   internetMode.configure(snapshot.internet);
-  if (snapshot.musicListening) musicState = snapshot.musicListening;
-  renderMusicState();
-  musicNotes = new MusicNotesLayer(
-    document.getElementById('avatar-viewport'),
-    snapshot.musicArtwork?.notes ?? [],
-  );
   allowModelCallAudio = snapshot.allowModelCallAudio === true;
   voicePlayer.setCallVoiceVolume(snapshot.callVoiceVolume);
   applyAudioRouting(snapshot.audioRouting);
@@ -3730,10 +3625,7 @@ try {
     }
   }
   if (snapshot.animation) {
-    const animationFrames = [
-      ...snapshot.animation.frames,
-      ...(snapshot.musicArtwork?.frames ?? []),
-    ];
+    const animationFrames = snapshot.animation.frames;
     frameCatalog = new Map(animationFrames.map((frame) => [frame.id, frame]));
     frameImages = new SpriteImages(animationFrames);
     director = new AnimationDirector({

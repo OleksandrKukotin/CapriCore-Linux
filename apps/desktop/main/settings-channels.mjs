@@ -7,8 +7,6 @@ export const SETTINGS_CHANNELS = [
   'developer-diagnostics',
   'developer-log',
   'developer-open-logs',
-  'music-status',
-  'music-settings',
   'computer-stop',
   'computer-task',
   'computer-task-status',

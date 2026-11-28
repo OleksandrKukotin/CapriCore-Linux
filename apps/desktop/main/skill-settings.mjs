@@ -11,7 +11,6 @@ import { webSearchSettings } from '../../../packages/skills/src/web-search/setti
 
 const protectedCommands = {
   'capri.microphone': ['start', 'confirm', 'listen'],
-  'capri.music': ['start', 'ready'],
   'capri.reasoning': ['prepare'],
   'capri.web-search': ['prepare'],
   'capri.computer': ['run'],

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { VOICE_VOLUME_MAX } from './voice-volume.mjs';
 
-const routeNames = ['microphone', 'speaker', 'music', 'system', 'call'];
+const routeNames = ['microphone', 'speaker', 'system', 'call'];
 
 function audioOption(value, label) {
   const option = new Option(label, value);
@@ -41,12 +41,6 @@ export class AudioRoutingPanel {
             <input type="range" id="audio-route-volume" min="0" max="${VOICE_VOLUME_MAX}" step="1">
           </div>
           <div class="settings-actions"><button type="button" data-audio-settings="voice">Voice effects</button></div>
-        </section>
-        <section class="settings-card">
-          <h3>Music listening</h3>
-          <label for="audio-route-music">Source</label>
-          <select id="audio-route-music"></select>
-          <div class="settings-actions"><button type="button" data-audio-settings="music">Music animations</button></div>
         </section>
         <section class="settings-card">
           <h3>Voice calls</h3>
@@ -95,7 +89,7 @@ export class AudioRoutingPanel {
     const callOutputs = devices.callOutputs ?? devices.outputs ?? [];
     for (const [route, select] of Object.entries(this.selects)) {
       const microphoneRoute = route === 'microphone';
-      const isSource = route === 'music' || route === 'system';
+      const isSource = route === 'system';
       const selection = microphoneRoute ? microphone.deviceId : routes[route];
       const label = microphoneRoute ? microphone.deviceLabel : routeLabels[route];
       select.replaceChildren(
@@ -164,7 +158,7 @@ export class AudioRoutingPanel {
       select.disabled =
         !this.value ||
         Boolean(this.pending) ||
-        (this.value.supported === false && ['system', 'music', 'call'].includes(route));
+        (this.value.supported === false && ['system', 'call'].includes(route));
   }
 
   open() {

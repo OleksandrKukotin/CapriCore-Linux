@@ -84,14 +84,6 @@ export const SKILL_SETTINGS = Object.freeze(
       'M5 2h10v16H5zm2 3h6v3H7zm0 6h1m4 0h1m-6 3h1m4 0h1',
     ],
     [
-      'capri.music',
-      'music',
-      'Music listening',
-      'Detect music from system audio and animate Capri to the beat.',
-      'M7 14V5l9-2v9M7 14c0 2-4 3-4 1s4-3 4-1zm9-2c0 2-4 3-4 1s4-3 4-1z',
-      'music-toggle',
-    ],
-    [
       'capri.avatar-interaction',
       'avatar-skill',
       'Avatar interaction',

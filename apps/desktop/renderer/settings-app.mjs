@@ -8,7 +8,6 @@ import { CreditsPanel } from './credits-panel.mjs';
 import { DeveloperPanel } from './developer-panel.mjs';
 import { inferencePrivacy } from './inference-privacy.mjs';
 import { DiscordPanel } from './discord-panel.mjs';
-import { MusicListeningPanel } from './music-listening-panel.mjs';
 import { AudioRoutingPanel } from './audio-routing-panel.mjs';
 import { bindAudioOutput, createAudioOutputContext } from './local-audio-output.mjs';
 // SPDX-License-Identifier: GPL-3.0-only
@@ -268,29 +267,6 @@ const userTools = new UserToolsPanel({ api, ui, onError: notice });
 const credits = new CreditsPanel({ ui });
 const developer = new DeveloperPanel({ api, ui, onError: notice });
 const discord = new DiscordPanel(shared);
-const music = new MusicListeningPanel({
-  api,
-  ui,
-  onError: notice,
-  revision: () => revisions.musicListening,
-  onChange: () => {
-    syncDraftActions();
-    queuePreview();
-  },
-  onCommitted: (snapshot) => {
-    if (snapshot.settingsVersions?.musicListening !== undefined)
-      revisions.musicListening = snapshot.settingsVersions.musicListening;
-    if (
-      snapshot.settings &&
-      ['enabled', 'notes', 'motion'].every((key) => music.draft()[key] === snapshot.settings[key])
-    ) {
-      deferred.delete(music.panel.id);
-      captureDrafts(music.panel.id);
-    }
-    syncDraftActions();
-    queuePreview();
-  },
-});
 raw.onEvent((event) => {
   if (event.type === 'discord.presence') discord.status(event.settings);
 });
@@ -1375,14 +1351,6 @@ addDraft(
   () => updates.saveSettings(),
   () => updates.show(updates.value, { resetSettings: true }),
 );
-addDraft(
-  'music',
-  music.panel.id,
-  () => JSON.stringify(music.draft()),
-  () => music.save(),
-  () => music.show(deferred.get(music.panel.id) ?? music.value),
-  () => ({ musicListening: music.draft() }),
-);
 const computerAppearance = applications.appearance;
 addDraft(
   'computer',
@@ -1562,15 +1530,7 @@ const navigation = $('settings-navigation');
 const search = $('settings-search');
 const results = $('settings-search-items');
 const svgNamespace = 'http://www.w3.org/2000/svg';
-const betaSections = new Set([
-  'audio',
-  'api',
-  'screen',
-  'applications',
-  'music',
-  'initiative',
-  'computer',
-]);
+const betaSections = new Set(['audio', 'api', 'screen', 'applications', 'initiative', 'computer']);
 function appendBetaBadge(element) {
   const badge = document.createElement('small');
   badge.className = 'beta-badge';
@@ -1935,11 +1895,6 @@ async function navigate(id, focus = null, match = null) {
     if (id === 'files') await files.recovery();
     if (id === 'screen') await screenCommand({ action: 'state' });
     if (id === 'calls') await runCallAudio('state');
-    if (id === 'music') {
-      const pending = dirty.has(music.panel.id);
-      await music.open({ preserveDraft: pending });
-      if (!pending) captureDrafts(music.panel.id);
-    }
     captureDrafts();
     syncDraftActions();
     queuePreview();
@@ -2025,7 +1980,6 @@ function applyReset(value) {
   latest.screenSettings = value.screenSettings;
   showScreenOptions(value.screenSettings);
   computerAppearance.show(value.computerAppearance);
-  if (value.musicListening) music.show(value.musicListening);
   for (const panel of [
     companionPanelId,
     'dimming-panel',
@@ -2035,7 +1989,6 @@ function applyReset(value) {
     initiative.panel.id,
     'screen-panel',
     'computer-access-panel',
-    music.panel.id,
     ...windowToggles.map(({ id }) => id),
   ]) {
     deferred.delete(panel);
@@ -2068,7 +2021,6 @@ function show(snapshot) {
   initiative.show(snapshot.initiative);
   initiative.status(snapshot.awareness);
   speech.show(snapshot.speech);
-  music.show(snapshot.musicListening);
   time.show(snapshot.time);
   dimming(snapshot.dimming);
   windowToggles[0].saved = snapshot.windowSettings?.alwaysOnTop !== false;
@@ -2124,20 +2076,6 @@ function event(value) {
     if (deferred.has(companionPanelId)) deferred.set(companionPanelId, value.settings);
     else revisions.companion = value.settingsVersions.companion;
     void queuePreview(true).catch((error) => notice(error.message));
-    return;
-  }
-  if (value.type === 'music.status' || value.type === 'music-listening.status') {
-    const snapshot = value.state ?? value;
-    latest.musicListening = snapshot;
-    if (dirty.has(music.panel.id)) {
-      music.status(snapshot);
-      deferred.set(music.panel.id, snapshot);
-    } else {
-      music.show(snapshot);
-      captureDrafts(music.panel.id);
-    }
-    if (value.settingsVersions?.musicListening !== undefined)
-      revisions.musicListening = value.settingsVersions.musicListening;
     return;
   }
   if (value.type === 'window.focus-mode') {

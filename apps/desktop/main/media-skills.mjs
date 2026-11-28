@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { microphoneSkill, musicSkill, screenSkill } from '../../../packages/skills/src/media.mjs';
+import { microphoneSkill, screenSkill } from '../../../packages/skills/src/media.mjs';
 
 /** Keep exact-frame capture grants and media packets in the host. */
-export function createMediaSkills(core, { microphone, music, screen }) {
+export function createMediaSkills(core, { microphone, screen }) {
   core.register(microphoneSkill, microphone);
-  core.register(musicSkill, music);
   core.register(screenSkill, screen);
   const caller =
     ({ manifest: { id: skillId } }) =>
     (command, input, source, signal) =>
       core.call({ skillId, command, input }, { source, signal });
   const micCall = caller(microphoneSkill);
-  const musicCall = caller(musicSkill);
   const screenCall = caller(screenSkill);
   return {
     microphone: {
@@ -22,13 +20,6 @@ export function createMediaSkills(core, { microphone, music, screen }) {
       snapshot: () => micCall('snapshot', undefined, 'host'),
       devices: (source) => micCall('devices', undefined, source),
       selectDevice: (id, source) => micCall('selectDevice', id, source),
-    },
-    music: {
-      start: () => musicCall('start', undefined, 'companion'),
-      ready: (id) => musicCall('ready', id, 'companion'),
-      stop: (id, source = 'companion') => musicCall('stop', id, source),
-      snapshot: () => musicCall('snapshot', undefined, 'host'),
-      configure: (value, { role }) => musicCall('configure', value, role),
     },
     screen: {
       context: () => screenCall('context', undefined, 'chat'),

@@ -19,7 +19,6 @@ const api = settings('api', 'API connections');
 const updates = settings('updates', 'Updates');
 const microphone = settings('microphone', 'Voice input');
 const replies = settings('voice', 'Spoken replies');
-const music = settings('music', 'Music listening');
 const report = settings('bug', 'Report a bug');
 const releases = external('releases', 'Official releases');
 const github = external('github', 'Source code on GitHub');
@@ -202,15 +201,8 @@ const topics = [
     ],
   ],
   [
-    'Music and languages',
+    'Languages',
     [
-      [
-        'listen',
-        'How do I make Capri listen to music?',
-        'Turn on Music listening. Capri can detect rhythm from system audio and animate to the beat. Choose a different audio input or playback device under Audio if needed.',
-        music,
-        settings('audio', 'Audio'),
-      ],
       [
         'languages',
         'Can I use Capri in other languages?',

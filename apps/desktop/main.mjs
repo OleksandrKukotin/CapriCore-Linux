@@ -273,18 +273,10 @@ import {
   audioRouteRequest,
   audioRoutingPreferences,
   localPlaybackDevices,
-  nativeMusicPackets,
 } from './audio-routing.mjs';
 import { AudioEndpoints } from './audio-endpoints.mjs';
 import { clientPlacesWindows, platformFeatures } from './platform-features.mjs';
 import { SystemAudioCapture } from './system-audio-capture.mjs';
-import { MusicAudioCapture } from './music-audio-capture.mjs';
-import { MusicListeningService } from './music-listening-service.mjs';
-import {
-  MUSIC_LISTENING_DEFAULTS,
-  musicAnimationReady,
-  validateMusicListeningSettings,
-} from './music-listening-settings.mjs';
 import { callResponseGenerator } from './call-response.mjs';
 import { CallAudioSetup } from './call-audio-setup.mjs';
 import { VirtualCableInstaller } from './virtual-cable-installer.mjs';
@@ -1111,12 +1103,6 @@ async function initializeDesktop() {
     audioRoutingPreferences,
   );
   const audioEndpoints = new AudioEndpoints();
-  const musicPreferences = new Preferences(
-    path.join(state, 'music-listening.json'),
-    MUSIC_LISTENING_DEFAULTS,
-    validateMusicListeningSettings,
-  );
-  const liveMusicSettings = () => settingsPreview.musicListening ?? musicPreferences.snapshot();
   const callAudioPolicy = new Preferences(
     path.join(state, 'call-audio.json'),
     callAudioPreferences({ allowModel: false }),
@@ -1919,50 +1905,6 @@ async function initializeDesktop() {
       throw error;
     }
   }
-  let musicSuspended = false;
-  const musicAvailable = () =>
-    skillEnabled('capri.music') &&
-    platformFeatures.musicListening &&
-    !sessionLocked &&
-    !musicSuspended &&
-    !shuttingDown &&
-    !quitting &&
-    sleepService.phase === 'awake' &&
-    window &&
-    !window.isDestroyed() &&
-    window.webContents.getURL() === rendererUrl;
-  let previousMusicPose = false;
-  const musicListening = new MusicListeningService({
-    root,
-    settings: liveMusicSettings,
-    available: musicAvailable,
-    emit: (event) => {
-      if (!event.enabled) musicAudio?.revoke();
-      emit(event);
-      avatarDetach?.sendMusic({
-        enabled: event.enabled && event.settings.enabled,
-        hearingMusic: event.hearingMusic,
-        energy: event.energy,
-        tempo: event.tempo,
-        tempoConfidence: event.tempoConfidence,
-        beatAt: event.beatAt,
-        notes: event.settings.notes,
-        motion: event.settings.motion,
-        autoBpm: event.settings.autoBpm !== false,
-      });
-      const musicPoseReady = musicAnimationReady(event);
-      if (previousMusicPose !== musicPoseReady) {
-        previousMusicPose = musicPoseReady;
-        if (perch?.seated && !perch.hidden)
-          void Promise.resolve(updateSeatedFrame()).catch(() => {});
-      }
-    },
-  });
-  const musicAudio = new MusicAudioCapture({
-    ownerFrame: () => window?.webContents.mainFrame,
-    sessionId: () => (musicAvailable() ? musicListening.session?.id : null),
-    available: musicAvailable,
-  });
   const media = createMediaSkills(skills, {
     microphone: {
       start: startMicrophone,
@@ -1980,19 +1922,6 @@ async function initializeDesktop() {
       },
       snapshot: () => microphone.snapshot(),
     },
-    music: {
-      configure: (value) => {
-        musicPreferences.set(validateMusicListeningSettings(value));
-        return musicListening.publish();
-      },
-      start: () => musicListening.start(),
-      ready: (id) => musicListening.ready(id),
-      stop: (id) => {
-        if (id === undefined || id === musicListening.session?.id) musicAudio.revoke();
-        return musicListening.stop(id);
-      },
-      snapshot: () => musicListening.snapshot(),
-    },
     screen: {
       context: () => screenObservation?.context() ?? null,
       prepare: prepareScreenContext,
@@ -2002,69 +1931,6 @@ async function initializeDesktop() {
       stop: () => screenObservation.stop(),
     },
   });
-  let musicStartup;
-  let nativeMusicPlaybackTail = 0;
-  async function startNativeMusic(deviceId, startup) {
-    const { sessionId } = await media.music.start();
-    const musicSession = musicListening.session;
-    if (!musicSession || musicSession.id !== sessionId)
-      throw Error('The selected audio source could not start.');
-    startup.signal.throwIfAborted();
-    await audioEndpoints.capture(deviceId, {
-      signal: musicSession.controller.signal,
-      onPacket: nativeMusicPackets({
-        muted: () => !musicSession.capture || playbackBusy || Date.now() < nativeMusicPlaybackTail,
-        deliver: (sequence, pcm) =>
-          musicListening.packet({ sessionId, sequence, pcm, capturedAt: Date.now() }),
-      }),
-      onError: (error) => {
-        if (musicListening.session === musicSession) musicListening.fail(error.message);
-      },
-    });
-    if (!(await media.music.ready(sessionId)))
-      throw Error('The selected audio source could not start.');
-  }
-  function stopMusicListening() {
-    if (musicStartup) {
-      musicStartup.abort();
-      musicStartup = undefined;
-      emit({ type: 'music.stop-requested' });
-    }
-    return media.music.stop(undefined, 'host');
-  }
-  async function startMusicListening() {
-    if (musicStartup || musicListening.session) return;
-    const startup = (musicStartup = new AbortController());
-    const error = () => Error('Music listening could not start. Try again from Settings.');
-    const source = audioRoutes.value.routes.music;
-    let timer;
-    try {
-      if (!musicAvailable()) throw error();
-      await Promise.race([
-        source
-          ? startNativeMusic(source, startup)
-          : window.webContents.executeJavaScript('window.capriStartMusicListening()', true),
-        new Promise((_, reject) => {
-          timer = setTimeout(() => reject(error()), 15000);
-          startup.signal.addEventListener('abort', () => reject(error()), { once: true });
-        }),
-      ]);
-    } catch {
-      if (musicStartup !== startup) return;
-      stopMusicListening();
-      const failure = source ? Error('The selected audio source could not start.') : error();
-      musicListening.fail(failure.message);
-      throw failure;
-    } finally {
-      clearTimeout(timer);
-      if (musicStartup === startup) musicStartup = undefined;
-    }
-  }
-  function restoreMusicListening() {
-    if (!musicAvailable() || window.webContents.isLoading()) return;
-    if (powerMonitor.getSystemIdleState(1) === 'locked') return;
-    void startMusicListening().catch(() => {});
-  }
   async function startMicrophone() {
     if (speechInstaller.busy('recognition'))
       throw new Error('Wait for speech installation to finish, or cancel it in Languages.');
@@ -2223,11 +2089,6 @@ async function initializeDesktop() {
       saved.routeLabels[route] = device?.label ?? '';
       audioRoutes.set(saved);
       emit({ type: 'audio-routing.changed', ...audioRoutingState() });
-      if (route === 'music') {
-        await stopMusicListening();
-        if (musicAvailable() && audioRoutes.value.routes.music === deviceId)
-          void startMusicListening().catch(() => {});
-      }
       if (
         route === 'system' &&
         (currentCallAudio.systemAudioActive || currentCallAudio.systemAudioPending)
@@ -3314,10 +3175,6 @@ async function initializeDesktop() {
             });
         }
         break;
-      case 'capri.music':
-        if (enabled) await startMusicListening();
-        else stopMusicListening();
-        break;
       case 'capri.screen':
         if (!enabled) {
           capturePolicy.clear();
@@ -3714,12 +3571,10 @@ async function initializeDesktop() {
       previousPowerPhase = state.phase;
       emit({ type: 'power.state', ...state });
       if (awakened) showAvatarWave();
-      if (state.phase === 'awake') restoreMusicListening();
     },
     unload: async () => {
       workflows?.cancel();
       privateMemory.lock();
-      stopMusicListening();
       avatarClickReactions?.cancel();
       resetCallAudio();
       setBackend('sleeping', 'Freeing model memory…');
@@ -4431,20 +4286,6 @@ async function initializeDesktop() {
       desktopFrame?.id === 'pose-sleep'
         ? desktopFrame
         : (surface?.frame ?? avatarDockFrame(dockFrames, perch?.dock ?? defaultSeat));
-    if (
-      !surface &&
-      frame?.id !== 'pose-sleep' &&
-      musicAnimationReady(musicListening.snapshot()) &&
-      !avatarSleeping()
-    ) {
-      const id =
-        frame?.anchor?.name === 'seat'
-          ? 'music-window'
-          : frame?.anchor?.name === 'ground'
-            ? 'music-floor'
-            : null;
-      frame = dockFrames.get(id) ?? frame;
-    }
     if (!frame) return false;
     const mask = maskFor(frame.id, frame);
     return display
@@ -4721,8 +4562,7 @@ async function initializeDesktop() {
       perch.updating ||
       !avatarDetach.available ||
       !surfaceAvailable() ||
-      !avatarIdleAllowed() ||
-      musicAnimationReady(musicListening.snapshot())
+      !avatarIdleAllowed()
     )
       return false;
     const frame = perch.dock.surface?.frame ?? avatarDockFrame(dockFrames, perch.dock);
@@ -4982,7 +4822,6 @@ async function initializeDesktop() {
         validateSpeechSettings({ trailingSilenceSeconds: pause }).trailingSilenceSeconds,
       microphoneGain: validateMicrophoneGain,
       computerAppearance: computerPreferences,
-      musicListening: validateMusicListeningSettings,
     };
     const next = {};
     for (const [key, input] of Object.entries(value)) {
@@ -4994,7 +4833,6 @@ async function initializeDesktop() {
     settingsPreview = next;
     const changed = (key) => JSON.stringify(previous[key]) !== JSON.stringify(next[key]);
     const send = (type, fields) => emit({ type, ...fields, preview: true });
-    if (changed('musicListening')) musicListening.publish();
     if (changed('companion'))
       send('companion.settings', {
         settings: {
@@ -6371,20 +6209,7 @@ async function initializeDesktop() {
     handle('capri:settings-versions', settingsVersions);
     handle('capri:skill-settings', async (change, { role }) => {
       if (change === undefined) return skillSettings.snapshot();
-      const musicShortcut =
-        role === 'companion' &&
-        change?.id === 'capri.music' &&
-        typeof change.enabled === 'boolean' &&
-        Object.keys(change).every((key) => ['id', 'enabled'].includes(key));
-      if (role !== 'settings' && !musicShortcut)
-        throw new Error('Open Settings → Skills to configure a skill.');
-      if (
-        role === 'settings' &&
-        change?.id === 'capri.music' &&
-        change.enabled === true &&
-        !settingsHost?.window?.isVisible()
-      )
-        throw Error('Music listening could not start. Try again from Settings.');
+      if (role !== 'settings') throw new Error('Open Settings → Skills to configure a skill.');
       const before = skillEnabled(change?.id);
       const settings = skillSettings.set(change);
       if (
@@ -6472,7 +6297,6 @@ async function initializeDesktop() {
         [initiativeSettings, INITIATIVE_DEFAULTS],
         [screenPreferences, observationOptions()],
         [computerAppearance, COMPUTER_DEFAULTS],
-        [musicPreferences, MUSIC_LISTENING_DEFAULTS],
       ].map(([preferences, value]) => ({
         previous: preferences.snapshot(),
         value,
@@ -6535,7 +6359,6 @@ async function initializeDesktop() {
       for (const [id, value] of Object.entries(previousSkills))
         if (value.enabled) await applySkillActivation(id, false);
       emit({ type: 'voice.settings', ...voiceSnapshot() });
-      stopMusicListening();
       const result = {
         alwaysOnTop: saved.alwaysOnTop,
         portrait: presencePinned,
@@ -6547,7 +6370,6 @@ async function initializeDesktop() {
         initiative: initiativeSettings.snapshot(),
         screenSettings: media.screen.preferences(),
         computerAppearance: computerAppearance.snapshot(),
-        musicListening: musicListening.snapshot(),
         settingsVersions: settingsVersions(),
       };
       controlWindowLayer.sync();
@@ -7936,7 +7758,6 @@ async function initializeDesktop() {
           return state;
         })(),
         voice: voice.diagnostics(),
-        musicListening: musicListening.snapshot(),
         callAudio: callAudioDiagnostics.snapshot({
           ...callAudioSnapshot(),
           setup: callSetup.diagnostics(),
@@ -8066,8 +7887,6 @@ async function initializeDesktop() {
         sprite: catalog.canvas,
         avatars: catalog.publicSprites(),
         animation: catalog.publicAnimation(),
-        musicArtwork: catalog.publicMusic(),
-        musicListening: musicListening.snapshot(),
         audioRouting:
           role === 'settings'
             ? audioRoutingState()
@@ -8235,7 +8054,6 @@ async function initializeDesktop() {
     handle('capri:playback-state', (value) => {
       if (typeof value !== 'boolean') throw new Error('Invalid playback state');
       callAudioDiagnostics.playback(value, voice.turn?.id);
-      if (playbackBusy && !value) nativeMusicPlaybackTail = Date.now() + 600;
       playbackBusy = value;
       for (const listener of [...reminderListeners])
         listener({ type: 'playback.state', busy: value });
@@ -8292,20 +8110,6 @@ async function initializeDesktop() {
       )
         stopNativeSystemAudio();
     });
-    handle('capri:music-status', media.music.snapshot);
-    handle('capri:music-settings', (value, { role }) => {
-      if (role !== 'settings') throw Error('Open Music listening in Settings.');
-      return media.music.configure(value, { role });
-    });
-    handle('capri:music-audio-start', () => {
-      if (audioRoutes.value.routes.music) throw Error('The selected audio source could not start.');
-      return media.music.start();
-    });
-    handle('capri:music-audio-ready', media.music.ready);
-    handle('capri:music-audio-packet', (value) => musicListening.packet(value));
-    handle('capri:music-audio-stop', (id) => media.music.stop(id));
-    handle('capri:music-audio-prepare', (id, { frame }) => musicAudio.prepare(id, frame));
-    handle('capri:music-audio-cancel', (id, { frame }) => musicAudio.cancel(id, frame));
     handle('capri:call-audio-devices', (_, { role }) => {
       if (role === 'settings')
         return listOwnerAudioDevices().then((devices) => callOutputDevices(devices));
@@ -9068,7 +8872,6 @@ async function initializeDesktop() {
       verification,
     });
     window.webContents.on('render-process-gone', (_event, details) => {
-      stopMusicListening();
       void callCamera.stop();
       if (quitting || shuttingDown || !window || window.isDestroyed()) return;
       const reveal = window.isVisible() && !window.isMinimized();
@@ -9119,7 +8922,6 @@ async function initializeDesktop() {
       if (automaticUpdatesEnabled) void updates.startAutomaticChecks();
       console.info('Capri companion window ready.', JSON.stringify(window.getBounds()));
     });
-    window.webContents.on('did-stop-loading', restoreMusicListening);
     window.loadURL(rendererUrl).catch((error) => {
       if (rendererFailed || nextRendererRecovery) return;
       console.error('Could not load companion:', error.message);
@@ -9173,7 +8975,6 @@ async function initializeDesktop() {
       minimizedChip?.destroy();
       attachmentViewer?.close();
       attachmentDrafts.clear();
-      stopMusicListening();
       if (cableInstaller.snapshot().busy) {
         event.preventDefault();
         void cableInstaller.whenSettled().then(() => app.quit());
@@ -9271,7 +9072,7 @@ async function initializeDesktop() {
         };
         const displayPermission = (contents, permission, origin, details) =>
           permission === 'display-capture' &&
-          (Boolean(capturePolicy.capture) || systemAudio.armed() || musicAudio.armed()) &&
+          (Boolean(capturePolicy.capture) || systemAudio.armed()) &&
           contents === window?.webContents &&
           contents.getURL() === rendererUrl &&
           details?.isMainFrame !== false &&
@@ -9354,7 +9155,7 @@ async function initializeDesktop() {
         );
         session.defaultSession.setDisplayMediaRequestHandler(
           (request, respond) => {
-            if (!musicAudio.consume(request, respond) && !systemAudio.consume(request, respond))
+            if (!systemAudio.consume(request, respond))
               void capturePolicy.consume(request, respond);
           },
           { useSystemPicker: false },
@@ -9383,7 +9184,6 @@ async function initializeDesktop() {
         powerMonitor.on('unlock-screen', () => {
           sessionLocked = false;
           if (cameraPreview) syncCameraPreview();
-          restoreMusicListening();
           void reminders.pump();
         });
         powerMonitor.on('lock-screen', () => {
@@ -9396,7 +9196,6 @@ async function initializeDesktop() {
           sessionLocked = true;
           if (cameraPreview) syncCameraPreview();
           void callCamera.stop();
-          stopMusicListening();
           void computerControl.stop();
           stopMicrophoneMonitor();
           avatarClickReactions.cancel();
@@ -9405,7 +9204,6 @@ async function initializeDesktop() {
           cancelVisual();
         });
         powerMonitor.on('suspend', () => {
-          musicSuspended = true;
           void callCamera.stop();
           stopMicrophoneMonitor();
           recordingIndicator?.hide();
@@ -9413,16 +9211,11 @@ async function initializeDesktop() {
           workflows?.cancel();
           privateMemory.lock();
           minimizedChip?.hide();
-          stopMusicListening();
           avatarClickReactions.cancel();
           void computerControl.stop();
           avatarDetach.reset();
           discardScreens('system-suspended');
           cancelVisual();
-        });
-        powerMonitor.on('resume', () => {
-          musicSuspended = false;
-          restoreMusicListening();
         });
         window.on('show', () => {
           void syncInitiative().catch((error) => {
