@@ -20,7 +20,6 @@ const skillPanels = {
   files: 'file-access-panel',
   knowledge: 'knowledge-panel',
   'private-memory': 'private-memory-panel',
-  discord: 'discord-panel',
   workflows: 'workflows-panel',
   'user-tools': 'user-tools-panel',
 };

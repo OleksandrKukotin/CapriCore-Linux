@@ -148,31 +148,6 @@ export const advancedGuides = {
       '#private-current-password, #private-change-password',
     ),
   ],
-  discord: [
-    step(
-      '#discord-application',
-      'Get your Discord Application ID',
-      'Open the Developer Portal, create an application named Capri, then copy its numeric Application ID from General Information.',
-      '#discord-portal',
-    ),
-    step(
-      '#discord-enabled',
-      'Show Capri in your Discord activity',
-      'Turn on activity sharing in Discord Desktop and keep it open. This status shows that you are using Capri. It contains no conversation text. Apply settings after changing the switch.',
-      '#discord-save',
-    ),
-    step(
-      '#discord-refresh',
-      'Refresh the connection status',
-      'If Capri is waiting, check that Discord Desktop is running and Activity Sharing is on, then refresh.',
-    ),
-    step(
-      '#discord-asset',
-      'Add an optional activity image',
-      'Upload an image under Rich Presence → Art Assets in your Discord application. Paste its asset key and apply settings. An empty field gives a text-only activity.',
-      '#discord-panel details:has(#discord-asset) > summary',
-    ),
-  ],
   workflows: [
     step(
       '#workflow-record',

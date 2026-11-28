@@ -129,7 +129,6 @@ const rendererFiles = [
   'voice-model-panel.mjs',
   'external-tts-panel.mjs',
   'external-tts-settings.mjs',
-  'discord-panel.mjs',
   'inference-panel.mjs',
   'desktop-ai-panel.mjs',
   'inference-picker.mjs',

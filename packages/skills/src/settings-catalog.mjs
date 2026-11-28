@@ -132,13 +132,6 @@ export const SKILL_SETTINGS = Object.freeze(
       'M5 9h10v8H5zm2 0V6a3 3 0 0 1 6 0v3m-3 3v2',
     ],
     [
-      'capri.discord-presence',
-      'discord',
-      'Discord presence',
-      'Display Capri as an activity in Discord.',
-      'M5 4l3-1m4 0 3 1 3 10-4 2-2-3H8l-2 3-4-2zm2 5h1m4 0h1',
-    ],
-    [
       'capri.workflows',
       'workflows',
       'Task training',

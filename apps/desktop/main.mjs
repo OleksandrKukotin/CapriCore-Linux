@@ -7,7 +7,6 @@ import {
 import { CapriCore } from '../../packages/core/src/index.mjs';
 import { computerSkill } from '../../packages/skills/src/computer.mjs';
 import { avatarSkill } from '../../packages/skills/src/avatar/index.mjs';
-import { discordPresenceSkill } from '../../packages/skills/src/discord-presence.mjs';
 import { reasoningSkill } from '../../packages/skills/src/reasoning/index.mjs';
 import { webSearchSkill } from '../../packages/skills/src/web-search/index.mjs';
 import { createMediaSkills } from './main/media-skills.mjs';
@@ -53,9 +52,6 @@ import { readSteamScreenText } from './steam-screen-text.mjs';
 import { FullComputerAccess } from './full-computer-access.mjs';
 import { ComputerRequests } from './computer-requests.mjs';
 import { callApplicationBridge } from '../../integrations/desktop-actions/service.mjs';
-import discordDefaults from '../../config/discord-presence.json' with { type: 'json' };
-import { DiscordPresence, discordSettings } from './discord-presence.mjs';
-import { loadCommunityLinks } from './community-links.mjs';
 import {
   diagnosticModelId,
   writeModelSelectionLog,
@@ -2185,25 +2181,6 @@ async function initializeDesktop() {
     url: rt.gatewayUrl,
     token: () => readFileSync(rt.tokenPath, 'utf8').trim(),
   });
-  const discordPresence = new DiscordPresence({
-    communityLinks: loadCommunityLinks(root),
-    preferences: new Preferences(
-      path.join(state, 'discord-presence.json'),
-      discordSettings(discordDefaults),
-      discordSettings,
-    ),
-    platform: verification ? 'verification' : process.platform,
-    onChange: (value) => emit({ type: 'discord.presence', settings: value }),
-  });
-  skills.register(discordPresenceSkill, {
-    start: () => discordPresence.start(),
-    stop: () => discordPresence.close(),
-    snapshot: () => discordPresence.snapshot(),
-    configure: (value) => {
-      const enabled = skillEnabled('capri.discord-presence');
-      return discordPresence.configure({ ...value, enabled }, { active: enabled });
-    },
-  });
   const contextSampler = new ContextSampler({
     rpc: metadataRpc,
     sessionKey: chatSessionKey,
@@ -3226,9 +3203,6 @@ async function initializeDesktop() {
         break;
       case 'capri.private-memory':
         if (!enabled) privateMemory.lock();
-        break;
-      case 'capri.discord-presence':
-        discordPresence.configure({ ...discordPresence.preferences.snapshot(), enabled });
         break;
       case 'capri.attachment-viewer':
         if (!enabled) {
@@ -7252,15 +7226,6 @@ async function initializeDesktop() {
         throw new Error('Enable Full computer access in Settings → Computer control first.');
       return submitMessage({ id: randomUUID(), text, mode: 'computer' }, 'text');
     });
-    handle('capri:discord-status', (_value, { role }) =>
-      callSkill('capri.discord-presence', 'snapshot', undefined, { source: role }),
-    );
-    handle('capri:discord-configure', (value, { role }) =>
-      callSkill('capri.discord-presence', 'configure', value, { source: role }),
-    );
-    handle('capri:discord-portal', () =>
-      shell.openExternal('https://discord.com/developers/applications'),
-    );
     handle('capri:models-apply', async () => {
       if (verification) throw new Error('Model changes are disabled in desktop verification.');
       assertModelIdle();
@@ -7739,10 +7704,6 @@ async function initializeDesktop() {
         startup: startup.snapshot(),
         updates: updates.snapshot(),
         settingsWindow: settingsHost?.snapshot(),
-        discordPresence: {
-          phase: discordPresence.phase,
-          enabled: discordPresence.snapshot().enabled,
-        },
         confirmationPending: Boolean(confirmations.pending),
         desktopActions: companionActions.broker.diagnostics(),
         applicationAccess: {
@@ -9179,7 +9140,6 @@ async function initializeDesktop() {
           window.once('ready-to-show', () => {
             if (!shuttingDown) void settingsHost.open('models', 'hf-query').catch(console.error);
           });
-        if (skillEnabled('capri.discord-presence')) callSkill('capri.discord-presence', 'start');
         window.on('minimize', resetCallAudio);
         powerMonitor.on('unlock-screen', () => {
           sessionLocked = false;

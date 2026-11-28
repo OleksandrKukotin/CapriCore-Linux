@@ -7,7 +7,6 @@ import { UserToolsPanel } from './user-tools-panel.mjs';
 import { CreditsPanel } from './credits-panel.mjs';
 import { DeveloperPanel } from './developer-panel.mjs';
 import { inferencePrivacy } from './inference-privacy.mjs';
-import { DiscordPanel } from './discord-panel.mjs';
 import { AudioRoutingPanel } from './audio-routing-panel.mjs';
 import { bindAudioOutput, createAudioOutputContext } from './local-audio-output.mjs';
 // SPDX-License-Identifier: GPL-3.0-only
@@ -266,10 +265,6 @@ const workflows = new WorkflowsPanel({ api, ui, onError: notice });
 const userTools = new UserToolsPanel({ api, ui, onError: notice });
 const credits = new CreditsPanel({ ui });
 const developer = new DeveloperPanel({ api, ui, onError: notice });
-const discord = new DiscordPanel(shared);
-raw.onEvent((event) => {
-  if (event.type === 'discord.presence') discord.status(event.settings);
-});
 const effects = new VoiceEffectsPanel({ ...shared, onSettings: () => {}, deferDrafts: true });
 const files = new FileAccessPanel(shared),
   applications = new ApplicationsPanel({
@@ -380,8 +375,6 @@ $('application-access-pause').closest('.settings-card').hidden = true;
 $('application-access-pause').closest('.settings-card').setAttribute('aria-hidden', 'true');
 $('brain-enabled').closest('label').hidden = true;
 $('brain-enabled').closest('label').setAttribute('aria-hidden', 'true');
-$('discord-enabled').closest('label').hidden = true;
-$('discord-enabled').closest('label').setAttribute('aria-hidden', 'true');
 const voiceContent = effects.panel.querySelector('.preferences-content');
 function moveLanguageControls(id, host) {
   const card = $('language-' + id + '-controls');
@@ -1308,7 +1301,6 @@ for (const [section, controller, apply, fields, preview] of [
     () => JSON.stringify(initiative.draft()),
     () => ({ initiative: initiative.draft() }),
   ],
-  ['discord', discord, () => discord.save(), () => fieldsValue([discord.panel])],
 ])
   addDraft(
     section,
@@ -1366,7 +1358,6 @@ for (const id of [
   'speech-apply',
   'language-apply',
   'initiative-apply',
-  'discord-save',
 ])
   $(id).hidden = true;
 const screenInterval = $('screen-watch-interval');
@@ -1874,11 +1865,6 @@ async function navigate(id, focus = null, match = null) {
     if (id === 'workflows') await workflows.open();
     if (id === 'user-tools') await userTools.open();
     if (id === 'developer') await developer.open();
-    if (id === 'discord') {
-      const pending = dirty.has('discord-panel');
-      await discord.open({ refresh: pending });
-      if (!pending) captureDrafts('discord-panel');
-    }
     if (id === 'updates') await updates.open(true);
     if (id === 'applications') await applications.open(true);
     if (id === 'computer') {
@@ -2371,7 +2357,7 @@ try {
   show(snapshot);
   await companion.loadPersonality().catch((error) => notice(error.message));
   for (const draft of drafts)
-    if (!['microphone-device', 'discord-panel', 'computer-access-panel'].includes(draft.panel))
+    if (!['microphone-device', 'computer-access-panel'].includes(draft.panel))
       draft.baseline = draft.read();
   settingsInitialized = true;
   for (const value of eventsDuringInitialization.values()) event(value);

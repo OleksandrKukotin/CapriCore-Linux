@@ -2,7 +2,6 @@
 // Only draft saves participate in the leave-settings barrier. Actions that wait
 // for a confirmation consult that barrier themselves.
 const draftMethods = {
-  setDiscordPresence: 'discord-panel',
   setSpeechSettings: 'speech-panel',
   setCompanionSettings: 'companion-settings',
   savePersonality: 'companion-settings',
