@@ -5,7 +5,6 @@ export const SETTINGS_CHANNELS = [
   'skill-settings',
   'native-npu',
   'coding',
-  'chess',
   'developer-diagnostics',
   'developer-log',
   'developer-open-logs',

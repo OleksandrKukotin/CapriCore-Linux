@@ -7,7 +7,6 @@ import { diagnosticModelId } from './technical-model-id.mjs';
 export { diagnosticModelId } from './technical-model-id.mjs';
 import { assertPrivatePath, writePrivateBytesAtomic } from './safe-file.mjs';
 import { responseTimingRecord } from './response-timing-schema.mjs';
-import { chessDiagnosticRecord } from './chess-diagnostic-schema.mjs';
 const ERROR_CODES = new Set([
   'ECONNREFUSED',
   'ECONNRESET',
@@ -111,8 +110,6 @@ export function privateLogRecord(input, { service, stream, stage } = {}) {
   }
   const timing = responseTimingRecord(parsed);
   if (timing) return timing;
-  const chess = chessDiagnosticRecord(parsed);
-  if (chess) return chess;
   const record = { schemaVersion: 1 };
   if (
     typeof parsed?.time === 'string' &&

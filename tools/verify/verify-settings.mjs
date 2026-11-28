@@ -198,7 +198,6 @@ try {
   record('Disabled skills remain configurable and toolbar visibility is independent');
   const betaSkills = [
     'applications',
-    'chess',
     'computer',
     'initiative',
     'music',

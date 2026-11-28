@@ -2,7 +2,6 @@ import { spawn } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
-import { constants, setPriority } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { APPLICATION_DEFAULTS, validateApplications } from './settings.mjs';
 import { platformUnavailable } from '../../packages/runtime/src/host/platform.mjs';
@@ -81,31 +80,18 @@ export function applicationBridgeExecutable() {
 }
 
 /** One short-lived owned helper per call, with private stdio and bounded runtime. */
-export function callApplicationBridge(
-  root,
-  command,
-  { signal, stillAllowed = () => true, onMovePressed } = {},
-) {
+export function callApplicationBridge(root, command, { signal, stillAllowed = () => true } = {}) {
   signal?.throwIfAborted();
   if (!stillAllowed()) throw new Error('Application permission is disabled');
   const executable = applicationBridgeExecutable(root);
   return new Promise((resolve, reject) => {
-    const cancellableChessMove = command.action === 'chess_move';
     const child = spawn(executable, [], {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: { PATH: '/usr/bin:/bin', TMPDIR: path.join(root, '.runtime/tmp') },
     });
-    if (command.action === 'chess_view' && child.pid) {
-      try {
-        setPriority(child.pid, constants.priority.PRIORITY_BELOW_NORMAL);
-      } catch {
-        // The helper can exit before its priority is set.
-      }
-    }
     let output = '',
       errorOutput = '',
-      settled = false,
-      movePressed = false;
+      settled = false;
     const finish = (error, value) => {
       if (settled) return;
       settled = true;
@@ -121,13 +107,9 @@ export function callApplicationBridge(
           reject(error);
         };
         child.once('close', terminated);
-        terminationTimer = setTimeout(() => {
-          if (cancellableChessMove) child.kill();
-          terminated();
-        }, 2000);
+        terminationTimer = setTimeout(terminated, 2000);
         terminationTimer.unref?.();
-        if (cancellableChessMove) child.stdin.end('stop\n');
-        else child.kill();
+        child.kill();
         if (child.exitCode !== null || child.signalCode !== null) terminated();
       } else resolve(value);
     };
@@ -159,16 +141,6 @@ export function callApplicationBridge(
       errorOutput += chunk.toString('utf8');
       if (errorOutput.length > 8192) {
         finish(new Error('Application diagnostic exceeds limit'));
-        return;
-      }
-      if (
-        !settled &&
-        !movePressed &&
-        cancellableChessMove &&
-        /^chess_move_pressed\r?\n/m.test(errorOutput)
-      ) {
-        movePressed = true;
-        onMovePressed?.();
       }
     });
     child.on('error', (error) => finish(error));
@@ -198,8 +170,7 @@ export function callApplicationBridge(
       return;
     }
     const request = JSON.stringify(command) + '\n';
-    if (cancellableChessMove) child.stdin.write(request);
-    else child.stdin.end(request);
+    child.stdin.end(request);
   });
 }
 

@@ -1746,7 +1746,6 @@ function setPacketOrigin(origin) {
       initiative: 'CAPRI // INITIATIVE',
       screen: 'YOU // SNAPSHOT',
       'avatar-click': 'CAPRI',
-      'chess-reaction': 'Chess',
     }[origin] ?? 'YOU';
   packetOriginLabel.textContent = ui.text(packetOrigin);
 }
@@ -2684,13 +2683,6 @@ function onEvent(event) {
     notice(event.message);
     return;
   }
-  if (event.type === 'chess.explain') {
-    const draft = elements.message.value.trimEnd();
-    elements.message.value = draft ? `${draft}\n\n${event.draft}` : event.draft;
-    elements.message.dispatchEvent(new Event('input', { bubbles: true }));
-    elements.message.focus();
-    return;
-  }
   if (event.type === 'settings.renderer-lost') {
     notice('Settings closed unexpectedly. Open Settings to try again.');
     return;
@@ -3038,11 +3030,7 @@ function onEvent(event) {
     presence.voiceBusy = voiceBusy;
     setPacketOrigin(event.source);
     if (event.user?.text != null) setPacketInput(event.user.text);
-    else
-      setPacketInput(
-        '',
-        ['avatar-click', 'chess-reaction'].includes(event.source) ? '' : 'A thought of her own.',
-      );
+    else setPacketInput('', event.source === 'avatar-click' ? '' : 'A thought of her own.');
     activeTurnId = event.turnId;
     activeAssistantId = null;
     followOutput = true;

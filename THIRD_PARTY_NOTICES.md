@@ -9,7 +9,6 @@ GPL-3.0-only applies to project-owned code. LICENSE contains the full license te
 | Electron                               | npm distribution and its bundled notices                                                                                                                       |
 | mathjs                                 | Pinned Apache-2.0 npm package for numerical calculation; retain its LICENSE and NOTICE                                                                         |
 | PDF.js (`pdfjs-dist`)                  | Apache-2.0 npm package for local PDF text extraction; retain its upstream LICENSE                                                                              |
-| chess.js                               | BSD-2-Clause chess rules and notation library used by the Chess skill. Retain the package LICENSE.                                                             |
 | fenshot and its chess tile model       | MIT screenshot recognition library and model. See https://github.com/scoriiu/fenshot for the source, license and model training pipeline.                      |
 | ONNX Runtime Web                       | MIT runtime for local chess tile recognition. Retain its LICENSE and bundled third-party notices.                                                              |
 | Stockfish 19                           | Optional GPL-3.0 engine downloaded separately from the official release. Source and license are at https://github.com/official-stockfish/Stockfish/tree/sf_19. |

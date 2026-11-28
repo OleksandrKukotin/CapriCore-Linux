@@ -4,7 +4,6 @@ import { finishSettingsLoading, panelLoading } from './settings-loading.mjs';
 import { KnowledgePanel } from './knowledge-panel.mjs';
 import { WorkflowsPanel } from './workflows-panel.mjs';
 import { CodingPanel } from './coding-panel.mjs';
-import { ChessPanel } from './chess-panel.mjs';
 import { UserToolsPanel } from './user-tools-panel.mjs';
 import { CreditsPanel } from './credits-panel.mjs';
 import { DeveloperPanel } from './developer-panel.mjs';
@@ -147,7 +146,6 @@ if (!response.ok) throw new Error('Settings forms unavailable');
 const template = new DOMParser().parseFromString(await response.text(), 'text/html');
 for (const form of template.querySelectorAll('.preferences-panel, #dimming-panel'))
   $('settings-forms').append(form.cloneNode(true));
-const chess = new ChessPanel({ api: raw.chess, ui, host: $('settings-forms') });
 const general = document.createElement('section');
 general.id = 'general-panel';
 general.className = 'preferences-panel';
@@ -1627,7 +1625,6 @@ const betaSections = new Set([
   'api',
   'screen',
   'applications',
-  'chess',
   'spotify',
   'youtube-music',
   'music',
@@ -1977,7 +1974,6 @@ async function navigate(id, focus = null, match = null) {
     if (id === 'private-memory') await knowledge.privateMemory.open();
     if (id === 'workflows') await workflows.open();
     if (id === 'coding') await coding.open();
-    if (id === 'chess') await chess.open();
     if (id === 'user-tools') await userTools.open();
     if (id === 'developer') await developer.open();
     if (id === 'discord') {
@@ -2364,8 +2360,6 @@ function event(value) {
   if (value.type === 'huggingface.status') models.hub.show(value);
   if (value.type === 'voice-catalog.status') models.voices.show(value);
   if (value.type === 'voice-training.status') models.voices.trainingStatus(value);
-  if (value.type === 'chess.engine') chess.showEngine(value.engine);
-  if (value.type === 'chess.watch') chess.updateTracking(value);
   if (value.type === 'initiative.status') {
     initiative.status(value.settings);
     return;

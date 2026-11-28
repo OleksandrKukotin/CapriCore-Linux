@@ -181,7 +181,6 @@ contextBridge.exposeInMainWorld(
     interfaceBusy: (value) => ipcRenderer.invoke('capri:interface-busy', value),
     draftState: (value) => ipcRenderer.invoke('capri:draft-state', value),
     screenSources: () => ipcRenderer.invoke('capri:screen-sources'),
-    chess: (action, payload) => ipcRenderer.invoke('capri:chess', { action, payload }),
     pickScreenSource: () => ipcRenderer.invoke('capri:screen-select-source'),
     applicationAccess: (enabled) => ipcRenderer.invoke('capri:application-access', enabled),
     prepareScreen: (id) => ipcRenderer.invoke('capri:screen-prepare', id),

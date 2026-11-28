@@ -131,27 +131,6 @@ import { createDesktopResources } from './main/resources.mjs';
 import { createIpcHandler, settingsVersion } from './main/ipc.mjs';
 import { resourceResponse } from './main/protocol.mjs';
 import { registerScreenIpc } from './main/screen-ipc.mjs';
-import { ChessCapture } from './chess/capture.mjs';
-import { ChessDiagnostics, chessUiDecisions } from './chess/diagnostics.mjs';
-import {
-  chessArrowAppearance,
-  DEFAULT_CHESS_ARROW,
-  restoreChessArrowAppearance,
-} from './renderer/chess-arrow-style.mjs';
-import {
-  chessFrameAppearance,
-  DEFAULT_CHESS_FRAME,
-  restoreChessFrameAppearance,
-} from './renderer/chess-frame-style.mjs';
-import { ChessEngineInstall } from './chess/engine-install.mjs';
-import { importGame } from './chess/position.mjs';
-import { ChessSession } from './chess/session.mjs';
-import { ChessReactions } from './chess/reactions.mjs';
-import {
-  CHESS_REACTION_DEFAULTS,
-  chessReactionSettings,
-} from './renderer/chess-reaction-settings.mjs';
-import { ChessPageAccess } from './chess/source.mjs';
 import { registerAccessIpc } from './main/access-ipc.mjs';
 import { registerCompanionIpc } from './main/companion-ipc.mjs';
 import { crashReporter } from './main/crash-report.mjs';
@@ -518,10 +497,6 @@ async function initializeDesktop() {
       path.join(verification ? verificationFolder : root, 'logs/response-desktop.jsonl'),
     ),
   );
-  const chessDiagnostics = new ChessDiagnostics(
-    path.join(verification ? verificationFolder : root, 'logs/chess.jsonl'),
-  );
-  const chessTrace = (operation, context) => chessDiagnostics.start(operation, context);
   const localTimingFetch = timingFetch(fetch, { ollamaPort: settings.ollamaPort });
   const rt = verification
     ? runtime({
@@ -838,7 +813,6 @@ async function initializeDesktop() {
   const VOICE_REQUIRED_MESSAGE = 'Enable Capri’s voice first.';
   let prepareWakeAudio = async () => {};
   let temporal;
-  let chess, chessReactions;
   let reminders,
     sessionLocked = false;
   let pendingMemoryDecision, latestMemoryCandidate;
@@ -1672,7 +1646,6 @@ async function initializeDesktop() {
         'Finish ChatGPT sign-in or cancel it before sending a message.',
       );
     avatarClickReactions?.cancel();
-    chessReactions?.cancel();
     wildTabs?.reset();
     const input = thinkingInput(value);
     surfaceRequest++;
@@ -2928,7 +2901,6 @@ async function initializeDesktop() {
       busy: Boolean(
         chat.active ||
           currentChatTask ||
-          chessReactions?.active ||
           avatarClickReactions?.active ||
           screenObservation.session?.foreground ||
           screenObservation.session?.controller,
@@ -3140,7 +3112,6 @@ async function initializeDesktop() {
 
   function recordAvatarClick(kind = 'body') {
     initiative.activity();
-    chessReactions?.cancel();
     if (!skillEnabled('capri.avatar-interaction')) return false;
     callSkill('capri.avatar-interaction', 'react', kind);
     return true;
@@ -3205,7 +3176,6 @@ async function initializeDesktop() {
       if (
         initiative.active ||
         avatarClickReactions.active ||
-        chessReactions?.active ||
         playbackBusy ||
         voice.generating ||
         screenObservation.session?.controller
@@ -3438,12 +3408,6 @@ async function initializeDesktop() {
       case 'capri.music':
         if (enabled) await startMusicListening();
         else stopMusicListening();
-        break;
-      case 'capri.chess':
-        if (!enabled) {
-          chess?.stop();
-          chess?.install.cancel();
-        }
         break;
       case 'capri.screen':
         if (!enabled) {
@@ -3763,7 +3727,6 @@ async function initializeDesktop() {
   function emitChat(event) {
     if (event.type === 'turn.started' && speechInstaller.busy('speech'))
       event = { ...event, silent: true };
-    if (event.type === 'turn.started') chessReactions?.cancel();
     considerMemory(event);
     if (
       ['turn.completed', 'turn.cancelled', 'turn.failed'].includes(event.type) &&
@@ -4091,7 +4054,6 @@ async function initializeDesktop() {
   }
 
   function discardScreens(reason) {
-    chess?.stop();
     resetCallAudio();
     companionActions.approvals.cancel();
     capturePolicy.clear(reason);
@@ -8195,7 +8157,6 @@ async function initializeDesktop() {
       resetContext: () => confirmReset(false),
       resetMemory: () => confirmReset(true),
       diagnosticRoot: verification ? verificationFolder : root,
-      prepareDiagnosticLogs: () => chessDiagnostics.flush(),
       verification,
       diagnosticResources: verification
         ? undefined
@@ -8237,7 +8198,6 @@ async function initializeDesktop() {
             .map(({ launch, inspect, text }) => ({ launch, inspect, text })),
         },
         computerTask: callSkill('capri.computer', 'diagnostics'),
-        chess: chess?.diagnosticState(),
         screenCapture: capturePolicy.diagnostics(),
         screenObservation: (() => {
           const { source, ...state } = screenObservation.snapshot();
@@ -8507,306 +8467,6 @@ async function initializeDesktop() {
       )
         throw new Error('Wait for the current reply or operation to finish.');
       return speechInstaller.start(selection);
-    });
-    const chessEnabled = () =>
-      skillEnabled('capri.chess') && !shuttingDown && !sessionLocked && !computerControl.session;
-    const chessPreferences = new Preferences(
-      path.join(state, 'chess.json'),
-      {
-        autoMove: false,
-        moveLightning: true,
-        showArrow: true,
-        boardFrame: false,
-        arrow: DEFAULT_CHESS_ARROW,
-        frameStyle: DEFAULT_CHESS_FRAME,
-        reactions: CHESS_REACTION_DEFAULTS,
-      },
-      (value) => {
-        if (typeof value?.autoMove !== 'boolean') throw new Error('Invalid chess settings');
-        const { autoMove, moveLightning = true, showArrow = true, boardFrame = false } = value;
-        if ([moveLightning, showArrow, boardFrame].some((flag) => typeof flag !== 'boolean'))
-          throw new Error('Invalid chess settings');
-        return {
-          autoMove,
-          moveLightning,
-          showArrow,
-          boardFrame,
-          arrow: restoreChessArrowAppearance(value.arrow),
-          frameStyle: restoreChessFrameAppearance(value.frameStyle),
-          reactions: chessReactionSettings(value.reactions),
-        };
-      },
-    );
-    chessReactions = new ChessReactions({
-      preferences: () => chessPreferences.value.reactions,
-      style: () => settingsPreview.style ?? readCommunicationStyle(rt.workspace),
-      language: () => {
-        const { conversation, interface: interfaceLanguage } = liveLanguages();
-        return INTERFACE_LOCALES.some(({ id }) => id === conversation)
-          ? conversation
-          : interfaceLanguage;
-      },
-      trace: chessTrace,
-      allowed: () =>
-        chessEnabled() &&
-        !quitting &&
-        !maintenance &&
-        companionPresent() &&
-        !chat.active &&
-        !currentChatTask &&
-        !draftBusy &&
-        !playbackBusy &&
-        !voice.generating &&
-        !voicePreviewRequest &&
-        !initiative.active &&
-        !avatarClickReactions.active &&
-        !screenObservation.session?.controller,
-      deliver: (text, spoken) => {
-        const turnId = randomUUID();
-        const assistant = {
-          id: randomUUID(),
-          turnId,
-          role: 'assistant',
-          text,
-          status: 'complete',
-          createdAt: new Date().toISOString(),
-          origin: { kind: 'chess-reaction' },
-        };
-        const speak =
-          spoken &&
-          skillEnabled('capri.voice-output') &&
-          voice.enabled &&
-          voice.language !== 'off' &&
-          !currentCallAudio.shareReplies;
-        emit({
-          type: 'turn.started',
-          turnId,
-          assistant: { ...assistant, text: '', status: 'streaming' },
-          source: 'chess-reaction',
-          silent: !speak,
-        });
-        if (speak) {
-          voiceSkills.output.turn({ type: 'turn.started', turnId });
-          voiceSkills.output.turn({ type: 'turn.delta', turnId, text });
-        }
-        emit({ type: 'turn.delta', turnId, text });
-        if (speak) voiceSkills.output.turn({ type: 'turn.completed', turnId });
-        emit({ type: 'turn.completed', turnId, assistant });
-      },
-    });
-    chess = new ChessSession({
-      capture: new ChessCapture({
-        BrowserWindow,
-        screen,
-        desktopCapturer,
-        enabled: chessEnabled,
-        teleportEffects: liveCompanionSettings,
-        regionBitmap: async (region, limit, signal, windowClient) => {
-          const { bgra, width, height } = await screenFrames.frame({
-            region,
-            windowClient,
-            limit,
-            signal,
-            format: 'bgra',
-          });
-          return nativeImage.createFromBitmap(bgra, { width, height, scaleFactor: 1 });
-        },
-      }),
-      access: new ChessPageAccess({
-        inspect: async (signal, target) => {
-          const response = await callApplicationBridge(
-            root,
-            {
-              action: 'chess_view',
-              ...(target.hwnd
-                ? { hwnd: target.hwnd }
-                : { x: String(target.x), y: String(target.y) }),
-            },
-            { signal, stillAllowed: chessEnabled },
-          );
-          return response.view ?? (response.probe ? { probe: response.probe } : null);
-        },
-      }),
-      install: new ChessEngineInstall({
-        root,
-        directory: path.join(
-          verification ? verificationFolder : path.join(root, '.runtime'),
-          'chess',
-        ),
-        progress: (engine) => settingsHost?.send({ type: 'chess.engine', engine }),
-        trace: chessTrace,
-      }),
-      enabled: chessEnabled,
-      trace: chessTrace,
-      autoMove: () => chessPreferences.value.autoMove,
-      playScreenMove: async ({ token, tabId, target, from, to, signal, onMovePressed }) => {
-        const response = await callApplicationBridge(
-          root,
-          {
-            action: 'chess_move',
-            token,
-            ...(tabId ? { tabId } : {}),
-            x: String(target.x),
-            y: String(target.y),
-            fromX: String(from.x),
-            fromY: String(from.y),
-            toX: String(to.x),
-            toY: String(to.y),
-          },
-          {
-            signal,
-            onMovePressed,
-            stillAllowed: () => chessEnabled() && chessPreferences.value.autoMove,
-          },
-        );
-        return {
-          status: response.status ?? 'blocked',
-          moveProbe: response.moveProbe,
-          browserProbe: response.probe,
-        };
-      },
-      prompt: () =>
-        uiText(
-          'Drag a square around the chessboard. Enter confirms. Esc cancels.',
-          languages.value.interface,
-        ),
-      event: (value) => settingsHost?.send({ type: 'chess.watch', ...value }),
-      react: (events, signal) => chessReactions.submit(events, signal),
-      reactionsEnabled: () => chessPreferences.value.reactions.enabled,
-    });
-    chess.capture.configureAppearance(chessPreferences.value.arrow);
-    chess.capture.configureMoveLightning(chessPreferences.value.moveLightning);
-    chess.capture.configureShowArrow(chessPreferences.value.showArrow);
-    chess.capture.configureBoardFrame(chessPreferences.value.boardFrame);
-    chess.capture.configureFrameStyle(chessPreferences.value.frameStyle);
-    handle('capri:chess', (request, { role }) => {
-      if (role !== 'settings') throw new Error('Settings frame required');
-      if (request?.action === 'status')
-        return chess
-          .snapshot()
-          .then((value) => ({ ...value, reactions: chessPreferences.value.reactions }));
-      if (request?.action === 'ui-diagnostic') {
-        const { reason, boardIndex } = request.payload ?? {};
-        if (!chessUiDecisions.has(reason)) throw new Error('Invalid chess diagnostic event');
-        chessTrace('ui', {
-          scanId: chess.scanned?.scanId,
-          boardIndex:
-            Number.isInteger(boardIndex) && boardIndex >= 0 && boardIndex < 3
-              ? boardIndex
-              : undefined,
-        })('decision', { reason });
-        return true;
-      }
-      if (request?.action === 'auto-move') {
-        const { autoMove } = chessPreferences.set({
-          ...chessPreferences.value,
-          autoMove: request.payload,
-        });
-        chessTrace('command', { command: 'auto-move', autoMove })('completed');
-        return autoMove;
-      }
-      if (request?.action === 'move-lightning') {
-        if (typeof request.payload !== 'boolean') throw new Error('Invalid chess settings');
-        const { moveLightning } = chessPreferences.set({
-          ...chessPreferences.value,
-          moveLightning: request.payload,
-        });
-        chess.capture.configureMoveLightning(moveLightning);
-        return moveLightning;
-      }
-      if (request?.action === 'board-frame') {
-        if (typeof request.payload !== 'boolean') throw new Error('Invalid chess settings');
-        const { boardFrame } = chessPreferences.set({
-          ...chessPreferences.value,
-          boardFrame: request.payload,
-        });
-        chess.capture.configureBoardFrame(boardFrame);
-        return boardFrame;
-      }
-      if (request?.action === 'show-arrow') {
-        if (typeof request.payload !== 'boolean') throw new Error('Invalid chess settings');
-        const { showArrow } = chessPreferences.set({
-          ...chessPreferences.value,
-          showArrow: request.payload,
-        });
-        chess.capture.configureShowArrow(showArrow);
-        return showArrow;
-      }
-      if (request?.action === 'frame-appearance') {
-        const frameStyle = chessFrameAppearance(request.payload);
-        chessPreferences.set({ ...chessPreferences.value, frameStyle });
-        chess.capture.configureFrameStyle(frameStyle);
-        return frameStyle;
-      }
-      if (request?.action === 'reactions') {
-        if (request.payload === undefined) throw new Error('Invalid chess reaction settings');
-        const { reactions } = chessPreferences.set({
-          ...chessPreferences.value,
-          reactions: request.payload,
-        });
-        chessReactions.cancel();
-        return reactions;
-      }
-      if (request?.action === 'arrow-appearance') {
-        const arrow = chessArrowAppearance(request.payload);
-        chessPreferences.set({ ...chessPreferences.value, arrow });
-        chess.capture.configureAppearance(arrow);
-        return arrow;
-      }
-      if (request?.action === 'stop') {
-        chessReactions.cancel();
-        chessTrace('command', { command: 'stop', scanId: chess.scanned?.scanId })('completed');
-        chess.stop();
-        return true;
-      }
-      if (request?.action === 'cancel') {
-        chessTrace('command', { command: 'cancel' })('completed');
-        chess.install.cancel();
-        return true;
-      }
-      if (!chessEnabled()) {
-        chessTrace('command', { command: request?.action })('failed', { reason: 'skill_disabled' });
-        throw new Error('Enable the Chess skill first');
-      }
-      switch (request?.action) {
-        case 'install':
-          if (!chess.install.snapshot().installed) chess.stop();
-          return chess.install.install();
-        case 'remove':
-          return chess.removeEngine();
-        case 'scan':
-          return chess.scan(request.payload ?? {});
-        case 'import': {
-          const trace = chessTrace('command', { command: 'import', source: 'local' });
-          const { fen, count, ply } = importGame(request.payload);
-          trace('completed', { historyPlies: count, ply, turn: fen.split(' ')[1] });
-          return { fen, count, ply };
-        }
-        case 'analyse':
-          return chess.analyse(request.payload ?? {});
-        case 'watch':
-          return chess.watch(request.payload ?? {});
-        case 'explain': {
-          const analysis = chess.last;
-          if (!analysis?.result.bestMove || analysis.position.fen !== request.payload?.fen)
-            throw new Error('Analyse a chess position first');
-          const pv = analysis.result.lines[0]?.moves.map(({ san }) => san).join(' ') ?? '';
-          const question = uiText(
-            'Why does Stockfish suggest this chess move?',
-            languages.value.interface,
-          );
-          settingsHost.hide();
-          restoreCompanion();
-          emit({
-            type: 'chess.explain',
-            draft: `${question}\nFEN ${analysis.position.fen}\nStockfish ${analysis.result.bestMove.san}${pv ? ` · ${pv}` : ''}`,
-          });
-          return true;
-        }
-        default:
-          chessTrace('command')('failed', { reason: 'invalid_request' });
-          throw new Error('Invalid chess action');
-      }
     });
     registerScreenIpc(handle, {
       root,
@@ -9775,8 +9435,6 @@ async function initializeDesktop() {
     app.on('before-quit', (event) => {
       if (quitting) return;
       void callCamera.stop();
-      chess?.close();
-      void chessDiagnostics.flush();
       nativeNpu?.stop();
       recordingIndicator?.destroy();
       userTools.close();
@@ -10013,7 +9671,6 @@ async function initializeDesktop() {
           sessionLocked = true;
           if (cameraPreview) syncCameraPreview();
           void callCamera.stop();
-          chess?.stop();
           stopMusicListening();
           void computerControl.stop();
           stopMicrophoneMonitor();
@@ -10025,7 +9682,6 @@ async function initializeDesktop() {
         powerMonitor.on('suspend', () => {
           musicSuspended = true;
           void callCamera.stop();
-          chess?.stop();
           stopMicrophoneMonitor();
           recordingIndicator?.hide();
           userTools.cancel();

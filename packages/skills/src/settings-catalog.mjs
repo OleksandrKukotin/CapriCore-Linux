@@ -84,13 +84,6 @@ export const SKILL_SETTINGS = Object.freeze(
       'M5 2h10v16H5zm2 3h6v3H7zm0 6h1m4 0h1m-6 3h1m4 0h1',
     ],
     [
-      'capri.chess',
-      'chess',
-      'Chess',
-      'Analyze chess positions with Stockfish.',
-      'M5 16h10m-9-2h8M7 13c3-2 4-4 3-6L7 9 5 7l5-5 4 3 1 8',
-    ],
-    [
       'capri.spotify',
       'spotify',
       'Spotify',
