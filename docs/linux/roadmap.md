@@ -117,6 +117,6 @@ each is in the heritage doc.
 | User tool sandbox                        | bubblewrap                                                    | [Tool sandbox](windows-heritage.md#tool-sandbox--p1)                                                  |
 | App awareness events                     | `ext-idle-notify-v1` and `zwlr_foreign_toplevel_manager_v1`   | [Awareness](windows-heritage.md#awareness-events--p1)                                                 |
 | Install, update, uninstall               | `.desktop` entry, XDG autostart, packaging                    | [Installer](windows-heritage.md#installer-updater-uninstaller--p1)                                    |
-| Computer control, task recording         | RemoteDesktop portal + libei for input, AT-SPI2 for controls  | [Computer control](windows-heritage.md#computer-control-and-task-recording--p2-wayland-makes-it-hard) |
+| Click/type agent (removed; roadmap TODO) | RemoteDesktop portal + libei for input, AT-SPI2 for controls  | [Computer control](windows-heritage.md#computer-control-and-task-recording--p2-wayland-makes-it-hard) |
 | Virtual camera                           | v4l2loopback                                                  | [Virtual camera](windows-heritage.md#virtual-camera--p2)                                              |
 | NPU                                      | OpenVINO venv (setup not ported)                              | [NPU](windows-heritage.md#npu--p2)                                                                    |

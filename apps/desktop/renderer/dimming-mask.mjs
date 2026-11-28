@@ -6,7 +6,7 @@ const surfaces = [
   '#handle .window-actions button, #quick-actions button',
   '#portrait-panel, .portrait-status, #subtitle-frame, .reply-tail, .composer',
   '#process-graphs-hud .process-graph, #memory-hud .memory-gauge, #monitor-display',
-  '#microphone-preview, #reconnect, #computer-control-stop',
+  '#microphone-preview, #reconnect',
   '#history-panel, #inference-picker, #voice-volume-menu, #stopwatch-controls',
   '#startup-progress, #attachment-drafts, #call-audio-dock',
   '#wild-tab-notice, #thinking-progress, #update-notification, .resource-warning',

@@ -8,7 +8,6 @@ const draftMethods = {
   setLanguages: 'language-panel',
   setVoiceEffects: 'voice-effects-panel',
   setInitiative: 'initiative-panel',
-  setComputerAppearance: 'computer-access-panel',
 };
 const revisionGroups = {
   setCompanionSettings: 'companion',

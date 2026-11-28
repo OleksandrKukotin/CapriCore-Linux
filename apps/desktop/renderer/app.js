@@ -137,7 +137,6 @@ const stopwatchHUD = new StopwatchHUD({
 let pendingAction = null;
 let pendingActionTimer;
 let dueReminder;
-let computerTaskLabel;
 new ButtonFeedback();
 const confirmDialog = new ConfirmationDialog({
   ui,
@@ -1991,8 +1990,6 @@ function refreshInterface() {
     packetOriginLabel.textContent = ui.text(packetOrigin);
     if (packetPrompt) setPacketInput('', packetPrompt);
     subtitleController.render();
-    if (computerTaskLabel)
-      document.getElementById('computer-task-live').textContent = ui.text(computerTaskLabel);
     if (dueReminder && !dueReminder.title)
       document.getElementById('time-alert-text').textContent = ui.text('Timer finished.');
     stopwatchHUD.draw();
@@ -2649,31 +2646,6 @@ function onEvent(event) {
   }
   if (event.type === 'open-screen') {
     screenPanel.open(true);
-    return;
-  }
-  if (event.type === 'computer.control') {
-    const stop = document.getElementById('computer-control-stop');
-    stop.hidden = !event.active;
-    stop.onclick = () => window.capri.stopComputerControl();
-    sizeInput();
-    scheduleRegions();
-    return;
-  }
-  if (event.type === 'computer.task') {
-    const status = document.getElementById('computer-task-live');
-    const labels = {
-      'call-focus': 'Switch to the meeting tab',
-      observing: 'Observing the current window',
-      planning: 'Thinking',
-      acting: 'Performing the action',
-      verifying: 'Checking the result',
-      completed: 'Ready',
-      stopped: 'Stopped',
-    };
-    status.hidden = !event.active;
-    computerTaskLabel = labels[event.phase] ?? 'Computer control';
-    status.textContent = ui.text(computerTaskLabel);
-    scheduleRegions();
     return;
   }
   if (event.type === 'screen.status') {

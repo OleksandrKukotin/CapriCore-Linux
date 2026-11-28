@@ -534,26 +534,6 @@ test('opening Chrome cannot hide a later failed typing step behind an opening re
   assert.equal(events.at(-1).assistant.text, 'Chrome is open, but no text was entered.');
 });
 
-test('an incomplete computer task reports the executor result instead of asking for access again', async () => {
-  const events = [];
-  const service = client({
-    fetchImpl: async () => {
-      service.recordToolResult(
-        'desktop_control',
-        { action: 'run_task' },
-        { ok: false, status: 'incomplete', steps: 1, summary: 'The foreground window changed.' },
-      );
-      return response('Please give me the green light again.');
-    },
-  });
-  await service.send({ id: randomUUID(), text: 'Get the Discord window ready, please.' }, (event) =>
-    events.push(event),
-  );
-  assert.equal(events.at(-1).type, 'turn.completed');
-  assert.equal(events.at(-1).assistant.text, 'The foreground window changed.');
-  assert.deepEqual(events.at(-1).assistant.computerTask, { status: 'incomplete', steps: 1 });
-});
-
 test('a later tool failure invalidates an earlier successful receipt rather than concealing incomplete work', async () => {
   const events = [];
   const service = client({
@@ -1192,7 +1172,7 @@ test('social routing preserves shared history and leaves task tools available on
     },
   });
   await service.send({ id: randomUUID(), text: 'Hello Capri.' }, (e) => events.push(e));
-  await service.send({ id: randomUUID(), text: 'Check Spotify volume.' }, (e) => events.push(e));
+  await service.send({ id: randomUUID(), text: 'Find the missing file.' }, (e) => events.push(e));
   assert.equal(seen[0].headers['x-capri-thinking-once'], 'off');
   assert.equal(seen[0].headers['x-capri-tools-once'], 'dialogue');
   assert.equal(seen[1].headers['x-capri-tools-once'], undefined);
@@ -1201,57 +1181,14 @@ test('social routing preserves shared history and leaves task tools available on
     seen[0].headers['x-openclaw-session-key'],
     seen[1].headers['x-openclaw-session-key'],
   );
-  assert.deepEqual(requests, [{ text: 'Check Spotify volume.', context: ['Hello Capri.'] }]);
-  assert.equal(userText(seen[1].body.messages[1].content), 'Check Spotify volume.');
-  assert.doesNotMatch(seen[0].body.messages[0].content, /spotify_control/);
-  assert.match(seen[1].body.messages[0].content, /spotify_control/);
+  assert.deepEqual(requests, [{ text: 'Find the missing file.', context: ['Hello Capri.'] }]);
+  assert.equal(userText(seen[1].body.messages[1].content), 'Find the missing file.');
+  assert.doesNotMatch(seen[0].body.messages[0].content, /filesystem_control/);
+  assert.match(seen[1].body.messages[0].content, /filesystem_control/);
   assert.deepEqual(
     events.filter((e) => e.type === 'turn.routing').map((e) => e.mode),
     ['normal'],
   );
-});
-
-test('a classified conversation cannot inherit action tools, while the next feature request keeps them', async () => {
-  const seen = [],
-    events = [];
-  const service = client({
-    requestRouter: { classify: async () => ({ mode: 'normal', reason: 'unavailable' }) },
-    computerIntent: async (text) => ({
-      intent:
-        text === 'Set a timer for ten minutes.'
-          ? 'feature'
-          : text === 'What is my favourite game?'
-            ? 'memory'
-            : 'chat',
-      usesPrevious: false,
-    }),
-    interfaceState: () => ({ fullComputerAccess: true }),
-    computerTask: () => assert.fail('Conversation and built-in features must not control the PC'),
-    fetchImpl: async (_url, options) => {
-      seen.push({ headers: options.headers, body: JSON.parse(options.body) });
-      return response('No worries. We can just hang out.');
-    },
-  });
-  for (const text of [
-    'Not much, just chilling.',
-    'Та нічого особливого.',
-    'Rien de spécial.',
-    'Set a timer for ten minutes.',
-    'What is my favourite game?',
-  ])
-    await service.send({ id: randomUUID(), text }, (event) => events.push(event));
-  for (const request of seen.slice(0, 3)) {
-    assert.equal(request.headers['x-capri-tools-once'], 'dialogue');
-    assert.match(request.body.messages[0].content, /Tools are unavailable/);
-    assert.doesNotMatch(request.body.messages[0].content, /filesystem_control trash/);
-  }
-  assert.equal(seen[3].headers['x-capri-tools-once'], undefined);
-  assert.match(seen[3].body.messages[0].content, /timer/);
-  assert.equal(seen[4].headers['x-capri-tools-once'], 'conversation');
-  assert.match(seen[4].body.messages[0].content, /memory tools/);
-  assert.equal(new Set(seen.map((request) => request.headers['x-openclaw-session-key'])).size, 1);
-  assert.equal(events.filter((event) => event.type === 'turn.completed').length, 5);
-  assert(!events.some((event) => event.type === 'turn.failed'));
 });
 
 test('ordinary local chat bypasses the tool loop and preserves previous turns and action routes', async () => {
@@ -1261,13 +1198,10 @@ test('ordinary local chat bypasses the tool loop and preserves previous turns an
   const service = client({
     requestRouter: {
       classify: async (text) =>
-        text === 'Not much, just chilling.'
+        ['Not much, just chilling.', 'Tell me about your day.'].includes(text)
           ? { mode: 'fast', reason: 'simple-dialogue' }
           : { mode: 'normal', reason: 'unavailable' },
     },
-    computerIntent: async (text) => ({
-      intent: text.startsWith('Set a timer') ? 'feature' : 'chat',
-    }),
     interfaceState: () => ({ fullComputerAccess: true, languages: { conversation: 'en' } }),
     prepareContext: () => ({ userToolContext: '\n\nUSER_TOOL_INSTRUCTIONS' }),
     avatarSprites: [{ id: 'attentive', pose: 'standing', expression: 'attentive' }],
@@ -1280,7 +1214,11 @@ test('ordinary local chat bypasses the tool loop and preserves previous turns an
       return response('Timer reply.');
     },
   });
-  for (const text of ['Not much, just chilling.', 'How about you?', 'Set a timer for ten minutes.'])
+  for (const text of [
+    'Not much, just chilling.',
+    'Tell me about your day.',
+    'Set a timer for ten minutes.',
+  ])
     await service.send({ id: randomUUID(), text }, (event) => events.push(event));
   assert.equal(direct.length, 2);
   assert.equal(direct[1].messages[1].content, 'Not much, just chilling.');
@@ -1294,7 +1232,7 @@ test('ordinary local chat bypasses the tool loop and preserves previous turns an
   assert.equal(gateway[0].headers['x-capri-tools-once'], undefined);
   assert.match(gateway[0].body.messages[1].content, /^Set a timer/);
   assert.deepEqual(turnState(gateway[0].body.messages[1].content).previousDialogue, {
-    user: 'How about you?',
+    user: 'Tell me about your day.',
     reply: 'Sounds good.',
   });
   assert.equal(events.filter(({ type }) => type === 'turn.completed').length, 3);
@@ -1541,7 +1479,7 @@ test('a completed chat reply wrapped inside an invalid avatar marker is delivere
   let calls = 0;
   const service = client({
     externalInference: true,
-    computerIntent: async () => ({ intent: 'chat' }),
+    requestRouter: { classify: async () => ({ mode: 'fast', reason: 'simple-dialogue' }) },
     fetchImpl: async (_url, { headers }) => {
       assert.equal(headers['x-capri-tools-once'], 'dialogue');
       calls++;

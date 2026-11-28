@@ -2,7 +2,6 @@ import { InferencePanel } from './inference-panel.mjs';
 import { ExternalTtsPanel } from './external-tts-panel.mjs';
 import { finishSettingsLoading, panelLoading } from './settings-loading.mjs';
 import { KnowledgePanel } from './knowledge-panel.mjs';
-import { WorkflowsPanel } from './workflows-panel.mjs';
 import { UserToolsPanel } from './user-tools-panel.mjs';
 import { CreditsPanel } from './credits-panel.mjs';
 import { DeveloperPanel } from './developer-panel.mjs';
@@ -261,7 +260,6 @@ function showAudioRouting(snapshot) {
   }
 }
 const knowledge = new KnowledgePanel({ api, ui, onError: notice });
-const workflows = new WorkflowsPanel({ api, ui, onError: notice });
 const userTools = new UserToolsPanel({ api, ui, onError: notice });
 const credits = new CreditsPanel({ ui });
 const developer = new DeveloperPanel({ api, ui, onError: notice });
@@ -1343,15 +1341,6 @@ addDraft(
   () => updates.saveSettings(),
   () => updates.show(updates.value, { resetSettings: true }),
 );
-const computerAppearance = applications.appearance;
-addDraft(
-  'computer',
-  'computer-access-panel',
-  () => JSON.stringify(computerAppearance.draft()),
-  () => computerAppearance.save(),
-  () => computerAppearance.open(),
-  () => ({ computerAppearance: computerAppearance.draft() }),
-);
 for (const id of [
   'companion-save',
   'personality-save',
@@ -1862,19 +1851,11 @@ async function navigate(id, focus = null, match = null) {
     if (id === 'api') await inference.open();
     if (id === 'knowledge') await knowledge.open({ privateMemory: false });
     if (id === 'private-memory') await knowledge.privateMemory.open();
-    if (id === 'workflows') await workflows.open();
     if (id === 'user-tools') await userTools.open();
     if (id === 'developer') await developer.open();
     if (id === 'updates') await updates.open(true);
     if (id === 'applications') await applications.open(true);
-    if (id === 'computer') {
-      applications.showComputerAccess(await raw.computerAccessStatus());
-      applications.showComputerTask(await raw.computerTaskStatus());
-      if (!dirty.has('computer-access-panel')) {
-        await applications.appearance.open();
-        captureDrafts('computer-access-panel');
-      }
-    }
+    if (id === 'computer') applications.showComputerAccess(await raw.computerAccessStatus());
     if (id === 'languages') await language.open(true);
     if (id === 'audio') await audioRouting.open();
     if (id === 'time') await time.refresh();
@@ -1965,7 +1946,6 @@ function applyReset(value) {
   initiative.show(value.initiative);
   latest.screenSettings = value.screenSettings;
   showScreenOptions(value.screenSettings);
-  computerAppearance.show(value.computerAppearance);
   for (const panel of [
     companionPanelId,
     'dimming-panel',
@@ -1974,7 +1954,6 @@ function applyReset(value) {
     speech.panel.id,
     initiative.panel.id,
     'screen-panel',
-    'computer-access-panel',
     ...windowToggles.map(({ id }) => id),
   ]) {
     deferred.delete(panel);
@@ -2089,10 +2068,6 @@ function event(value) {
     stopMicrophoneMonitor();
     return;
   }
-  if (value.type === 'computer.task') {
-    applications.showComputerTask(value);
-    return;
-  }
   if (value.type === 'computer-access') {
     applications.showComputerAccess(value.settings);
     return;
@@ -2107,10 +2082,6 @@ function event(value) {
   }
   if (value.type === 'private-memory.status') {
     knowledge.privateMemory.show(value.settings);
-    return;
-  }
-  if (value.type === 'workflow.status') {
-    workflows.status(value.settings);
     return;
   }
   if (value.type === 'settings.resume') {
@@ -2357,8 +2328,7 @@ try {
   show(snapshot);
   await companion.loadPersonality().catch((error) => notice(error.message));
   for (const draft of drafts)
-    if (!['microphone-device', 'computer-access-panel'].includes(draft.panel))
-      draft.baseline = draft.read();
+    if (!['microphone-device'].includes(draft.panel)) draft.baseline = draft.read();
   settingsInitialized = true;
   for (const value of eventsDuringInitialization.values()) event(value);
   eventsDuringInitialization.clear();

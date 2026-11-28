@@ -6,7 +6,6 @@ export const ACTION_SKILLS = Object.freeze({
   applications: 'capri.applications',
   calculator: calculatorSkill.manifest.id,
   files: 'capri.files',
-  workflows: 'capri.workflows',
   userTools: 'capri.user-tools',
 });
 
@@ -67,56 +66,6 @@ const filesSkill = {
   }),
 };
 
-const workflowState = (value) =>
-  isRecord(value) &&
-  boolean(value.recording) &&
-  boolean(value.playing) &&
-  Number.isInteger(value.count);
-const workflowList = (value) =>
-  Array.isArray(value) &&
-  value.every((entry) => isRecord(entry) && string(entry.id) && Array.isArray(entry.steps));
-const workflowStatus = (value) =>
-  isRecord(value) &&
-  workflowState(value.status) &&
-  workflowList(value.workflows) &&
-  Array.isArray(value.draft);
-const workflowsSkill = {
-  manifest: {
-    id: ACTION_SKILLS.workflows,
-    version: '1.0.0',
-    apiVersion: 1,
-    requires: ['listWorkflows', 'runWorkflow', 'status', 'record', 'stop', 'save', 'remove'],
-    commands: {
-      list: toolCommand(noInput),
-      run: {
-        input: (input) =>
-          isRecord(input) && typeof input.id === 'string' && isRecord(input.variables),
-        output: receipt,
-        sources: ['tool', 'settings'],
-      },
-      status: settingsCommand(noInput, workflowStatus),
-      record: settingsCommand(noInput, workflowState),
-      stop: settingsCommand(noInput, (value) => isRecord(value) && Array.isArray(value.steps)),
-      save: settingsCommand(isRecord, workflowList),
-      remove: settingsCommand(string, workflowList),
-    },
-    ui: { sectionId: 'workflows', labelKey: 'Task training' },
-  },
-  create: ({ ports }) => ({
-    invoke(command, args, { signal }) {
-      if (command === 'list')
-        return {
-          ok: true,
-          workflows: ports
-            .listWorkflows()
-            .map(({ id, name, steps }) => ({ id, name, steps: steps.length })),
-        };
-      if (command === 'run') return ports.runWorkflow(args.id, args.variables, signal);
-      return ports[command](args);
-    },
-  }),
-};
-
 const userToolList = (value) =>
   Array.isArray(value) &&
   value.every((entry) => isRecord(entry) && string(entry.id) && boolean(entry.enabled));
@@ -170,10 +119,7 @@ const userToolsSkill = {
 };
 
 /** Bind reviewed host services; skills receive just the operations they use. */
-export function registerActionToolSkills(
-  core,
-  { applications, files, trash, workflows, userTools },
-) {
+export function registerActionToolSkills(core, { applications, files, trash, userTools }) {
   if (applications) {
     const execute = applications.execute.bind(applications);
     core.register(applicationsSkill, { executeAction: execute });
@@ -191,23 +137,6 @@ export function registerActionToolSkills(
         (() => {
           throw new Error('The trash is unavailable.');
         }),
-    });
-  if (workflows)
-    core.register(workflowsSkill, {
-      listWorkflows: workflows.list.bind(workflows),
-      runWorkflow: workflows.run.bind(workflows),
-      status: () => ({
-        status: workflows.snapshot(),
-        workflows: workflows.list(),
-        draft: structuredClone(workflows.draft),
-      }),
-      record: () => workflows.start(),
-      async stop() {
-        workflows.cancel();
-        return { steps: await workflows.stopRecording() };
-      },
-      save: (workflow) => workflows.save(workflow),
-      remove: (id) => workflows.remove(id),
     });
   if (userTools)
     core.register(userToolsSkill, {

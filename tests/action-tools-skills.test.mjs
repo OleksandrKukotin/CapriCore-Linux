@@ -21,14 +21,6 @@ test('legacy aliases dispatch through their registered skills without changing t
     desktop: { close() {} },
     applications: service('applications'),
     files: service('files'),
-    workflows: {
-      list: () => [{ id: 'daily', name: 'Daily task', steps: [{ private: 'private selector' }] }],
-      run(id, variables, signal) {
-        signal.throwIfAborted();
-        effects.push(['workflows', id, variables]);
-        return { ok: true, steps: 1 };
-      },
-    },
     userTools: {
       run(name, parameters, signal) {
         signal.throwIfAborted();
@@ -54,33 +46,15 @@ test('legacy aliases dispatch through their registered skills without changing t
       [key, 'operation-1', { action: 'status' }],
     ]);
   }
-  assert.deepEqual(await actions.execute('workflow_control', 'workflow-1', { action: 'list' }), {
-    ok: true,
-    workflows: [{ id: 'daily', name: 'Daily task', steps: 1 }],
-  });
-  assert.deepEqual(
-    await actions.execute('workflow_control', 'workflow-2', { action: 'run', id: 'daily' }),
-    { ok: true, steps: 1 },
-  );
   assert.deepEqual(await actions.execute('capri_tool_01', 'tool-1', {}), {
     ok: true,
     data: { output: 'fixture output' },
   });
   assert.deepEqual(effects, [
-    ['authorize', 'workflow_control'],
-    ['authorize', 'workflow_control'],
-    ['workflows', 'daily', {}],
     ['authorize', 'capri_tool_01'],
     ['user-tools', 'capri_tool_01', {}],
   ]);
   effects.length = 0;
-  assert.deepEqual(
-    await actions.skills.call(
-      { skillId: ACTION_SKILLS.workflows, command: 'run', input: { id: 'daily', variables: {} } },
-      { source: 'settings' },
-    ),
-    { ok: true, steps: 1 },
-  );
   const request = {
     skillId: ACTION_SKILLS.userTools,
     command: 'test',
@@ -93,33 +67,16 @@ test('legacy aliases dispatch through their registered skills without changing t
     status: 'failed',
     code: 'skill_access_denied',
   });
-  assert.deepEqual(effects, [
-    ['workflows', 'daily', {}],
-    ['user-tools', 'fixture', {}],
-  ]);
+  assert.deepEqual(effects, [['user-tools', 'fixture', {}]]);
 });
 
-test('workflow and user-tool management preserve Settings results and owner-only commands', async (t) => {
+test('user-tool management preserves Settings results and owner-only commands', async (t) => {
   const core = new CapriCore();
   t.after(() => core.close());
   const effects = [];
-  const schedule = { recording: false, playing: false, count: 1 };
-  const draft = [{ action: 'keys', keys: ['ENTER'] }];
-  const workflows = [{ id: 'daily', name: 'Daily task', steps: draft }];
   const tools = [{ id: 'fixture', enabled: true }];
   const invalidSettings = new Error('Use a small JSON object of private string settings.');
   registerActionToolSkills(core, {
-    workflows: {
-      list: () => workflows,
-      run() {},
-      snapshot: () => schedule,
-      draft,
-      start: async () => ({ ...schedule, recording: true }),
-      cancel: () => effects.push('cancel workflow'),
-      stopRecording: async () => (effects.push('finish recording'), draft),
-      save: (value) => (effects.push(['save', value.id]), workflows),
-      remove: (id) => (effects.push(['remove', id]), []),
-    },
     userTools: {
       run() {},
       list: () => tools,
@@ -137,13 +94,6 @@ test('workflow and user-tool management preserve Settings results and owner-only
   });
   const call = (skill, command, input, source = 'settings') =>
     core.call({ skillId: ACTION_SKILLS[skill], command, input }, { source });
-  const status = call('workflows', 'status');
-  assert.deepEqual(status, { status: schedule, workflows, draft });
-  assert.notEqual(status.draft, draft);
-  assert.deepEqual(await call('workflows', 'record'), { ...schedule, recording: true });
-  assert.deepEqual(await call('workflows', 'stop'), { steps: draft });
-  assert.equal(call('workflows', 'save', workflows[0]), workflows);
-  assert.deepEqual(call('workflows', 'remove', 'daily'), []);
   assert.equal(call('userTools', 'status'), tools);
   assert.equal(await call('userTools', 'refresh'), tools);
   assert.deepEqual(await call('userTools', 'enable', { id: 'fixture', enabled: false }), [
@@ -159,15 +109,8 @@ test('workflow and user-tool management preserve Settings results and owner-only
   );
   assert.equal(call('userTools', 'stop'), true);
   assert.equal(await call('userTools', 'example'), tools);
-  assert.deepEqual(effects, [
-    'cancel workflow',
-    'finish recording',
-    ['save', 'daily'],
-    ['remove', 'daily'],
-    'cancel user tool',
-  ]);
+  assert.deepEqual(effects, ['cancel user tool']);
   for (const [skill, commands] of [
-    ['workflows', ['status', 'record', 'stop', 'save', 'remove']],
     ['userTools', ['status', 'refresh', 'enable', 'settings', 'stop', 'example']],
   ]) {
     for (const command of commands)
@@ -177,14 +120,12 @@ test('workflow and user-tool management preserve Settings results and owner-only
   }
 });
 
-test('file trash keeps the busy, approval and full-access behavior of the desktop bridge', async (t) => {
+test('file trash keeps the approval and full-access behavior of the desktop bridge', async (t) => {
   let fullAccess = false;
-  const computerAgent = { running: true };
   const effects = [];
   const actions = new CompanionActions({
     root: process.cwd(),
     emit() {},
-    computerAgent,
     fullAccess: () => fullAccess,
     desktop: {
       execute(id, args, approvals, signal) {
@@ -206,12 +147,6 @@ test('file trash keeps the busy, approval and full-access behavior of the deskto
   });
   t.after(() => actions.close());
   const args = { action: 'trash' };
-  await assert.rejects(
-    actions.execute('filesystem_control', 'trash-1', args),
-    /current computer task/u,
-  );
-  assert.deepEqual(effects.splice(0), [['authorize', 'filesystem_control']]);
-  computerAgent.running = false;
   const pending = await actions.execute('filesystem_control', 'trash-1', args);
   assert.equal(pending.needsApproval, true);
   assert.deepEqual(effects.splice(0), [

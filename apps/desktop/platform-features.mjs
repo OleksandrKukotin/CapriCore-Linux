@@ -14,8 +14,6 @@ export const platformFeatures = Object.freeze({
   trayBalloons: false,
   /** Enumerating other apps' windows to locate Capri's own surfaces (no Wayland API). */
   windowEnumeration: false,
-  /** Launching Steam games from the installed library. */
-  steamGames: false,
   /** Virtual call camera (v4l2loopback). */
   virtualCamera: false,
   /**

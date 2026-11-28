@@ -33,7 +33,6 @@ import { AvatarRoaming, chooseRoamingDisplay } from './avatar-roaming.mjs';
 import { LocalModelLoad } from './local-model-load.mjs';
 import { openLocalModelFolder } from './local-model-folder.mjs';
 import { isLemonadeNpuEndpoint, isLocalApiEndpoint } from './renderer/inference-endpoint.mjs';
-import { ComputerControl } from './computer-control.mjs';
 import { WebSearch } from './web-search.mjs';
 import { webSources } from './web-sources.mjs';
 import { visualReplyFailure } from './visual-response.mjs';
@@ -42,13 +41,6 @@ import {
   validateVoiceVolume,
   voiceVolumeSettings,
 } from './renderer/voice-volume.mjs';
-import { ResolveAdapter } from '../../integrations/resolve/service.mjs';
-import { ComputerAgent } from './computer-agent.mjs';
-import { steamGameLauncher } from './steam-game-launch.mjs';
-import { createSteamGameTask } from './steam-game-task.mjs';
-import { computerIntentClassifier, computerPlanner } from './computer-planner.mjs';
-import { computerVision } from './computer-vision.mjs';
-import { readSteamScreenText } from './steam-screen-text.mjs';
 import { FullComputerAccess } from './full-computer-access.mjs';
 import { ComputerRequests } from './computer-requests.mjs';
 import { callApplicationBridge } from '../../integrations/desktop-actions/service.mjs';
@@ -101,7 +93,6 @@ import { ApplicationAccess } from './application-access.mjs';
 import { BrainKnowledge } from './brain-knowledge.mjs';
 import { PrivateMemory } from './private-memory.mjs';
 import { privateDialogue } from './private-dialogue.mjs';
-import { TaskWorkflows } from './task-workflows.mjs';
 import { UserTools } from './user-tools.mjs';
 import { interfaceThemeColors } from './renderer/interface-theme.mjs';
 import { FileService } from '../../integrations/filesystem/service.mjs';
@@ -332,7 +323,6 @@ import { avatarTapsSleeping, isSleepCommand, SleepService } from './sleep-servic
 import { ScreenshotFiles } from './screenshot-files.mjs';
 import { ScreenClipFrames } from './screen-clip-frames.mjs';
 import { ScreenFrameWorker } from './screen-frame-worker.mjs';
-import { ControlOverlay } from './main/control-overlay.mjs';
 import { ControlWindowLayer } from './main/control-window-layer.mjs';
 import { AvatarDetach, avatarDragCanTeleport } from './main/avatar-detach.mjs';
 import { createAvatarScreenTargetDetector } from './main/avatar-screen-targets.mjs';
@@ -368,7 +358,6 @@ import {
   defaultPersonality,
   validatePersonality,
 } from '../../packages/runtime/src/personality.mjs';
-import { COMPUTER_DEFAULTS, computerPreferences } from './computer-preferences.mjs';
 import {
   companionVoiceSettings,
   companionVoiceInstalled,
@@ -447,29 +436,6 @@ async function initializeDesktop() {
     skills.call({ skillId, command, input }, { source, signal });
   const requestComputerAccess = (enabled, { signal, source = 'chat' } = {}) =>
     callSkill('capri.computer', 'requestAccess', enabled, { signal, source });
-  const runComputerSkill = (
-    goal,
-    {
-      signal,
-      previousTask,
-      ownerRequestedCall,
-      planningEffort,
-      applicationHint,
-      source = 'chat',
-    } = {},
-  ) =>
-    callSkill(
-      'capri.computer',
-      'run',
-      {
-        goal,
-        previousTask,
-        ownerRequestedCall,
-        ...(source === 'chat' && planningEffort && { planningEffort }),
-        ...(source === 'chat' && applicationHint && { applicationHint }),
-      },
-      { signal, source },
-    );
   configureResponseTimings(
     new ResponseTimingLog(
       path.join(verification ? verificationFolder : root, 'logs/response-desktop.jsonl'),
@@ -783,11 +749,7 @@ async function initializeDesktop() {
   const livePersona = () => personaPrompt(rt, settingsPreview);
   let focusMode = false;
   let minimizedChip;
-  let recordingIndicator;
-  let recordingShown = false;
   let avatarOnly = false;
-  let workflowTurn = null,
-    workflows;
   const VOICE_REQUIRED_MESSAGE = 'Enable Capri’s voice first.';
   let prepareWakeAudio = async () => {};
   let temporal;
@@ -874,11 +836,6 @@ async function initializeDesktop() {
     dataRoot: verification ? verificationFolder : root,
   });
   let localInferenceTasks = 0;
-  const computerAppearance = new Preferences(
-    path.join(state, 'computer-control.json'),
-    COMPUTER_DEFAULTS,
-    computerPreferences,
-  );
   const confirmations = new Confirmations({
     emit,
     show: () =>
@@ -1030,9 +987,7 @@ async function initializeDesktop() {
     file: path.join(state, 'application-access.json'),
     changed: (settings) => emit({ type: 'application.access', settings }),
     stop: async () => {
-      workflows?.cancel();
       companionActions.approvals.cancel();
-      if (computerAgent.running || computerControl.session) await emergencyComputerStop();
     },
   });
   const brain = new BrainKnowledge({
@@ -1061,18 +1016,13 @@ async function initializeDesktop() {
     file: path.join(state, 'full-computer-access.json'),
     discover: async () => (await callApplicationBridge(root, { action: 'catalog_drives' })).drives,
     confirm: (options) => confirmations.request(options),
-    onChange: (value) => {
-      if (!value.enabled) void computerControl.stop();
-      chat.computerApproval(value.enabling);
-      emit({ type: 'computer-access', settings: value });
-    },
+    onChange: (value) => emit({ type: 'computer-access', settings: value }),
   });
   const filePermissions = new FilePermissions(path.join(state, 'file-permissions.json'), {
     protectedRoots: verification ? [state] : protectedLocations(root),
     privatePaths: [
       state,
       brain.folder,
-      path.join(verification ? verificationFolder : path.join(root, 'data'), 'workflows'),
       path.join(userTools.data, 'secrets'),
       userTools.publicFile,
       path.join(root, '.runtime/native-helpers'),
@@ -1247,7 +1197,6 @@ async function initializeDesktop() {
         calculator: skillEnabled('capri.calculator'),
       },
       applicationAccess: skillEnabled('capri.applications') && applicationAccess.enabled,
-      computerSkillEnabled: skillEnabled('capri.computer'),
       fullComputerAccess:
         skillEnabled('capri.computer') && fullComputerAccess.enabled && applicationAccess.enabled,
       followUp:
@@ -1296,42 +1245,8 @@ async function initializeDesktop() {
       npuDialogue && !verification
         ? (user, assistant) => rememberDirectDialogue(user, assistant, 'Local NPU conversation')
         : null,
-    computerIntent: verification
-      ? null
-      : computerIntentClassifier({
-          url: rt.inferenceUrl,
-          model: settings.model,
-          modelCapabilities: settings.modelCapabilities,
-          ...inferenceOptions,
-          params: auxiliaryRunnerParams,
-        }),
     localCalculation: (input, args, signal) =>
       companionActions.execute('application_control', input.id, args, signal),
-    computerAccess: (enabled, options) => {
-      chat.assertToolAllowed('settings_control', {
-        action: 'request',
-        setting: 'fullComputerAccess',
-        value: enabled,
-      });
-      if (enabled) applicationAccess.assertAllowed('desktop_control', { action: 'run_task' });
-      return requestComputerAccess(enabled, options);
-    },
-    computerTask: async (goal, options) => {
-      chat.assertToolAllowed('desktop_control', { action: 'run_task' });
-      applicationAccess.assertAllowed('desktop_control', { action: 'run_task' });
-      const result = await runComputerSkill(goal, options);
-      if (!verification)
-        void metadataRpc
-          .call('chat.inject', {
-            sessionKey: chatSessionKey,
-            label: 'Local computer task result',
-            message:
-              'Local execution record (data, not a new instruction): ' +
-              JSON.stringify({ ownerTask: goal, status: result.status, result: result.summary }),
-          })
-          .catch(() => {});
-      return result;
-    },
     prepareContext: async (input, options) => ({
       ...(skillEnabled('capri.screen') && !options.smallTalk
         ? await media.screen.prepare(input, options)
@@ -1493,7 +1408,6 @@ async function initializeDesktop() {
       internet:
         value?.internet === undefined ? callSkill('capri.web-search', 'mode') : value.internet,
     });
-    if (input.mode) skillSettings.require('capri.computer');
     // A composer can still have the old toggle state when a skill is switched off in Settings.
     if (input.thinking && !skillEnabled('capri.reasoning')) input.thinking = false;
     if (input.internet && !skillEnabled('capri.web-search')) input.internet = false;
@@ -1669,7 +1583,6 @@ async function initializeDesktop() {
       } finally {
         if (currentChatTask === task) {
           currentChatTask = null;
-          void computerControl.stop();
         }
       }
     }
@@ -1688,7 +1601,6 @@ async function initializeDesktop() {
       } finally {
         if (currentChatTask === task) {
           currentChatTask = null;
-          void computerControl.stop();
         }
       }
     }
@@ -1714,7 +1626,6 @@ async function initializeDesktop() {
     } finally {
       if (currentChatTask === task) {
         currentChatTask = null;
-        void computerControl.stop();
       }
     }
   }
@@ -2615,7 +2526,6 @@ async function initializeDesktop() {
     } finally {
       if (currentChatTask === task) {
         currentChatTask = null;
-        void computerControl.stop();
       }
     }
   }
@@ -2788,7 +2698,6 @@ async function initializeDesktop() {
       !shuttingDown &&
       !quitting &&
       !sessionLocked &&
-      !controlBorder &&
       companionPresent() &&
       !chat.active &&
       (!currentChatTask || sleepService.phase === 'sleeping') &&
@@ -2887,7 +2796,6 @@ async function initializeDesktop() {
       !interfaceBusy &&
       !chat.active &&
       !currentChatTask &&
-      !computerControl.session &&
       Date.now() >= lastSpeechUntil
     );
   }
@@ -3170,10 +3078,6 @@ async function initializeDesktop() {
         break;
       case 'capri.computer':
         if (enabled) await applicationAccess.set(true);
-        else if (computerAgent.running || computerControl.session) await emergencyComputerStop();
-        break;
-      case 'capri.workflows':
-        if (!enabled) workflows.cancel();
         break;
       case 'capri.user-tools':
         if (!enabled) userTools.cancel();
@@ -3460,11 +3364,6 @@ async function initializeDesktop() {
     if (event.type === 'turn.started' && speechInstaller.busy('speech'))
       event = { ...event, silent: true };
     considerMemory(event);
-    if (
-      ['turn.completed', 'turn.cancelled', 'turn.failed'].includes(event.type) &&
-      (!computerControl.session || computerControl.session.turn === event.turnId)
-    )
-      void computerControl.stop();
     if (event.type === 'turn.completed') initiative.activity({ quietMs: 45000 });
     if (['turn.started', 'turn.completed', 'turn.cancelled', 'turn.failed'].includes(event.type))
       settingsHost?.send({
@@ -3547,7 +3446,6 @@ async function initializeDesktop() {
       if (awakened) showAvatarWave();
     },
     unload: async () => {
-      workflows?.cancel();
       privateMemory.lock();
       avatarClickReactions?.cancel();
       resetCallAudio();
@@ -3798,7 +3696,6 @@ async function initializeDesktop() {
     avatarDetach?.reset();
     desktopTeleportMenu?.hide();
     settingsHost?.hide();
-    void computerControl.stop();
     processLoad.stop();
     systemCpu.stop();
     if (!verification || capturePolicy.capture) discardScreens('companion-hidden');
@@ -3919,7 +3816,6 @@ async function initializeDesktop() {
       !sessionLocked &&
       !shuttingDown &&
       !quitting &&
-      !controlBorder &&
       window &&
       !window.isDestroyed() &&
       companionPresent()
@@ -4795,7 +4691,6 @@ async function initializeDesktop() {
       speechPause: (pause) =>
         validateSpeechSettings({ trailingSilenceSeconds: pause }).trailingSilenceSeconds,
       microphoneGain: validateMicrophoneGain,
-      computerAppearance: computerPreferences,
     };
     const next = {};
     for (const [key, input] of Object.entries(value)) {
@@ -4829,8 +4724,6 @@ async function initializeDesktop() {
           interface: next.interface ?? languages.value.interface,
         },
       });
-    if (changed('computerAppearance'))
-      controlBorder?.configure(next.computerAppearance ?? computerAppearance.snapshot());
     if (changed('initiative')) void syncInitiative().catch(() => observer.publish('failed'));
     if (
       changed('microphone') &&
@@ -5042,7 +4935,6 @@ async function initializeDesktop() {
   async function shutdownForRestart(message) {
     pendingMemoryDecision?.abort();
     memoryWarmup?.abort();
-    await computerControl.stop();
     shuttingDown = true;
     await callCamera.stop();
     await localModelLoad.stop();
@@ -5085,7 +4977,6 @@ async function initializeDesktop() {
     if (shuttingDown) return;
     if (cableInstaller.snapshot().busy)
       throw new Error('Wait for VB-CABLE setup to finish before closing or restarting Capri.');
-    await computerControl.stop();
     const choice = await confirmations.choose({
       title: 'Quit Capri?',
       detail: 'Capri will close and unload the local models. Any active reply will stop.',
@@ -5469,245 +5360,20 @@ async function initializeDesktop() {
     trash: (file) => shell.trashItem(file),
     translate: (text) => uiText(text, languages.value.interface),
   });
-  let controlBorder = null;
-  // A global Escape while another app has focus needs the GlobalShortcuts portal.
-  const nativeEscape = null;
-  const computerControl = new ComputerControl({
-    allowed: () => fullComputerAccess.enabled && applicationAccess.enabled,
-    visionAvailable: () => screenVisionAvailable,
-    canStart: () =>
-      Boolean(
-        (workflowTurn || (chat.active && !chat.active.controller.signal.aborted)) && !shuttingDown,
-      ),
-    currentTurn: () => workflowTurn ?? chat.active?.id ?? null,
-    bridge: (command, options) =>
-      desktopCatalog.bridge(
-        root,
-        command.action === 'computer_state'
-          ? { ...command, ignoreProcessId: String(process.pid) }
-          : command,
-        options,
-      ),
-    pointerDuration: () =>
-      (settingsPreview.computerAppearance ?? computerAppearance.value).pointerDuration,
-    applicationAdapter: new ResolveAdapter({
-      root,
-      bridge: (command, options) => desktopCatalog.bridge(root, command, options),
-      allowed: () =>
-        fullComputerAccess.enabled &&
-        applicationAccess.enabled &&
-        Boolean(chat.active) &&
-        !shuttingDown,
-    }),
-    capture: async ({ signal, displayWindow, steamGame, cyberpunkLauncher }) => {
-      const take = () =>
-        screenFrames.frame({
-          signal,
-          displayWindow,
-          limit:
-            steamGame || cyberpunkLauncher
-              ? { width: 3840, height: 2160 }
-              : { width: 1280, height: 720 },
-        });
-      const screen = await (controlBorder ? controlBorder.captureWithoutPointer(take) : take());
-      const scale = Math.min(1, 1280 / screen.width, 720 / screen.height);
-      if (scale === 1) return screen;
-      const scaled = nativeImage.createFromBuffer(screen.png).resize({
-        width: Math.max(1, Math.floor(screen.width * scale)),
-        height: Math.max(1, Math.floor(screen.height * scale)),
-        quality: 'best',
-      });
-      return {
-        bounds: screen.bounds,
-        png: scaled.toPNG(),
-        ...scaled.getSize(),
-        ocrPng: screen.png,
-        ocrWidth: screen.width,
-        ocrHeight: screen.height,
-      };
-    },
-    readSteamText: readSteamScreenText,
-    describe: computerVision({
-      url: rt.inferenceUrl,
-      model: settings.model,
-      modelCapabilities: settings.modelCapabilities,
-      ...inferenceOptions,
-      params: { ...auxiliaryRunnerParams, ...settings.generation },
-    }),
-    registerEscape: async () => {
-      let shortcut = false;
-      try {
-        shortcut = globalShortcut.register('Escape', () => void emergencyComputerStop());
-      } catch {}
-      if (!nativeEscape) return shortcut;
-      try {
-        const armed = await nativeEscape.start({
-          onEscape: () => void emergencyComputerStop(),
-          onFailure: () => void emergencyComputerStop(),
-        });
-        if (!armed || !nativeEscape.active)
-          throw new Error('Escape emergency stop is unavailable.');
-        return true;
-      } catch {
-        nativeEscape.stop();
-        globalShortcut.unregister('Escape');
-        return false;
-      }
-    },
-    unregisterEscape: () => {
-      try {
-        nativeEscape?.stop();
-      } finally {
-        globalShortcut.unregister('Escape');
-      }
-    },
-    showBorder: async () => {
-      if (controlBorder) throw new Error('Computer control indicator is already open.');
-      avatarDetach?.reset();
-      const overlay = new ControlOverlay({
-        BrowserWindow,
-        screen,
-        owner: window,
-        onLost: (reason) => {
-          if (controlBorder !== overlay) return;
-          console.warn('Computer control indicator lost:', reason);
-          return emergencyComputerStop();
-        },
-      });
-      controlBorder = overlay;
-      controlWindowLayer.begin();
-      overlay.configure(settingsPreview.computerAppearance ?? computerAppearance.snapshot());
-      await overlay.show(
-        uiText('Computer control active — press Escape to stop', languages.value.interface),
-      );
-    },
-    hideBorder: () => {
-      const overlay = controlBorder;
-      controlBorder = null;
-      try {
-        overlay?.hide();
-      } finally {
-        controlWindowLayer.end();
-      }
-    },
-    emit: (event) => {
-      if (event.type === 'computer.input') controlBorder?.pulse(event.action);
-      emit(event);
-    },
-  });
-  const computerAgent = new ComputerAgent({
-    onPlan: (value) => controlBorder?.plan(value),
-    control: computerControl,
-    applications: desktopCatalog,
-    callFocusWindow: () => {
-      const focused = BrowserWindow.getFocusedWindow();
-      return focused === window || focused === settingsHost?.window ? focused : null;
-    },
-    launchSteamGame:
-      platformFeatures.steamGames && !verification
-        ? steamGameLauncher({ openExternal: (uri) => shell.openExternal(uri) })
-        : undefined,
-    steamGameTask:
-      platformFeatures.steamGames && !verification
-        ? createSteamGameTask({ openExternal: (uri) => shell.openExternal(uri) })
-        : undefined,
-    language: () => languages.value.conversation,
-    audit: ({ lastOutcome, lastFailure, plan, actions }) =>
-      markResponseTiming('computer_outcome', {
-        reason: lastOutcome?.reason,
-        phase: lastFailure?.phase ?? lastOutcome?.phase,
-        failureCode: lastFailure?.code,
-        httpStatus: lastFailure?.httpStatus,
-        ...(actions.some(({ outcome }) => outcome === 'incremental_fallback') && {
-          outlineFallback: true,
-        }),
-        steps: lastOutcome?.steps,
-        completedCheckpoints: plan?.completed,
-        remainingCheckpoints: plan?.remaining,
-      }),
-    plan: computerPlanner({
-      url: rt.inferenceUrl,
-      model: settings.model,
-      modelCapabilities: settings.modelCapabilities,
-      ...inferenceOptions,
-      params: { ...auxiliaryRunnerParams, ...settings.generation },
-    }),
-    emit: (event) => {
-      controlBorder?.phase(event.phase);
-      chat.computerProgress();
-      emit(event);
-    },
-  });
   const computerRequests = new ComputerRequests({
     access: fullComputerAccess,
-    run: (goal, options) => computerAgent.run(goal, options),
     language: () => languages.value.conversation,
   });
   skills.register(computerSkill, {
     access: fullComputerAccess,
     requests: computerRequests,
-    agent: computerAgent,
     isApplicationAccessEnabled: () => applicationAccess.enabled,
-  });
-  function emergencyComputerStop() {
-    workflows?.cancel();
-    const stopped = computerControl.stop();
-    chat.cancel();
-    cancelVisual();
-    companionActions.approvals.cancel();
-    return stopped;
-  }
-  workflows = new TaskWorkflows({
-    root,
-    data: verification ? verificationFolder : path.join(root, 'data'),
-    control: computerControl,
-    catalog: desktopCatalog,
-    allowed: () =>
-      fullComputerAccess.enabled && applicationAccess.enabled && !sessionLocked && !shuttingDown,
-    turn: (id) => {
-      workflowTurn = id;
-    },
-    changed: (settings) => {
-      if (settings.recording !== recordingShown) {
-        recordingShown = settings.recording;
-        if (settings.recording) void recordingIndicator?.show();
-        else recordingIndicator?.hide();
-      }
-      chat.computerProgress();
-      emit({ type: 'workflow.status', settings });
-    },
-  });
-  // Also catch Escape in Capri-owned windows if OS shortcut delivery is interrupted.
-  app.on('web-contents-created', (_event, contents) => {
-    contents.on('before-input-event', (event, input) => {
-      if (
-        input.type === 'keyDown' &&
-        input.key === 'Escape' &&
-        (computerControl.session || controlBorder)
-      ) {
-        event.preventDefault();
-        void emergencyComputerStop();
-      }
-    });
   });
   const companionActions = new CompanionActions({
     skills,
     userTools,
-    workflows,
     authorizeAction: (tool, args) => {
-      if (tool === 'desktop_control' && !['end_control', 'control_status'].includes(args?.action)) {
-        const appAction = [
-          'apps',
-          'find_app',
-          'launch',
-          'launch_executable',
-          'inspect',
-          'browser_input',
-          'open_url',
-        ].includes(args?.action);
-        if (!appAction || !skillEnabled('capri.computer'))
-          skillSettings.require(appAction ? 'capri.applications' : 'capri.computer');
-      }
+      if (tool === 'desktop_control') skillSettings.require('capri.applications');
       if (tool === 'settings_control' && args?.action === 'request') {
         const id = {
           screenObservation: 'capri.screen',
@@ -5721,27 +5387,17 @@ async function initializeDesktop() {
         (tool === 'application_control' && args?.action !== 'calculate')
       )
         applicationAccess.assertAllowed(tool, args);
-      if (
-        (tool === 'workflow_control' && args?.action === 'run') ||
-        /^capri_tool_\d{2}$/.test(tool)
-      )
-        chat.assertToolAllowed('desktop_control', { action: 'run_task' });
+      if (/^capri_tool_\d{2}$/.test(tool)) chat.assertToolAllowed('desktop_control', {});
       chat.assertToolAllowed(tool, args);
     },
-    computerAgent,
     requestComputerAccess: (enabled, options) => {
       chat.assertToolAllowed('settings_control', {
         action: 'request',
         setting: 'fullComputerAccess',
         value: enabled,
       });
-      if (enabled) applicationAccess.assertAllowed('desktop_control', { action: 'run_task' });
+      if (enabled) applicationAccess.assertAllowed('desktop_control', { action: 'launch' });
       return requestComputerAccess(enabled, { ...options, source: 'tool' });
-    },
-    runComputerTask: (goal, options) => {
-      chat.assertToolAllowed('desktop_control', { action: 'run_task' });
-      applicationAccess.assertAllowed('desktop_control', { action: 'run_task' });
-      return chat.active?.computerTaskResult ?? chat.selectModelComputerTask(goal, options);
     },
     applications: new ApplicationService({
       root,
@@ -5757,7 +5413,6 @@ async function initializeDesktop() {
           : {}),
       }),
     }),
-    computer: computerControl,
     fullAccess: () => fullComputerAccess.enabled,
     files: (() => {
       const folder = path.join(verification ? verificationFolder : root, 'data/filesystem');
@@ -5796,11 +5451,7 @@ async function initializeDesktop() {
     })(),
     onResult: (tool, args, result) => {
       chat.recordToolResult(tool, args, result);
-      if (
-        result?.cancelled &&
-        ((tool === 'settings_control' && args.setting === 'fullComputerAccess') ||
-          (tool === 'desktop_control' && args.action === 'run_task'))
-      )
+      if (result?.cancelled && tool === 'settings_control' && args.setting === 'fullComputerAccess')
         chat.cancel();
       if (tool === 'time_control') temporal?.observe(args, result);
       if (tool === 'time_control' && args.action === 'cancel' && result.ok)
@@ -6270,7 +5921,6 @@ async function initializeDesktop() {
         [speechPreferences, speechDefaults],
         [initiativeSettings, INITIATIVE_DEFAULTS],
         [screenPreferences, observationOptions()],
-        [computerAppearance, COMPUTER_DEFAULTS],
       ].map(([preferences, value]) => ({
         previous: preferences.snapshot(),
         value,
@@ -6343,14 +5993,12 @@ async function initializeDesktop() {
         speech: speechPreferences.snapshot(),
         initiative: initiativeSettings.snapshot(),
         screenSettings: media.screen.preferences(),
-        computerAppearance: computerAppearance.snapshot(),
         settingsVersions: settingsVersions(),
       };
       controlWindowLayer.sync();
       emit({ type: 'window.always-on-top', active: result.alwaysOnTop });
       emit({ type: 'window.portrait', active: result.portrait });
       emit({ type: 'settings.set-portrait', active: result.portrait, preservePresentation: true });
-      controlBorder?.configure(result.computerAppearance);
       void syncInitiative().catch(() => observer.publish('failed'));
       await microphone.configurePause(result.speech.trailingSilenceSeconds);
       for (const [type, settings] of [
@@ -6360,7 +6008,6 @@ async function initializeDesktop() {
         ['speech.settings', result.speech],
         ['initiative.settings', result.initiative],
         ['screen.settings', result.screenSettings],
-        ['computer.appearance', result.computerAppearance],
       ])
         emit({ type, settings, ...(type === 'companion.settings' ? { reset: true } : {}) });
       emit({ type: 'avatar.layout', layout: result.avatarLayout });
@@ -6388,8 +6035,7 @@ async function initializeDesktop() {
     handle('capri:window-action', async ({ action, value } = {}, { role }) => {
       if (action === 'leave-frame' || action === 'return-to-frame') {
         if (role !== 'companion') throw new Error('Companion frame required.');
-        if (shuttingDown || quitting || sessionLocked || controlBorder || !companionPresent())
-          return false;
+        if (shuttingDown || quitting || sessionLocked || !companionPresent()) return false;
         if (action === 'return-to-frame') return returnAvatar();
         if (!catalog.animated) return false;
         avatarRoaming.postpone(liveCompanionSettings(), 60000);
@@ -7192,39 +6838,8 @@ async function initializeDesktop() {
     });
     handle('capri:computer-access-status', () => callSkill('capri.computer', 'accessStatus'));
     handle('capri:computer-access-set', (enabled, { role }) => {
-      if (enabled) applicationAccess.assertAllowed('desktop_control', { action: 'run_task' });
+      if (enabled) applicationAccess.assertAllowed('desktop_control', { action: 'launch' });
       return callSkill('capri.computer', 'setAccess', enabled, { source: role });
-    });
-    handle('capri:computer-task-status', () => callSkill('capri.computer', 'status'));
-    handle('capri:computer-appearance', () => computerAppearance.snapshot());
-    handle('capri:computer-appearance-set', (value) => {
-      const saved = computerAppearance.set(value);
-      controlBorder?.configure(saved);
-      emit({ type: 'computer.appearance', settings: saved });
-      return saved;
-    });
-    handle('capri:computer-preview', async (value) => {
-      if (computerControl.session || shuttingDown)
-        throw new Error('Stop computer control before previewing its effects.');
-      const preview = new ControlOverlay({ BrowserWindow, screen, owner: window });
-      preview.configure(
-        value === undefined ? computerAppearance.snapshot() : computerPreferences(value),
-      );
-      try {
-        await preview.show(
-          `${uiText('Computer control', languages.value.interface)} // ${uiText('Preview', languages.value.interface)} · 3 s`,
-        );
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-      } finally {
-        preview.hide();
-      }
-      return true;
-    });
-    handle('capri:computer-task', async (text) => {
-      applicationAccess.assertAllowed('desktop_control', { action: 'run_task' });
-      if (!fullComputerAccess.snapshot().enabled)
-        throw new Error('Enable Full computer access in Settings → Computer control first.');
-      return submitMessage({ id: randomUUID(), text, mode: 'computer' }, 'text');
     });
     handle('capri:models-apply', async () => {
       if (verification) throw new Error('Model changes are disabled in desktop verification.');
@@ -7453,38 +7068,6 @@ async function initializeDesktop() {
         );
       throw new Error('Invalid user-tool action.');
     });
-    handle('capri:workflow', async (value, { role }) => {
-      if (
-        role !== 'settings' ||
-        sessionLocked ||
-        shuttingDown ||
-        (value?.action !== 'status' && !settingsHost?.window?.isVisible())
-      )
-        throw new Error('Open Task training in Settings.');
-      if (
-        !value ||
-        Object.keys(value).some((key) => !['action', 'workflow', 'id', 'variables'].includes(key))
-      )
-        throw new Error('Invalid workflow action.');
-      if (value.action === 'record' && !applicationAccess.enabled)
-        throw new Error('Enable application access first.');
-      if (['status', 'record', 'stop'].includes(value.action))
-        return callSkill(ACTION_SKILLS.workflows, value.action, undefined, { source: role });
-      if (value.action === 'save')
-        return callSkill(ACTION_SKILLS.workflows, 'save', value.workflow, { source: role });
-      if (value.action === 'remove')
-        return callSkill(ACTION_SKILLS.workflows, 'remove', value.id, { source: role });
-      if (value.action === 'run') {
-        if (chat.active) throw new Error('Wait for the current reply to finish.');
-        return callSkill(
-          ACTION_SKILLS.workflows,
-          'run',
-          { id: value.id, variables: value.variables ?? {} },
-          { source: role },
-        );
-      }
-      throw new Error('Invalid workflow action.');
-    });
     const respondPrivately = privateDialogue({
       url: rt.inferenceUrl,
       model: () => settings.model,
@@ -7712,7 +7295,6 @@ async function initializeDesktop() {
             .apps()
             .map(({ launch, inspect, text }) => ({ launch, inspect, text })),
         },
-        computerTask: callSkill('capri.computer', 'diagnostics'),
         screenCapture: capturePolicy.diagnostics(),
         screenObservation: (() => {
           const { source, ...state } = screenObservation.snapshot();
@@ -8255,11 +7837,7 @@ async function initializeDesktop() {
     handle('capri:quit', quitAndUnload);
     handle('capri:microphone-audio', (value) => microphone.audio(value));
     handle('capri:microphone-playback', (value) => microphone.playback(value));
-    handle('capri:computer-stop', async () => {
-      return emergencyComputerStop();
-    });
     handle('capri:cancel', (id) => {
-      void computerControl.stop();
       initiative.cancel();
       if (typeof id !== 'string' || id.length > 80) throw new Error('Invalid turn');
       companionActions.approvals.cancel();
@@ -8709,26 +8287,6 @@ async function initializeDesktop() {
         };
       },
     });
-    recordingIndicator = new MinimizedChip({
-      BrowserWindow,
-      screen,
-      ipcMain,
-      restore: () => void workflows.stopRecording(),
-      url: 'capri://desktop/recording-indicator.html',
-      channel: 'capri:recording-stop',
-      width: 260,
-      height: 40,
-      top: true,
-      preload: path.join(directory, 'recording-indicator-preload.cjs'),
-      onClose: () => void workflows.stopRecording(),
-      onUnavailable: () => void workflows.stopRecording(),
-      getLabels: () => ({
-        text: uiText('RECORDING ACTIONS · ESC', languages.value.interface),
-        title: uiText('Stop recording', languages.value.interface),
-        language: languages.value.interface,
-        direction: /^(ar|he|fa|ur|ps)(-|$)/.test(languages.value.interface) ? 'rtl' : 'ltr',
-      }),
-    });
     window.on('hide', stopHiddenCompanion);
     window.on('show', () => {
       avatarComposerDismissed = false;
@@ -8928,9 +8486,7 @@ async function initializeDesktop() {
       if (quitting) return;
       void callCamera.stop();
       nativeNpu?.stop();
-      recordingIndicator?.destroy();
       userTools.close();
-      workflows?.close();
       privateMemory.close();
       brain.close();
       minimizedChip?.destroy();
@@ -8957,7 +8513,6 @@ async function initializeDesktop() {
       externalTts.close();
       chatgpt.close();
       void localModelLoad.close();
-      void computerControl.stop();
       companionActions.close();
       sleepService.close();
       reminders?.close();
@@ -9148,15 +8703,12 @@ async function initializeDesktop() {
         });
         powerMonitor.on('lock-screen', () => {
           pendingMemoryDecision?.abort();
-          recordingIndicator?.hide();
           userTools.cancel();
-          workflows?.cancel();
           privateMemory.lock();
           minimizedChip?.hide();
           sessionLocked = true;
           if (cameraPreview) syncCameraPreview();
           void callCamera.stop();
-          void computerControl.stop();
           stopMicrophoneMonitor();
           avatarClickReactions.cancel();
           avatarDetach.reset();
@@ -9166,13 +8718,10 @@ async function initializeDesktop() {
         powerMonitor.on('suspend', () => {
           void callCamera.stop();
           stopMicrophoneMonitor();
-          recordingIndicator?.hide();
           userTools.cancel();
-          workflows?.cancel();
           privateMemory.lock();
           minimizedChip?.hide();
           avatarClickReactions.cancel();
-          void computerControl.stop();
           avatarDetach.reset();
           discardScreens('system-suspended');
           cancelVisual();
@@ -9196,13 +8745,6 @@ async function initializeDesktop() {
                   backendState.phase === 'starting',
               ),
           );
-          computerControl.supervise({
-            indicatorVisible: Boolean(controlBorder),
-            escapeAvailable:
-              !computerControl.session?.ready ||
-              globalShortcut.isRegistered('Escape') ||
-              Boolean(nativeEscape?.active),
-          });
           if (!verification && existsSync(stopFile)) {
             unlinkSync(stopFile);
             app.quit();

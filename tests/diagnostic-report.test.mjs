@@ -399,47 +399,6 @@ test('a crash ZIP includes the exit and recent technical logs without private pr
   assert.ok([...files.values()].every((body) => !body.includes('private-crash-canary')));
 });
 
-test('exported computer-task traces preserve safe stop reasons across both privacy passes', async () => {
-  const privateText = 'PRIVATE_DISCORD_MESSAGE_AND_DESTINATION';
-  const report = await createDiagnosticReport({
-    root: fixture(),
-    input: { category: 'other', includeLogs: false },
-    snapshot: {
-      computerTask: {
-        phase: 'stopped',
-        steps: 1,
-        lastFailure: null,
-        lastOutcome: { status: 'needs_user', reason: 'discord_control_unresolved', steps: 1 },
-        actions: [
-          { action: 'launch', outcome: 'applied' },
-          { action: 'enter_text', outcome: 'discord_structured_step_required' },
-        ],
-        text: privateText,
-        goal: privateText,
-        channel: privateText,
-        draft: privateText,
-        discordPaneId: 'ab'.repeat(32),
-      },
-    },
-    hardware: async () => ({}),
-    pythonProbe: async () => ({}),
-    installerDirectory: null,
-  });
-  const files = unpack(report.bytes);
-  const task = JSON.parse(files.get('session.json')).computerTask;
-  assert.equal(task.lastFailure, null);
-  assert.equal(task.lastOutcome.reason, 'discord_control_unresolved');
-  assert.equal(task.lastOutcome.status, 'needs_user');
-  assert.equal(task.actions[1].outcome, 'discord_structured_step_required');
-  assert.match(
-    files.get('REPORT.md'),
-    /computer task ended with needs_user after 1 input steps; discord_control_unresolved/,
-  );
-  const all = [...files.values()].join('\n');
-  assert(!all.includes(privateText));
-  assert(!all.includes('ab'.repeat(32)));
-});
-
 test('a useful report survives missing voice components and includes bounded redacted logs', async () => {
   const base = fixture();
   put(base, 'package.json', { version: '0.3.0' });

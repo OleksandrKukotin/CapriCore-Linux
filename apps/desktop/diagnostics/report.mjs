@@ -449,19 +449,6 @@ export async function createDiagnosticReport({
     }
   }
   const findings = [];
-  const computerOutcome = snapshot.computerTask?.lastOutcome;
-  if (
-    computerOutcome &&
-    ['needs_user', 'incomplete', 'cancelled', 'stalled', 'limit'].includes(computerOutcome.status)
-  ) {
-    const steps = Number.isSafeInteger(computerOutcome.steps) ? computerOutcome.steps : 'unknown';
-    const reason = isDiagnosticControlValue('reason', computerOutcome.reason)
-      ? `; ${computerOutcome.reason}`
-      : '';
-    findings.push(
-      `The last computer task ended with ${computerOutcome.status} after ${steps} input steps${reason}. See session.json for its technical action trace.`,
-    );
-  }
   if (snapshot.response?.lastFailure) {
     const last = snapshot.response.lastFailure;
     findings.push(

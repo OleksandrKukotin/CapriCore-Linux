@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { companionDialogueQuestion, conversationOnly } from './conversation-route.mjs';
 import {
-  computerModeRequest,
+  accessCommand,
   mentionsComputerMode,
   rejectsDesktopAction,
 } from './computer-mode-request.mjs';
@@ -41,8 +41,7 @@ function computerAccessDiscussion(text) {
     )
   )
     return true;
-  if (!mentionsComputerMode(text.replace(/["“”«»]/gu, '')) || computerModeRequest(text))
-    return false;
+  if (!mentionsComputerMode(text.replace(/["“”«»]/gu, '')) || accessCommand(text)) return false;
   const unquoted = text.replace(/"[^"\n]*"|“[^”\n]*”|«[^»\n]*»/gu, '');
   if (
     unquoted
@@ -54,7 +53,7 @@ function computerAccessDiscussion(text) {
           .replace(/^(?:please)[,\s]+/iu, '')
           .replace(/^(?:can|could|would)\s+you\s+(?:please\s+)?/iu, '');
         return (
-          computerModeRequest(part) ||
+          accessCommand(part) ||
           /^(?:enable|disable|activate|deactivate|turn\s+(?:on|off)|open|launch|start|find|search|type|write|click|press|move|create|copy|delete|play|calculate)(?=\s)/iu.test(
             command,
           )
@@ -80,7 +79,7 @@ export function toolDomain(text, state, routing) {
   const value = String(text).normalize('NFKC');
   if (rejectsDesktopAction(value)) return 'conversation';
   if (computerAccessDiscussion(value)) return 'conversation';
-  if (mentionsComputerMode(value) || computerModeRequest(value)?.run) return 'desktop';
+  if (mentionsComputerMode(value)) return 'desktop';
   if (companionDialogueQuestion(value)) return 'conversation';
   const temporal = /\b(?:timer|stopwatch|remind|reminder|alarm|schedule)\b/iu.test(value);
   const mathematics =

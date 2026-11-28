@@ -184,7 +184,7 @@ body.settings-window {
   background: var(--theme-background, #07131c);
 }
 /* New local-feature panels share the existing palette, sizes and keyboard focus. */
-:is(#knowledge-panel, #workflows-panel, #user-tools-panel, #saved-memory-view)
+:is(#knowledge-panel, #user-tools-panel, #saved-memory-view)
   :is(input:not([type='checkbox']), textarea),
 #installed-app-query {
   inline-size: 100%;
@@ -198,14 +198,14 @@ body.settings-window {
   color: var(--theme-text, #d7eeed);
   font: inherit;
 }
-:is(#knowledge-panel, #workflows-panel, #user-tools-panel, #saved-memory-view) textarea {
+:is(#knowledge-panel, #user-tools-panel, #saved-memory-view) textarea {
   resize: vertical;
 }
-:is(#knowledge-panel, #workflows-panel, #user-tools-panel) pre {
+:is(#knowledge-panel, #user-tools-panel) pre {
   max-block-size: 220px;
   overflow: auto;
 }
-:is(#knowledge-panel, #workflows-panel, #user-tools-panel) :is(input, textarea):focus-visible,
+:is(#knowledge-panel, #user-tools-panel) :is(input, textarea):focus-visible,
 #installed-app-query:focus-visible {
   outline: 1px solid var(--cyan, #8ef5ed);
   outline-offset: 1px;
@@ -1396,11 +1396,6 @@ body.settings-window {
   border-color: color-mix(in srgb, var(--cyan) 65%, transparent);
   background: color-mix(in srgb, var(--cyan) 8%, transparent);
   box-shadow: none;
-}
-.computer-task-actions #computer-task-status {
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
 }
 #updates-changelog {
   max-height: 18rem;

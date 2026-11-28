@@ -9,7 +9,6 @@ import {
 import { timerClient, timerSkill } from '../../packages/skills/src/timers/index.mjs';
 import { TimeService } from '../../packages/runtime/src/time/service.mjs';
 import { ActionBroker, ActionApprovals } from './action-broker.mjs';
-import { COMPUTER_ACTIONS } from './computer-control.mjs';
 
 /** Main-process owner: survives model unload, never depends on generated conversation. */
 export class CompanionActions {
@@ -23,12 +22,8 @@ export class CompanionActions {
     desktop,
     files,
     fullAccess = () => false,
-    computer,
-    computerAgent,
     requestComputerAccess,
-    runComputerTask,
     applications,
-    workflows,
     userTools,
     authorizeAction = () => {},
     onResult = () => {},
@@ -40,12 +35,8 @@ export class CompanionActions {
       files,
       onResult,
       fullAccess,
-      computer,
-      computerAgent,
       requestComputerAccess,
-      runComputerTask,
       applications,
-      workflows,
       userTools,
       authorizeAction,
     });
@@ -55,7 +46,6 @@ export class CompanionActions {
     registerActionToolSkills(this.skills, {
       applications,
       files,
-      workflows,
       userTools,
       ...(typeof desktop?.execute === 'function'
         ? {
@@ -122,44 +112,11 @@ export class CompanionActions {
       if (!this.userTools) throw new Error('User tools are unavailable.');
       return invoke(ACTION_SKILLS.userTools, 'run', { name: tool, parameters: args });
     }
-    if (tool === 'workflow_control') {
-      if (
-        !this.workflows ||
-        !args ||
-        Object.keys(args).some((key) => !['action', 'id', 'variables'].includes(key))
-      )
-        throw new Error('Invalid workflow request.');
-      if (args.action === 'list') return invoke(ACTION_SKILLS.workflows, 'list');
-      if (args.action === 'run')
-        return invoke(ACTION_SKILLS.workflows, 'run', {
-          id: args.id,
-          variables: args.variables ?? {},
-        });
-      throw new Error('Choose list or run for a saved workflow.');
-    }
-    if (tool === 'desktop_control' && args?.action === 'run_task') {
-      if (Object.keys(args).some((key) => !['action', 'goal'].includes(key)))
-        throw new Error('Invalid computer task.');
-      if (this.runComputerTask) return this.runComputerTask(args.goal, { signal });
-      if (!this.computerAgent) throw new Error('Computer task executor is unavailable.');
-      return this.computerAgent.run(args.goal, { signal });
-    }
-    if (
-      this.computerAgent?.running &&
-      ['desktop_control', 'filesystem_control', 'application_control'].includes(tool)
-    )
-      throw new Error('Wait for the current computer task or stop it with Escape.');
     if (tool === 'application_control') {
       const calculation = args?.action === 'calculate';
       const skillId = calculation ? ACTION_SKILLS.calculator : ACTION_SKILLS.applications;
       if (!this.skills?.has(skillId)) throw new Error('The requested application is unavailable.');
       return invoke(skillId, calculation ? 'calculate' : 'execute', args);
-    }
-    if (tool === 'desktop_control' && COMPUTER_ACTIONS.has(args?.action)) {
-      if (!this.computer) throw new Error('Computer control is unavailable.');
-      return ['begin_control', 'end_control', 'control_status', 'observe'].includes(args.action)
-        ? this.computer.execute(args, signal)
-        : this.desktop.operation(id, args, () => this.computer.execute(args, signal), signal);
     }
     if (tool === 'time_control') return this.time.execute(id, args, { source: 'tool', signal });
     if (tool === 'filesystem_control')

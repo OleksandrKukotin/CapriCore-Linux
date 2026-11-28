@@ -20,7 +20,6 @@ const protectedCommands = {
   'capri.applications': ['execute'],
   'capri.calculator': ['calculate'],
   'capri.files': ['execute', 'trash'],
-  'capri.workflows': ['list', 'run', 'record'],
   'capri.user-tools': ['run', 'test'],
   'capri.private-memory': ['unlock', 'list', 'add', 'remove'],
 };

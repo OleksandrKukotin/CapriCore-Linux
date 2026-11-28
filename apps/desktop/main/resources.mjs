@@ -8,9 +8,6 @@ const rendererFiles = [
   'minimized-chip.html',
   'minimized-chip.css',
   'minimized-chip.mjs',
-  'recording-indicator.html',
-  'recording-indicator.css',
-  'recording-indicator.mjs',
   'settings.html',
   'settings.css',
   'model-device-panel.mjs',
@@ -118,7 +115,6 @@ const rendererFiles = [
   'saved-memory-panel.mjs',
   'knowledge-panel.mjs',
   'private-memory-panel.mjs',
-  'workflows-panel.mjs',
   'user-tools-panel.mjs',
   'updates-panel.mjs',
   'update-notification.mjs',
@@ -136,11 +132,6 @@ const rendererFiles = [
   'inference-endpoint.mjs',
   'api-key.mjs',
   'inference-privacy.mjs',
-  'control-overlay.html',
-  'control-overlay.css',
-  'control-overlay.mjs',
-  'control-task-chain.mjs',
-  'computer-appearance-panel.mjs',
   'confirmation-dialog.mjs',
   'confirmation-requests.mjs',
   'button-feedback.mjs',
@@ -249,7 +240,7 @@ export function createDesktopResources({
       type: 'image/webp',
       asyncRead: true,
     });
-  for (const brand of ['discord', 'github', 'capricore'])
+  for (const brand of ['github', 'capricore'])
     resources.set(`/brand/${brand}.svg`, {
       file: path.join(root, 'assets/default/brand', `${brand}.svg`),
       type: 'image/svg+xml',

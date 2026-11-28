@@ -14,7 +14,6 @@ import {
   uiText,
   displayLanguage,
 } from '../../apps/desktop/interface-translations.mjs';
-import { WORKFLOW_ACTION_LABELS } from '../../apps/desktop/renderer/workflows-panel.mjs';
 const parent = path.join(root, '.runtime/interface-locales-verification');
 mkdirSync(parent, { recursive: true });
 const folder = mkdtempSync(path.join(parent, 'ui-')),
@@ -85,13 +84,6 @@ const require = createRequire(import.meta.url),
     ownerHistoryChanged: false,
   };
 let application, page, controls;
-const workflowFixture = [
-  { action: 'click', selector: { role: 'ControlType.Button', label: 'Open' } },
-  { action: 'drag', selector: { role: 'ControlType.Button', label: 'Settings' } },
-  { action: 'keys', keys: ['CTRL', 'A'] },
-  { action: 'scroll', amount: -120 },
-  { action: 'text', selector: { role: 'ControlType.Edit', label: 'Menu' }, text: '{{ownerText}}' },
-];
 try {
   application = await electron.launch({
     executablePath: require('electron'),
@@ -108,10 +100,6 @@ try {
     timeout: 30000,
   });
   controls = await settingsView(application, 'languages');
-  await controls.evaluate((steps) => {
-    document.getElementById('workflow-json').value = JSON.stringify(steps);
-    document.getElementById('workflow-edit').click();
-  }, workflowFixture);
   await page.evaluate(() => window.capri.send({ id: crypto.randomUUID(), text: 'Languages' }));
   await page.evaluate(() => {
     const data = document.createElement('p');
@@ -208,21 +196,6 @@ try {
       await controls.locator('#voice-model-language option[value="en"]').textContent(),
       displayLanguage('en', locale.id),
     );
-    assert.deepEqual(
-      await controls.locator('#workflow-steps .workflow-action-label').allTextContents(),
-      workflowFixture.map((step) => uiText(WORKFLOW_ACTION_LABELS[step.action], locale.id)),
-      locale.id + ': translated workflow action labels',
-    );
-    assert.deepEqual(
-      await controls.locator('#workflow-steps p [data-untranslated]').allTextContents(),
-      ['Open', 'Settings', 'CTRL + A', '-120', 'Menu'],
-      locale.id + ': owner targets remain data',
-    );
-    assert.deepEqual(
-      JSON.parse(await controls.locator('#workflow-json').inputValue()),
-      workflowFixture,
-      locale.id + ': workflow protocol remains unchanged',
-    );
     const help =
       'Choose the language of Capri’s replies. Your conversation and memory stay shared when languages change. The interface language is separate.';
     assert.equal(
@@ -256,11 +229,9 @@ try {
     );
     for (const [selector, key] of [
       ['#knowledge-panel > h2', 'Brain and private memory'],
-      ['#workflows-panel > h2', 'Task training'],
       ['#user-tools-panel > h2', 'User tools'],
       ['#brain-search', 'Search Brain'],
       ['#private-lock', 'Lock now'],
-      ['#workflow-record', 'Start recording'],
       ['#user-tools-refresh', 'Refresh tools'],
     ])
       assert.equal(

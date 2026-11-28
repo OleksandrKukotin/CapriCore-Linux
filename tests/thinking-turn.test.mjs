@@ -125,15 +125,6 @@ test('task-specific thinking briefing follows preparation, bypasses fast routing
   assert.equal(f.requests[1].headers['x-capri-thinking-once'], 'off');
 });
 
-test('thinking can use the classified dialogue scope without enabling tools or losing its reasoning setting', async () => {
-  const f = fixture({ computerIntent: async () => ({ intent: 'chat', usesPrevious: false }) });
-  await f.send('Prove an equation.', true);
-  assert.equal(f.requests[0].headers['x-capri-thinking-once'], 'medium');
-  assert.equal(f.requests[0].headers['x-capri-tools-once'], 'dialogue');
-  assert(f.requests[0].body.includes(THINKING_INSTRUCTION));
-  assert.equal(f.events.at(-1).type, 'turn.completed');
-});
-
 test('default thinking generates one final reply and voices only that answer without a briefing', async () => {
   const spoken = [];
   const voice = new VoiceService({

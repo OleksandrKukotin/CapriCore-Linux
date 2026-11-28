@@ -29,24 +29,21 @@ folders, are historical records of the Windows project and describe it as it was
 | Context and local memory                  | [Context management](context-management.md)                                                           |
 | Microphone, wake phrase and voice effects | [Microphone](desktop-microphone.md), [wake phrase](wake-phrase.md), [voice effects](voice-effects.md) |
 | Voice in calls and system audio           | [Voice calls](voice-calls.md)                                                                         |
-| Music listening and animations            | [Music listening](music-listening.md)                                                                 |
 | Timers and reminders                      | [Timers and actions](timers-and-actions.md)                                                           |
 | Community acknowledgements                | [Hall of Fame](hall-of-fame.md)                                                                       |
 
 ## Permissions and automation
 
-| Topic                                   | Guide                                                                              |
-| --------------------------------------- | ---------------------------------------------------------------------------------- |
-| Computer control and recorded workflows | [Computer control](computer-control.md)                                            |
-| Application and file permissions        | [Application actions](application-actions.md), [file actions](file-actions.md)     |
-| Discord and Spotify                     | [Discord control](discord-control.md), [Spotify](spotify.md)                       |
-| Screen capture and observation          | [Screen snapshot](screen-snapshot.md), [screen observation](screen-observation.md) |
-| Initiative                              | [Initiative](initiative.md)                                                        |
-| User-provided tools                     | [User tools](user-tools.md)                                                        |
+| Topic                            | Guide                                                                              |
+| -------------------------------- | ---------------------------------------------------------------------------------- |
+| Application and file permissions | [Application actions](application-actions.md), [file actions](file-actions.md)     |
+| Screen capture and observation   | [Screen snapshot](screen-snapshot.md), [screen observation](screen-observation.md) |
+| Initiative                       | [Initiative](initiative.md)                                                        |
+| User-provided tools              | [User tools](user-tools.md)                                                        |
 
-Computer control and some model/voice adapters remain beta features. Read the
-applicable limitations before granting access; **Escape** stops an active
-computer-control session. External providers receive the content needed for
+Some model and voice adapters remain beta features. Read the applicable
+limitations before granting access. Computer control is limited to opening
+permitted apps and web pages and typing into inspected fields. External providers receive the content needed for
 requests when selected. Ordinary conversation history and memory are stored
 locally and are not fully encrypted; see the [security policy](../SECURITY.md).
 
@@ -70,8 +67,7 @@ reports, [bug investigations](bugs/), [research](research/) and older
 recorded dates. A plan or old release note does not establish current support or
 guarantee that an unresolved issue has been fixed.
 
-The [private-updates guide](private-updates.md) applies only to the former private
-early-access repository. Old issue numbers, release tags and private repository
+Old issue numbers, release tags and private repository
 links in historical notes refer to that original project, not to issues in the
 new public CapriCore repository. For current installation and update advice,
 use the guides above.

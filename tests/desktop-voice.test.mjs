@@ -420,8 +420,7 @@ test('a classified social reply completes both streamed text and the entire spee
     persona: () => 'You are Capri.',
     store: { snapshot: () => [...records.values()], put: (value) => records.set(value.id, value) },
     interfaceState: () => ({ fullComputerAccess: true, languages: { conversation: 'en' } }),
-    computerIntent: async () => ({ intent: 'chat', usesPrevious: false }),
-    computerTask: () => assert.fail('Smalltalk cannot start a computer task'),
+    requestRouter: { classify: async () => ({ mode: 'fast', reason: 'simple-dialogue' }) },
     fetchImpl: async (_url, options) => {
       assert.equal(options.headers['x-capri-tools-once'], 'dialogue');
       const parts = ['No worries. ', 'We can just hang out. ', 'How was your evening?'];

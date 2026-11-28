@@ -17,7 +17,6 @@ import {
 } from '../apps/desktop/chatgpt-plan-completions.mjs';
 import { InferenceApi, apiSettings } from '../apps/desktop/inference-api.mjs';
 import { chatGPTModelCapabilities } from '../apps/desktop/chatgpt-plan-models.mjs';
-import { computerIntentClassifier } from '../apps/desktop/computer-planner.mjs';
 import { ChatService, sseData } from '../apps/desktop/chat-service.mjs';
 import { TranscriptStore } from '../apps/desktop/storage.mjs';
 
@@ -595,7 +594,7 @@ test('Terra normal turns and small classifiers disable reasoning while the owner
   );
 });
 
-test('real intent classifier and image chat traverse the ChatGPT proxy with correct reasoning and modalities', async (t) => {
+test('image chat traverses the ChatGPT proxy with correct modalities', async (t) => {
   const { root } = fixture(t);
   const requests = [];
   const auth = {
@@ -626,24 +625,6 @@ test('real intent classifier and image chat traverse the ChatGPT proxy with corr
   });
   t.after(() => api.close());
   await api.start(0);
-  const classify = computerIntentClassifier({
-    url: api.url,
-    model: 'unused-local-name',
-    fetchImpl: api.localFetch,
-  });
-  for (const text of ['How are you doing?', 'Comment vas-tu ?'])
-    assert.deepEqual(await classify(text, { fullComputerAccess: true }), {
-      intent: 'chat',
-      usesPrevious: false,
-    });
-  assert.ok(
-    requests.every(
-      (request) => request.reasoning.effort === 'none' && request.max_output_tokens === 64,
-    ),
-  );
-  assert.ok(
-    requests.every((request) => request.text.format.schema.properties.intent.enum.includes('chat')),
-  );
   const chat = (payload) =>
     api.localFetch(api.url + '/v1/chat/completions', {
       method: 'POST',

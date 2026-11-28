@@ -474,57 +474,6 @@ try {
     0,
   );
   await navigate('computer');
-  assert.equal(await settings.locator('#computer-fx-enabled').isChecked(), true);
-  await settings.locator('#computer-fx-theme').selectOption('blackwall');
-  await saveSettings(settings);
-  await settings.waitForFunction(
-    async () => (await window.capri.computerAppearance()).theme === 'blackwall',
-  );
-  await settings.locator('#computer-fx-intensity').fill('72');
-  await settings.locator('#computer-fx-intensity').dispatchEvent('change');
-  await saveSettings(settings);
-  await settings.waitForFunction(
-    async () => (await window.capri.computerAppearance()).intensity === 72,
-  );
-  await settings.locator('#computer-fx-enabled').uncheck();
-  await saveSettings(settings);
-  await settings.waitForFunction(
-    async () => (await window.capri.computerAppearance()).enabled === false,
-  );
-  assert.equal(await settings.locator('#computer-fx-intensity').isDisabled(), true);
-  assert.equal((await settings.evaluate(() => window.capri.computerTaskStatus())).active, false);
-  await settings.locator('#computer-fx-enabled').check();
-  await saveSettings(settings);
-  await settings.locator('#settings-draft-actions').waitFor({ state: 'hidden' });
-  await settings.evaluate(() => window.capri.previewComputerAppearance());
-  assert.equal(
-    await application.evaluate(
-      ({ BrowserWindow }) =>
-        BrowserWindow.getAllWindows().filter((w) =>
-          w.webContents.getURL().endsWith('/control-overlay.html'),
-        ).length,
-    ),
-    0,
-  );
-  await navigate('general');
-  await navigate('computer');
-  assert.equal(await settings.locator('#computer-fx-theme').inputValue(), 'blackwall');
-  record(
-    'Control effects persist, disable cleanly and preview without granting or starting control',
-  );
-  assert.equal(await settings.locator('#computer-task-goal').isVisible(), true);
-  assert.equal(await settings.locator('#computer-task-run').isDisabled(), true);
-  const deniedTask = await settings.evaluate(async () => {
-    try {
-      await window.capri.runComputerTask('Open a fixture');
-      return '';
-    } catch (error) {
-      return error.message;
-    }
-  });
-  assert.match(deniedTask, /Full computer access/);
-  assert.equal((await settings.evaluate(() => window.capri.computerTaskStatus())).active, false);
-  await settings.screenshot({ path: path.join(folder, 'computer-task-panel.png') });
   await settings.locator('#computer-access-toggle').click();
   const fullAccessDialog = settings.locator('#confirmation-dialog[open]');
   await fullAccessDialog.waitFor();

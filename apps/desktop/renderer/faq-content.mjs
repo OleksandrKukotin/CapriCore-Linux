@@ -189,7 +189,7 @@ const topics = [
       [
         'computer-access',
         'Do I need to give Capri full computer access?',
-        'Full computer access is optional. Turn it on only for tasks that need it. Press Esc during an active session to stop computer control, or revoke the permission in Settings.',
+        'Full computer access is optional. It lets Capri open apps and use extra folders without asking each time. You can revoke it in Settings.',
         settings('computer', 'Computer control'),
       ],
       [

@@ -108,7 +108,7 @@ export const SKILL_SETTINGS = Object.freeze(
       'capri.computer',
       'computer',
       'Computer control',
-      'Carry out approved desktop tasks with a visible control indicator.',
+      'Let Capri open apps and use extra folders without asking each time.',
     ],
     [
       'capri.files',
@@ -130,13 +130,6 @@ export const SKILL_SETTINGS = Object.freeze(
       'Private memory',
       'Keep sensitive notes in a password-protected vault.',
       'M5 9h10v8H5zm2 0V6a3 3 0 0 1 6 0v3m-3 3v2',
-    ],
-    [
-      'capri.workflows',
-      'workflows',
-      'Task training',
-      'Record and replay a workflow you teach Capri.',
-      'M2 4h6v4H2zm10 0h6v4h-6zM7 13h6v4H7zm1-7h4m3 2v3h-5v2',
     ],
     [
       'capri.user-tools',

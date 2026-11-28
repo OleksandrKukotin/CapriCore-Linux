@@ -2,7 +2,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ControlWindowLayer } from '../apps/desktop/main/control-window-layer.mjs';
-import { ComputerControl } from '../apps/desktop/computer-control.mjs';
 
 function fixture() {
   const saved = { alwaysOnTop: true },
@@ -87,41 +86,4 @@ test('destroyed windows are never raised and a failed native transition releases
   f.layer.begin();
   assert.doesNotThrow(() => f.layer.end());
   assert.equal(f.saved.alwaysOnTop, true);
-});
-
-test('indicator failure and cancellation both restore the owner layer through ComputerControl cleanup', async () => {
-  for (const mode of ['failure', 'cancel']) {
-    const f = fixture();
-    let release;
-    const control = new ComputerControl({
-      allowed: () => true,
-      canStart: () => true,
-      currentTurn: () => mode,
-      registerEscape: () => true,
-      unregisterEscape: () => {},
-      bridge: async () => ({}),
-      showBorder: async () => {
-        f.layer.begin();
-        if (mode === 'failure') throw Error('Fixture indicator unavailable');
-        await new Promise((resolve) => {
-          release = resolve;
-        });
-      },
-      hideBorder: () => f.layer.end(),
-    });
-    const begin = control.begin('Test the isolated owner layer');
-    const rejected = assert.rejects(begin, /indicator|cancelled/i);
-    await new Promise((resolve) => setImmediate(resolve));
-    if (mode === 'cancel') {
-      assert.equal(f.view.top, false);
-      await control.stop();
-      release();
-    }
-    await rejected;
-    assert.equal(control.snapshot().active, false);
-    assert.equal(f.layer.active, false);
-    assert.equal(f.view.top, true);
-    assert.equal(f.saved.alwaysOnTop, true);
-    assert(!f.events.includes(false));
-  }
 });

@@ -152,7 +152,6 @@ export function createGatewayConfiguration(rt, config = settings) {
         'time_control',
         'settings_control',
         'desktop_control',
-        'workflow_control',
         ...Array.from(
           { length: 20 },
           (_, index) => 'capri_tool_' + String(index + 1).padStart(2, '0'),
@@ -318,7 +317,6 @@ export function initialize(rt = runtime()) {
         'time_control',
         'settings_control',
         'desktop_control',
-        'workflow_control',
         ...Array.from(
           { length: 20 },
           (_, index) => 'capri_tool_' + String(index + 1).padStart(2, '0'),

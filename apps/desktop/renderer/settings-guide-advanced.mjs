@@ -15,53 +15,12 @@ export const advancedGuides = {
     step(
       '#computer-access-toggle',
       'Grant or revoke full access',
-      'Grant full access only for tasks that need broader control, then confirm it. Windows permissions still apply. Revoking it stops the current task and returns Capri to your individual app and folder grants.',
+      'Full access lets Capri open apps, enter text in inspected fields and use extra folders without asking each time. Revoking it returns Capri to your individual app and folder grants.',
     ),
     step(
       '#computer-access-resume',
       'Resume access to applications',
-      'A paused Application access setting also blocks new computer tasks. Resume it here. Full computer access still requires separate confirmation.',
-    ),
-    step(
-      '#computer-task-goal',
-      'Describe the result you want',
-      'Name the app, the item to act on and the result you want. If there are several similar windows, include the window title.',
-    ),
-    step(
-      '#computer-task-run',
-      'Run the task and follow its progress',
-      'Test runs the task on your computer. Capri observes the active window, acts and checks the result. An external model can receive task screenshots when image input is enabled.',
-    ),
-    step(
-      '#computer-task-stop',
-      'Stop an active task',
-      'Esc or Stop ends the remaining steps. Actions already completed stay in effect.',
-    ),
-    step(
-      '#computer-fx-enabled',
-      'Show effects at the screen edges',
-      'Edge effects indicate when Capri is controlling the computer. The center stays clear.',
-    ),
-    step(
-      '#computer-fx-theme',
-      'Choose the control style',
-      'Select Capri or Blackwall to change the appearance of the overlay. Intensity sets how bright the edge effects are.',
-      '#computer-fx-intensity',
-    ),
-    step(
-      '#computer-fx-cursor',
-      'Show Capri’s pointer and trail',
-      'Show where Capri is pointing, with a trail as the pointer moves. This switch is separate from the edge effects.',
-    ),
-    step(
-      '#computer-fx-motion',
-      'Set pointer movement duration',
-      'Set 0 for instant movement. A higher value gives you more time to follow the pointer.',
-    ),
-    step(
-      '#computer-fx-preview',
-      'Preview the effects',
-      'Preview shows your current choices for three seconds. Save Settings to keep them.',
+      'A paused Application access setting also blocks app actions. Resume it here. Full computer access still requires separate confirmation.',
     ),
   ],
   files: [
@@ -146,46 +105,6 @@ export const advancedGuides = {
       'Change your password',
       'Unlock the store, enter the current password and a new password of at least eight characters, then select Change password.',
       '#private-current-password, #private-change-password',
-    ),
-  ],
-  workflows: [
-    step(
-      '#workflow-record',
-      'Record a repeatable task',
-      'Enable Application access, then start recording and perform the task. Capri records clicks, drags, scrolling and shortcuts for up to two minutes. Ordinary typing, password fields and clipboard contents are excluded.',
-    ),
-    step(
-      '#workflow-stop',
-      'Stop recording or playback',
-      'Select Stop or press Esc to end recording or stop the remaining playback steps. Actions already completed stay in effect.',
-    ),
-    step(
-      '#workflow-name',
-      'Review and save the workflow',
-      'Name your workflow before saving. Review the recorded steps, reorder them with the arrows, and remove unneeded steps with ×.',
-      '#workflow-save, #workflow-steps .action-entry button',
-    ),
-    step(
-      '#workflow-add-text',
-      'Add a text step',
-      'Record a click on the intended text field first. Add the text step and enter what the workflow should type.',
-      '#workflow-steps .action-entry textarea',
-    ),
-    step(
-      '#workflow-json',
-      'Edit the recorded steps as JSON',
-      'Review the selectors and actions in the advanced editor. Apply the edited steps and save the workflow.',
-      '#workflows-panel details:has(#workflow-json) > summary, #workflow-edit',
-    ),
-    step(
-      '#workflow-variables',
-      'Supply values for reusable text steps',
-      'Put {{query}} in a recorded text step and supply an object such as {"query":"a song name"} at playback.',
-    ),
-    step(
-      '#workflow-list .action-entry button',
-      'Run, edit or remove a saved workflow',
-      'Playback requires full computer access. Review the workflow before running it. Capri stops if a control no longer matches, so check the result in the application.',
     ),
   ],
   'user-tools': [
