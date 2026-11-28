@@ -913,68 +913,6 @@ body.settings-window {
   gap: 7px;
   margin-block: 8px 0;
 }
-#coding-panel .coding-activity {
-  display: grid;
-  gap: 4px;
-  max-block-size: 12rem;
-  overflow: auto;
-  padding: 0;
-  list-style: none;
-}
-#coding-panel .coding-activity li,
-#coding-panel .coding-files button {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 4px 10px;
-  text-align: start;
-  overflow-wrap: anywhere;
-}
-#coding-panel .coding-activity small {
-  color: var(--settings-subtle);
-}
-#coding-panel .coding-files {
-  display: grid;
-  gap: 5px;
-}
-#coding-panel .coding-files button[aria-pressed='true'] {
-  border-color: var(--settings-title);
-  background: color-mix(in srgb, var(--settings-title) 15%, var(--settings-control-fill));
-}
-#coding-panel .coding-file-stat {
-  flex: none;
-  font-variant-numeric: tabular-nums;
-  color: var(--settings-subtle);
-}
-#coding-panel .coding-diff {
-  max-block-size: 22rem;
-  min-inline-size: 0;
-  margin-block: 8px;
-  overflow: auto;
-  overscroll-behavior: contain;
-  border: 1px solid var(--settings-card-line);
-  background: var(--settings-panel-surface);
-  font-size: 11px;
-  line-height: 1.5;
-  tab-size: 4;
-  text-align: left;
-  user-select: text;
-}
-#coding-panel .coding-diff-line {
-  display: block;
-  min-inline-size: max-content;
-  padding-inline: 8px;
-}
-#coding-panel .coding-diff-line[data-type='added'] {
-  background: color-mix(in srgb, #63ce93 17%, transparent);
-}
-#coding-panel .coding-diff-line[data-type='removed'] {
-  background: color-mix(in srgb, #ff7186 18%, transparent);
-}
-#coding-panel .coding-diff-line[data-type='gap'] {
-  color: var(--settings-subtle);
-}
 .settings-window .call-camera-background-actions {
   align-items: center;
 }

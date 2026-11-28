@@ -17,7 +17,6 @@ const skillPanels = {
   initiative: 'initiative-panel',
   calls: 'call-audio-panel',
   computer: 'computer-access-panel',
-  coding: 'coding-panel',
   files: 'file-access-panel',
   knowledge: 'knowledge-panel',
   'private-memory': 'private-memory-panel',

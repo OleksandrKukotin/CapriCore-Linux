@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { createHash, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { root } from '../packages/runtime/src/host/paths.mjs';
 import { personaPrompt } from '../packages/runtime/src/context.mjs';
 import {
@@ -16,7 +16,6 @@ import {
   initializePersonality,
   defaultPersonality,
 } from '../packages/runtime/src/personality.mjs';
-import { GitHubAccess, GITHUB_ACCESS_URL, githubTokenUrl } from '../apps/desktop/github-access.mjs';
 import { REPOSITORY } from '../packages/updater/src/releases.mjs';
 import { listReleases } from '../packages/updater/src/github.mjs';
 import { visuallySleeping } from '../apps/desktop/sleep-service.mjs';
@@ -25,28 +24,6 @@ import { PresenceModel } from '../apps/desktop/renderer/presence-model.mjs';
 const parent = path.join(root, '.runtime/v036-unit');
 mkdirSync(parent, { recursive: true });
 const folder = () => mkdtempSync(path.join(parent, 'fixture-'));
-function cryptoStorage() {
-  const key = randomBytes(32);
-  return {
-    available: async () => true,
-    encrypt: async (value) => {
-      const iv = randomBytes(12),
-        cipher = createCipheriv('aes-256-gcm', key, iv);
-      const payload = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]);
-      return Buffer.concat([iv, cipher.getAuthTag(), payload]);
-    },
-    decrypt: async (bytes) => {
-      const decipher = createDecipheriv('aes-256-gcm', key, bytes.subarray(0, 12));
-      decipher.setAuthTag(bytes.subarray(12, 28));
-      return {
-        result: Buffer.concat([decipher.update(bytes.subarray(28)), decipher.final()]).toString(
-          'utf8',
-        ),
-        shouldReEncrypt: false,
-      };
-    },
-  };
-}
 test('each saved communication style reaches the next shared persona without rewriting the custom character', () => {
   const workspace = folder();
   savePersonality(workspace, 'My custom character stays editable.');
@@ -107,83 +84,6 @@ test('disconnect uses resting artwork without reporting that models were unloade
   assert.equal(visuallySleeping('awake', 'starting'), true);
   assert.equal(visuallySleeping('asleep', 'ready'), true);
 });
-test('private GitHub access is validated, encrypted and reused without GitHub CLI or token exposure', async () => {
-  const destination = folder(),
-    storage = cryptoStorage(),
-    token = 'github_pat_' + 'a'.repeat(60),
-    seen = [];
-  const access = new GitHubAccess({
-    root: destination,
-    storage,
-    verify: async (value) => {
-      assert.equal(value.repository, REPOSITORY);
-      seen.push(value.token);
-      return [];
-    },
-    fallback: () => {
-      throw new Error('Saved access must not invoke GitHub CLI');
-    },
-  });
-  const status = await access.connect(token);
-  assert.equal(status.connected, true);
-  assert.equal(status.repository, REPOSITORY);
-  assert.deepEqual(seen, [token]);
-  const disk = readFileSync(access.file, 'utf8');
-  assert.ok(!disk.includes(token));
-  assert.ok(!JSON.stringify(status).includes(token));
-  assert.ok(!JSON.stringify(status).includes('ciphertext'));
-  const reopened = new GitHubAccess({ root: destination, storage });
-  assert.equal(await reopened.credential(), token);
-  await access.remove();
-  assert.equal(existsSync(access.file), false);
-  const url = new URL(GITHUB_ACCESS_URL);
-  assert.equal(url.origin, 'https://github.com');
-  assert.equal(url.searchParams.get('contents'), 'read');
-  // A token for this public repository needs no organization resource owner.
-  assert.equal(url.searchParams.get('target_name'), null);
-});
-test('invalid access and failed replacement never overwrite a previously working encrypted credential', async () => {
-  const destination = folder(),
-    storage = cryptoStorage(),
-    token = 'ghp_' + 'b'.repeat(36);
-  let deny = false;
-  const access = new GitHubAccess({
-    root: destination,
-    storage,
-    verify: async () => {
-      if (deny) throw new Error('Access denied');
-    },
-  });
-  await access.connect(token);
-  const original = readFileSync(access.file);
-  await assert.rejects(access.connect('not a token'), /token/);
-  deny = true;
-  await assert.rejects(access.connect('github_pat_' + 'c'.repeat(60)), /denied/);
-  assert.deepEqual(readFileSync(access.file), original);
-  assert.equal(await access.credential(), token);
-  const unavailable = new GitHubAccess({
-    root: folder(),
-    storage: { available: async () => false },
-  });
-  await assert.rejects(unavailable.connect(token), /Secure/);
-  assert.equal(existsSync(unavailable.file), false);
-});
-test('closing during GitHub access validation cancels without saving a credential', async () => {
-  const access = new GitHubAccess({
-    root: folder(),
-    storage: cryptoStorage(),
-    verify: async ({ signal }) =>
-      new Promise((resolve, reject) => {
-        if (signal.aborted) reject(signal.reason);
-        else signal.addEventListener('abort', () => reject(signal.reason), { once: true });
-      }),
-  });
-  const pending = access.connect('github_pat_' + 'd'.repeat(60));
-  await new Promise((resolve) => setImmediate(resolve));
-  access.close();
-  await assert.rejects(pending, /cancelled/);
-  assert.equal(existsSync(access.file), false);
-});
 test('public release failures are distinguished from GitHub rate limits and never quote response bodies', async () => {
   for (const [status, headers, expected] of [
     [404, {}, /public OleksandrKukotin\/CapriCore-Linux releases/],
@@ -198,16 +98,6 @@ test('public release failures are distinguished from GitHub rate limits and neve
       expected,
     );
   }
-});
-
-test('GitHub token pages are fixed and classic access is a separate explicit choice', () => {
-  assert.equal(githubTokenUrl(), GITHUB_ACCESS_URL);
-  const url = new URL(githubTokenUrl('classic'));
-  assert.equal(url.origin, 'https://github.com');
-  assert.equal(url.pathname, '/settings/tokens/new');
-  assert.equal(url.searchParams.get('scopes'), 'repo');
-  for (const value of ['https://untrusted.test', {}, 'Classic'])
-    assert.throws(() => githubTokenUrl(value));
 });
 
 test('strict GitHub access verification rejects invalid tokens and inaccessible repositories', async () => {
@@ -237,31 +127,4 @@ test('strict GitHub access verification rejects invalid tokens and inaccessible 
       },
     );
   }
-});
-
-test('GitHub access diagnostics keep status/request ID while never storing failed tokens or bodies', async () => {
-  const token = 'github_pat_' + 'q'.repeat(60);
-  const access = new GitHubAccess({
-    root: folder(),
-    storage: cryptoStorage(),
-    verify: (options) =>
-      listReleases({
-        ...options,
-        fetchImpl: async () =>
-          new Response('private response body ' + token, {
-            status: 404,
-            headers: { 'x-github-request-id': 'ABCD:1234' },
-          }),
-      }),
-  });
-  await assert.rejects(access.connect(token), (error) => error.httpStatus === 404);
-  const details = access.diagnostics();
-  assert.equal(details.lastFailure.httpStatus, 404);
-  assert.equal(details.lastFailure.code, 'GITHUB_ACCESS_REQUIRED');
-  assert.equal(details.lastFailure.requestId, 'ABCD:1234');
-  assert.equal(details.hasSavedAccess, false);
-  assert(!JSON.stringify(details).includes(token));
-  assert(!JSON.stringify(details).includes('private response body'));
-  await assert.rejects(access.connect('not a token'));
-  assert.equal(access.diagnostics().lastFailure.code, 'GITHUB_TOKEN_FORMAT');
 });

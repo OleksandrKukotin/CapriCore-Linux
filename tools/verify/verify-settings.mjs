@@ -3,7 +3,7 @@ import { saveSettings, settingsView } from './settings-view.mjs';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
-import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, rmdirSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { _electron } from 'playwright-core';
@@ -95,106 +95,23 @@ try {
       { timeout: 20000 },
     );
   };
-  const codingHint = 'Choose and save a project folder to enable coding mode.';
   const setSkill = (id, enabled) =>
     settings.evaluate(({ id, enabled }) => window.capri.setSkill({ id, enabled }), { id, enabled });
   const skill = (id) => settings.locator('[data-skill="' + id + '"]');
-  assert.equal(await skill('capri.coding').isChecked(), false);
   assert.deepEqual(
     await page
       .locator('#quick-actions [data-skill-button]:not([hidden])')
       .evaluateAll((buttons) => buttons.map((button) => button.dataset.skillButton)),
     ['capri.microphone', 'capri.voice-output'],
   );
-  await navigate('coding');
-  assert.equal(await settings.locator('[data-code="folder"]').isEnabled(), true);
+  await navigate('reasoning');
+  const reasoningEnabled = await skill('capri.reasoning').isChecked();
   await settings.locator('#skill-show-button').check();
-  await page.waitForSelector('#coding-toggle:not([hidden])', { state: 'attached' });
-  assert.equal(await skill('capri.coding').isChecked(), false);
-  await page.evaluate(() => document.getElementById('coding-toggle').click());
-  await settings.waitForSelector('[data-section="coding"][aria-current="page"]');
-  assert.equal(await settings.locator('#skill-settings-title').textContent(), 'Coding mode');
-  await skill('capri.coding').check();
-  await page.waitForSelector('#coding-toggle[data-skill-enabled="true"]', { state: 'attached' });
-  await page.waitForFunction(
-    () => document.getElementById('coding-toggle').dataset.skillEnabled === 'true',
-  );
-  await page.evaluate(() => document.getElementById('coding-toggle').click());
-  await page.waitForFunction(
-    (hint) => document.getElementById('notice-message').textContent === hint,
-    codingHint,
-  );
-  assert.equal(await page.locator('#notice').getAttribute('data-severity'), 'warning');
-  assert.equal(await page.locator('#notice-report').isVisible(), false);
-  assert.equal(await page.locator('#coding-toggle').getAttribute('aria-pressed'), 'false');
-  await settings.evaluate(() => document.querySelector('[data-code="enable"]').click());
-  await settings.waitForFunction(
-    (hint) => document.querySelector('[data-code="status"]').textContent === hint,
-    codingHint,
-  );
-  const codingProject = mkdtempSync(path.join(parent, 'coding-project-'));
-  try {
-    const codingEditor = { executable: process.execPath, kind: 'vscode' };
-    await settings.evaluate((value) => window.capri.coding({ op: 'save', value }), {
-      workspace: codingProject,
-      editor: codingEditor,
-      tasks: [],
-      bridge: true,
-    });
-    await navigate('general');
-    await navigate('coding');
-    const codingControl = (key) => settings.locator(`#coding-panel [data-code="${key}"]`);
-    assert.equal(await codingControl('bridge').isChecked(), true);
-    assert.equal(await codingControl('installBridge').isEnabled(), true);
-    await codingControl('kind').selectOption('notepad++');
-    assert.equal(await codingControl('bridgeOptions').isVisible(), false);
-    assert.equal(await codingControl('bridge').isChecked(), false);
-    assert.equal(await codingControl('editor').inputValue(), '');
-    const editors = await settings.evaluate(() => window.capri.coding({ op: 'editors' }));
-    const notepad = editors.find(({ kind }) => kind === 'notepad++');
-    if (notepad) {
-      await codingControl('detect').click();
-      await codingControl('editors')
-        .getByRole('button', { name: notepad.name, exact: true })
-        .click();
-    } else {
-      await codingControl('editor').evaluate(
-        (input, executable) => (input.value = executable),
-        process.execPath,
-      );
-    }
-    assert.equal(
-      await codingControl('editor').inputValue(),
-      notepad?.executable ?? process.execPath,
-    );
-    assert.equal(await codingControl('installBridge').isVisible(), false);
-    await codingControl('save').click();
-    await settings.waitForFunction(async (executable) => {
-      const { config } = await window.capri.coding({ op: 'status' });
-      return (
-        config.editor?.kind === 'notepad++' &&
-        config.editor.executable === executable &&
-        config.bridge === false
-      );
-    }, notepad?.executable ?? process.execPath);
-    record('Switching from VS Code to Notepad++ saves without the live editor bridge', {
-      installedEditor: Boolean(notepad),
-    });
-    await settings.evaluate(() => document.querySelector('[data-code="enable"]').click());
-    await page.waitForSelector('#coding-toggle[aria-pressed="true"]', { state: 'attached' });
-    assert.equal(await page.locator('#notice').isVisible(), false);
-    await settings.evaluate(() => document.querySelector('[data-code="enable"]').click());
-    await page.waitForSelector('#coding-toggle[aria-pressed="false"]', { state: 'attached' });
-    await settings.evaluate(() =>
-      window.capri.coding({ op: 'save', value: { workspace: '', editor: null, tasks: [] } }),
-    );
-  } finally {
-    rmdirSync(codingProject);
-  }
-  record('Coding mode without a project opens setup and shows guidance without a report button');
-  await skill('capri.coding').uncheck();
+  await page.waitForSelector('#thinking-toggle:not([hidden])', { state: 'attached' });
+  assert.equal(await skill('capri.reasoning').isChecked(), reasoningEnabled);
+  await page.evaluate(() => document.getElementById('thinking-toggle').click());
   await settings.locator('#skill-show-button').uncheck();
-  await page.waitForSelector('#coding-toggle[hidden]', { state: 'attached' });
+  await page.waitForSelector('#thinking-toggle[hidden]', { state: 'attached' });
   record('Disabled skills remain configurable and toolbar visibility is independent');
   const betaSkills = [
     'applications',
@@ -960,15 +877,8 @@ try {
   await settings.waitForFunction(() => document.querySelector('.model-progress-card').hidden);
   record('Idle model selection has no download progress card');
   await navigate('updates');
-  const githubAccess = settings.locator('#updates-access-details');
-  await githubAccess.evaluate((node) => (node.open = true));
-  assert.equal(await githubAccess.locator('#updates-token').isVisible(), true);
-  await githubAccess.locator('details').evaluate((node) => (node.open = true));
-  assert.equal(await githubAccess.locator('#updates-token-page').isVisible(), true);
-  assert.equal(await githubAccess.locator('#updates-classic-token-page').isVisible(), true);
-  assert.match(await githubAccess.textContent(), /Contents: Read-only/);
-  assert.match(await githubAccess.textContent(), /classic token scopes are broader/);
-  record('GitHub access explains the read-only token and classic fallback scopes');
+  await settings.locator('#updates-panel').waitFor({ state: 'visible' });
+  record('Updates panel opens');
   await application.evaluate(({ BrowserWindow }) => {
     const owner = BrowserWindow.getAllWindows().find(
       (w) => w.webContents.getURL() === 'capri://desktop/index.html',

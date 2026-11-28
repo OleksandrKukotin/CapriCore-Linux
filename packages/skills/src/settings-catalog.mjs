@@ -133,14 +133,6 @@ export const SKILL_SETTINGS = Object.freeze(
       'Carry out approved desktop tasks with a visible control indicator.',
     ],
     [
-      'capri.coding',
-      'coding',
-      'Coding mode',
-      'Work in a selected code project using its editor connection.',
-      'M7 5l-5 5 5 5m6-10 5 5-5 5M12 2 8 18',
-      'coding-toggle',
-    ],
-    [
       'capri.files',
       'files',
       'File access',

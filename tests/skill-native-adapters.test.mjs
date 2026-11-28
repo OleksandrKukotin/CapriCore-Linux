@@ -2,7 +2,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { CapriCore } from '../packages/core/src/index.mjs';
-import { codingSkill } from '../packages/skills/src/coding.mjs';
 import { computerSkill } from '../packages/skills/src/computer.mjs';
 
 const callSkill =
@@ -70,61 +69,5 @@ test('computer skill keeps access approval and task execution behind distinct ho
     ['request', true],
     ['run', 'Open a fixture'],
   ]);
-  await core.close();
-});
-
-test('coding skill owns project-dependent mode and limits bridge installation to one operation', async () => {
-  const core = new CapriCore();
-  const installed = Promise.withResolvers();
-  const events = [];
-  let config = { workspace: '', editor: null, available: false };
-  let busy = false;
-  let installs = 0;
-  core.register(codingSkill, {
-    service: {
-      snapshot: () => config,
-      save(value) {
-        config = { ...value, available: Boolean(value.workspace) };
-        return config;
-      },
-    },
-    agent: {
-      run: (summary, { signal }) => {
-        assert.equal(signal.aborted, false);
-        return { summary, changes: [], steps: 0, verified: true };
-      },
-    },
-    assertModelIdle: () => {
-      if (busy) throw Error('The model is busy');
-    },
-    installBridge: (editor, { signal }) => {
-      assert.equal(editor.kind, 'vscode');
-      assert.equal(signal.aborted, false);
-      installs++;
-      return installed.promise;
-    },
-  });
-  core.subscribe({ skillId: 'capri.coding', event: 'settings' }, (event) =>
-    events.push(event.data),
-  );
-  const call = callSkill(core, codingSkill);
-  assert.deepEqual(call('mode', true, 'companion'), { enabled: false, projectRequired: true });
-  assert.deepEqual(events, []);
-  assert.throws(() => call('mode', true, 'chat'), { code: 'skill_access_denied' });
-  busy = true;
-  assert.throws(() => call('save', { workspace: 'project' }, 'settings'), /model is busy/);
-  busy = false;
-  call('save', { workspace: 'project', editor: { kind: 'vscode' } }, 'settings');
-  assert.deepEqual(call('mode', true, 'companion'), { enabled: true });
-  assert.equal(call('status', undefined, 'settings').enabled, true);
-  assert.equal((await call('run', 'Review changes', 'chat')).summary, 'Review changes');
-  const firstInstall = call('installBridge', undefined, 'settings');
-  await assert.rejects(call('installBridge', undefined, 'settings'), /already running/);
-  installed.resolve();
-  assert.equal(await firstInstall, true);
-  assert.equal(installs, 1);
-  call('save', { workspace: '', editor: null }, 'settings');
-  assert.equal(call('status', undefined, 'host').enabled, false);
-  assert.deepEqual(events, [{ enabled: false }, { enabled: true }, { enabled: false }]);
   await core.close();
 });

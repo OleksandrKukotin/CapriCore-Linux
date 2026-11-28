@@ -118,23 +118,6 @@ const internetMode = new InternetMode({
     }
   },
 });
-let codingEnabled = false;
-const codingProjectHint = 'Choose and save a project folder to enable coding mode.';
-const codingButton = document.getElementById('coding-toggle');
-function showCodingMode(value) {
-  codingEnabled = value?.enabled === true;
-  codingButton.setAttribute('aria-pressed', String(codingEnabled));
-  codingButton.title = ui.text(codingEnabled ? 'Coding mode: On' : 'Coding mode: Off');
-  if (value?.projectRequired) notice(codingProjectHint, 'warning');
-  else if (codingEnabled && noticeSource === codingProjectHint) notice();
-}
-codingButton.onclick = async () => {
-  try {
-    showCodingMode(await api.coding({ op: 'mode', enabled: !codingEnabled }));
-  } catch (error) {
-    notice(error.message);
-  }
-};
 let musicState = {
   enabled: false,
   hearingMusic: false,
@@ -2444,10 +2427,6 @@ function onEvent(event) {
     publishAvatarComposer();
     return;
   }
-  if (event.type === 'coding.settings') {
-    showCodingMode(event);
-    return;
-  }
   if (event.type === 'application.access') {
     showApplicationAccess(event.settings);
     return;
@@ -3707,7 +3686,6 @@ try {
   showApplicationAccess(snapshot.applicationAccess ?? { enabled: true });
   thinkingMode.configure(snapshot.thinking);
   internetMode.configure(snapshot.internet);
-  showCodingMode(snapshot.coding);
   if (snapshot.musicListening) musicState = snapshot.musicListening;
   renderMusicState();
   musicNotes = new MusicNotesLayer(

@@ -209,7 +209,7 @@ export function validateInput(value) {
   const text = value.text.trim();
   if (!text || text.length > MAX_INPUT || text.includes('\0'))
     throw new Error(`Enter between 1 and ${MAX_INPUT} characters.`);
-  if (value.mode !== undefined && !['computer', 'coding'].includes(value.mode))
+  if (value.mode !== undefined && value.mode !== 'computer')
     throw new Error('Invalid message mode');
   if (value.thinking !== undefined && typeof value.thinking !== 'boolean')
     throw new Error('Invalid thinking mode');
@@ -398,7 +398,6 @@ export class ChatService {
     skills = null,
     requestRouter = null,
     computerTask = null,
-    codingTask = null,
     computerAccess = null,
     computerIntent = null,
     npuDialogue = null,
@@ -440,7 +439,6 @@ export class ChatService {
       skills,
       requestRouter,
       computerTask,
-      codingTask,
       computerAccess,
       computerIntent,
       npuDialogue,
@@ -656,13 +654,10 @@ export class ChatService {
     const codeReview = !input.mode && input.internet !== true && suppliedCodeReview(input.text);
     const thinking = input.thinking === true && !input.mode;
     const directSmallTalk = smallTalk && !thinking ? this.directLocalDialogue : null;
-    const planningWithThinking = input.thinking === true && input.mode !== 'coding';
-    const turnTimeoutMs =
-      input.mode === 'coding'
-        ? Math.max(this.timeoutMs, 600000)
-        : thinking
-          ? Math.max(this.timeoutMs, this.thinkingTimeoutMs)
-          : this.timeoutMs;
+    const planningWithThinking = input.thinking === true;
+    const turnTimeoutMs = thinking
+      ? Math.max(this.timeoutMs, this.thinkingTimeoutMs)
+      : this.timeoutMs;
     const localMemory = !input.mode && this.ownerMemory;
     const noteRequest = localMemory ? ownerNoteRequest(input.text) : null;
     let previousTask =
@@ -890,33 +885,6 @@ export class ChatService {
         webContext = '',
         reasoningInstruction = '';
       const stages = {
-        coding:
-          input.mode === 'coding' &&
-          (async () => {
-            phase = 'coding';
-            if (!this.codingTask) throw Error('Coding mode is unavailable.');
-            armDeadline(600000);
-            await this.prepareModel?.({ signal: requestSignal });
-            const result = await this.codingTask(input.text, { signal: requestSignal });
-            requestSignal.throwIfAborted();
-            const files = result.files ?? [];
-            const changed = files.map(
-              ({ path, additions, deletions }) => `• ${path} (+${additions} / −${deletions})`,
-            );
-            append([result.summary, ...changed].filter(Boolean).join('\n'), true);
-            assistant.status = 'complete';
-            assistant.followUp = false;
-            assistant.coding = {
-              changes: result.changes,
-              steps: result.steps,
-              verified: result.verified,
-              files,
-              verification: result.verification,
-            };
-            this.store.put(assistant);
-            emit({ type: 'turn.completed', turnId: input.id, assistant });
-            return TURN_HANDLED;
-          }),
         computerAccessStatus: () => {
           if (input.mode || !computerAccessStatusQuestion(input.text)) return;
           const status = this.interfaceState().fullComputerAccess
@@ -1387,7 +1355,6 @@ export class ChatService {
       const preparation = coordinateTurn(
         {
           direct: [
-            ['coding', stages.coding],
             ['computerAccessStatus', stages.computerAccessStatus],
             ['memory', stages.memory],
             ['callClarification', stages.callClarification],

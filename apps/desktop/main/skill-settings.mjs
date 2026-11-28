@@ -14,7 +14,6 @@ const protectedCommands = {
   'capri.music': ['start', 'ready'],
   'capri.reasoning': ['prepare'],
   'capri.web-search': ['prepare'],
-  'capri.coding': ['run'],
   'capri.computer': ['run'],
   'capri.avatar-interaction': ['react'],
   'capri.initiative': ['test'],
@@ -116,7 +115,6 @@ export class SkillSettings {
       (['capri.reasoning', 'capri.web-search'].includes(skillId) &&
         command === 'setMode' &&
         input === true) ||
-      (skillId === 'capri.coding' && command === 'mode' && input === true) ||
       (skillId === 'capri.voice-output' && command === 'setEnabled' && input === true) ||
       (skillId === 'capri.computer' && command === 'requestAccess' && input === true) ||
       (skillId === 'capri.owner-memory' && command === 'save') ||

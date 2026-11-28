@@ -3,7 +3,6 @@ import { ExternalTtsPanel } from './external-tts-panel.mjs';
 import { finishSettingsLoading, panelLoading } from './settings-loading.mjs';
 import { KnowledgePanel } from './knowledge-panel.mjs';
 import { WorkflowsPanel } from './workflows-panel.mjs';
-import { CodingPanel } from './coding-panel.mjs';
 import { UserToolsPanel } from './user-tools-panel.mjs';
 import { CreditsPanel } from './credits-panel.mjs';
 import { DeveloperPanel } from './developer-panel.mjs';
@@ -265,7 +264,6 @@ function showAudioRouting(snapshot) {
 }
 const knowledge = new KnowledgePanel({ api, ui, onError: notice });
 const workflows = new WorkflowsPanel({ api, ui, onError: notice });
-const coding = new CodingPanel({ api, ui, onError: notice });
 const userTools = new UserToolsPanel({ api, ui, onError: notice });
 const credits = new CreditsPanel({ ui });
 const developer = new DeveloperPanel({ api, ui, onError: notice });
@@ -1973,7 +1971,6 @@ async function navigate(id, focus = null, match = null) {
     if (id === 'knowledge') await knowledge.open({ privateMemory: false });
     if (id === 'private-memory') await knowledge.privateMemory.open();
     if (id === 'workflows') await workflows.open();
-    if (id === 'coding') await coding.open();
     if (id === 'user-tools') await userTools.open();
     if (id === 'developer') await developer.open();
     if (id === 'discord') {
@@ -2019,7 +2016,6 @@ async function navigate(id, focus = null, match = null) {
     panelLoading(false);
     finishSettingsLoading();
     restoreLocation();
-    if (id === 'coding') coding.revealPending();
     if (id === 'credits') void credits.open();
     if (match) revealSearchMatch(match, panel);
     else if (id === 'models' && ['context', 'devices', 'model'].includes(focus)) {
@@ -2151,10 +2147,6 @@ let languagePreviewRevision = 0;
 function event(value) {
   if (value.type === 'saved-memory.changed') {
     void companion.savedMemory.load();
-    return;
-  }
-  if (value.type?.startsWith('coding.')) {
-    coding.onEvent(value);
     return;
   }
   if (value.type === 'audio-routing.changed') {

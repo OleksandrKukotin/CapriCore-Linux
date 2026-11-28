@@ -50,32 +50,7 @@ try {
   await page.waitForFunction(() => document.body.dataset.phase === 'ready', null, {
     timeout: 60000,
   });
-  assert.equal(await page.locator('#coding-toggle').count(), 1);
-  const settings = await settingsView(application, 'coding');
-  await settings.locator('#coding-panel').waitFor({ state: 'visible' });
-  await settings.screenshot({ path: path.join(folder, 'coding-settings.png') });
-  assert.equal(
-    await settings
-      .locator('#coding-panel button[data-code]')
-      .evaluateAll((buttons) =>
-        buttons.some((button) => button.getBoundingClientRect().width < 20),
-      ),
-    false,
-  );
-  passed('Coding mode has a reachable isolated Settings section and standard-size controls');
-  const project = mkdtempSync(path.join(os.tmpdir(), 'capri-coding-ui-'));
-  await page.evaluate(
-    async (workspace) =>
-      window.capri.coding({ op: 'save', value: { workspace, editor: null, tasks: [] } }),
-    project,
-  );
-  await page.locator('#coding-toggle').click();
-  await page.waitForFunction(
-    () => document.querySelector('#coding-toggle').getAttribute('aria-pressed') === 'true',
-  );
-  assert.equal((await page.evaluate(() => window.capri.coding({ op: 'status' }))).enabled, true);
-  await page.locator('#coding-toggle').click();
-  passed('Main composer toggles the host coding mode without starting computer control');
+  assert.equal(await page.locator('#coding-toggle').count(), 0);
   const models = await settingsView(application, 'models');
   await models.locator('[data-npu="backend"]').scrollIntoViewIfNeeded();
   await models.screenshot({ path: path.join(folder, 'native-npu-settings.png') });

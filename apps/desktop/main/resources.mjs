@@ -125,7 +125,6 @@ const rendererFiles = [
   'update-notification.css',
   'models-panel.mjs',
   'npu-panel.mjs',
-  'coding-panel.mjs',
   'huggingface-panel.mjs',
   'voice-model-panel.mjs',
   'external-tts-panel.mjs',

@@ -2,7 +2,6 @@
 export { ACTION_SKILLS, registerActionToolSkills } from './action-tools.mjs';
 export { avatarSkill } from './avatar/index.mjs';
 export { calculatorSkill } from './calculator.mjs';
-export { codingSkill } from './coding.mjs';
 export { computerSkill } from './computer.mjs';
 export { discordPresenceSkill } from './discord-presence.mjs';
 export {

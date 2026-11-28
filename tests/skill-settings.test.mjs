@@ -65,7 +65,7 @@ test('Attachments starts enabled in the composer and respects saved choices', (t
 test('skill activation gates operations and aborts in-flight work without blocking configuration', async (t) => {
   const file = fixture(t);
   const settings = new SkillSettings(file);
-  const id = 'capri.coding';
+  const id = 'capri.computer';
   const core = new CapriCore({ operationSignal: (request) => settings.operationSignal(request) });
   t.after(() => core.close());
   core.register({

@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { root } from '../../packages/runtime/src/host/paths.mjs';
 import { InferenceApi } from '../../apps/desktop/inference-api.mjs';
-import { credentialStorage } from '../../apps/desktop/github-access.mjs';
+import { credentialStorage } from '../../apps/desktop/credential-storage.mjs';
 import { computerPlanner } from '../../apps/desktop/computer-planner.mjs';
 import { ComputerTaskPlan } from '../../apps/desktop/computer-task-plan.mjs';
 

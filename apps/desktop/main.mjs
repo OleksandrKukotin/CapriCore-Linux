@@ -5,13 +5,11 @@ import {
   readApiSettings,
 } from './inference-api.mjs';
 import { CapriCore } from '../../packages/core/src/index.mjs';
-import { codingSkill } from '../../packages/skills/src/coding.mjs';
 import { computerSkill } from '../../packages/skills/src/computer.mjs';
 import { avatarSkill } from '../../packages/skills/src/avatar/index.mjs';
 import { discordPresenceSkill } from '../../packages/skills/src/discord-presence.mjs';
 import { reasoningSkill } from '../../packages/skills/src/reasoning/index.mjs';
 import { webSearchSkill } from '../../packages/skills/src/web-search/index.mjs';
-import { installCodingBridge } from './main/coding-bridge.mjs';
 import { createMediaSkills } from './main/media-skills.mjs';
 import { createConversationSkills, createOwnerMemory } from './main/conversation-skills.mjs';
 import { createVoiceSkills } from './main/voice-skills.mjs';
@@ -20,10 +18,6 @@ import { skillPreferences } from '../../packages/skills/src/settings-catalog.mjs
 import { ACTION_SKILLS } from '../../packages/skills/src/action-tools.mjs';
 import { NpuInference } from '../../packages/runtime/src/providers/npu-inference.mjs';
 import { NpuSetupService, prepareIntelNpu } from './npu-setup-service.mjs';
-import { CodingService } from './coding-service.mjs';
-import { CodingAgent } from './coding-agent.mjs';
-import { CodingRevisions } from './coding-revisions.mjs';
-import { discoverCodingEditors } from './coding-editors.mjs';
 import {
   readNpuSettings,
   saveNpuSettings,
@@ -135,7 +129,7 @@ import { registerAccessIpc } from './main/access-ipc.mjs';
 import { registerCompanionIpc } from './main/companion-ipc.mjs';
 import { crashReporter } from './main/crash-report.mjs';
 import { UpdateService } from './update-service.mjs';
-import { GitHubAccess, githubTokenUrl, credentialStorage } from './github-access.mjs';
+import { credentialStorage } from './credential-storage.mjs';
 import { installSpeechComponents } from '../../packages/installer/src/speech-components.mjs';
 import { SpeechInstallService } from './speech-install-service.mjs';
 import { ModelService } from './model-service.mjs';
@@ -910,17 +904,11 @@ async function initializeDesktop() {
           ? restoreCompanion()
           : showCompanion(true),
   });
-  const githubAccess = new GitHubAccess({
-    root: verification ? verificationFolder : root,
-    storage: credentialStorage(safeStorage),
-    ...(verification ? { fallback: async () => null } : {}),
-  });
   const updates = new UpdateService({
     root,
     state,
     node: nodePath,
     emit,
-    credential: () => githubAccess.credential(),
   });
   const automaticUpdatesEnabled =
     !verification || process.env.CAPRI_DESKTOP_VERIFICATION_UPDATE_CHECK === '1';
@@ -929,11 +917,7 @@ async function initializeDesktop() {
     root: verification ? verificationFolder : root,
     node: nodePath,
     emit,
-    install: (selection, options) =>
-      installSpeechComponents(selection, {
-        ...options,
-        credential: () => githubAccess.credential(),
-      }),
+    install: (selection, options) => installSpeechComponents(selection, options),
     before: async (signal, selection) => {
       if (selection.recognition !== 'off') {
         microphone.stop();
@@ -1226,23 +1210,6 @@ async function initializeDesktop() {
   });
   const responseTiming = responsiveness({ ...settings, availableRamBytes: freemem() });
   const internetSearch = new WebSearch();
-  const coding = new CodingService({
-    root: verification ? verificationFolder : root,
-    onProjectChange: (monitor) => emit({ type: 'coding.project', monitor }),
-  });
-  const codingRevisions = new CodingRevisions(coding, {
-    changed: (changes) => emit({ type: 'coding.changes', changes }),
-    review: () => void settingsHost?.open('coding').catch((error) => console.error(error.message)),
-  });
-  const codingAgent = new CodingAgent({
-    service: coding,
-    applyEdits: (edits, options) => codingRevisions.apply(edits, options),
-    url: rt.inferenceUrl,
-    model: settings.model,
-    ...inferenceOptions,
-    params: auxiliaryRunnerParams,
-    emit,
-  });
   skills.register(webSearchSkill, {
     searchWeb: (query, options) =>
       internetSearch.search(query, {
@@ -1259,15 +1226,6 @@ async function initializeDesktop() {
   );
   skills.subscribe({ skillId: 'capri.web-search', event: 'settings' }, ({ data: settings }) =>
     emit({ type: 'internet.settings', settings }),
-  );
-  skills.register(codingSkill, {
-    service: coding,
-    agent: codingAgent,
-    assertModelIdle,
-    installBridge: (editor, { signal }) => installCodingBridge(root, editor, signal),
-  });
-  skills.subscribe({ skillId: 'capri.coding', event: 'settings' }, ({ data }) =>
-    emit({ type: 'coding.settings', ...data }),
   );
   function notifySavedMemoryWrite(receipt) {
     if (receipt.saved === true && !receipt.alreadySaved) {
@@ -1297,8 +1255,6 @@ async function initializeDesktop() {
   }
   const chat = new ChatService({
     skills,
-    codingTask: (goal, { signal } = {}) =>
-      callSkill('capri.coding', 'run', goal, { source: 'chat', signal }),
     externalInference: rt.remote.enabled,
     externalChatProviderRejectionSince: (startedAt) =>
       inferenceApi.chatProviderRejectionSince(startedAt),
@@ -1595,14 +1551,12 @@ async function initializeDesktop() {
   function thinkingInput(value) {
     const input = validateInput({
       ...value,
-      mode: value?.mode ?? (callSkill('capri.coding', 'enabled') ? 'coding' : undefined),
       thinking:
         value?.thinking === undefined ? callSkill('capri.reasoning', 'mode') : value.thinking,
       internet:
         value?.internet === undefined ? callSkill('capri.web-search', 'mode') : value.internet,
     });
-    if (input.mode)
-      skillSettings.require(input.mode === 'coding' ? 'capri.coding' : 'capri.computer');
+    if (input.mode) skillSettings.require('capri.computer');
     // A composer can still have the old toggle state when a skill is switched off in Settings.
     if (input.thinking && !skillEnabled('capri.reasoning')) input.thinking = false;
     if (input.internet && !skillEnabled('capri.web-search')) input.internet = false;
@@ -3420,10 +3374,6 @@ async function initializeDesktop() {
       case 'capri.reasoning':
       case 'capri.web-search':
         callSkill(id, 'setMode', enabled);
-        break;
-      case 'capri.coding':
-        coding.setMonitoring(enabled);
-        if (!enabled) callSkill(id, 'resetMode');
         break;
       case 'capri.applications':
         if (enabled) await applicationAccess.set(true);
@@ -7024,60 +6974,6 @@ async function initializeDesktop() {
       ...(await modelDevices.refresh(voiceDeviceLanguage())),
       external: rt.remote.enabled,
     }));
-    async function codingPanelState(status, role) {
-      const config = coding.snapshot();
-      if (role === 'settings' && config.bridge && config.workspace) {
-        const handshake = await coding.bridge
-          .request(config.workspace, { action: 'context' }, AbortSignal.timeout(1200))
-          .catch(() => null);
-        config.bridgeConnected = handshake !== null && Object.hasOwn(handshake, 'active');
-      }
-      return { ...status, config, changes: codingRevisions.snapshot() };
-    }
-    handle('capri:coding', async (request, { role }) => {
-      const { op, value, enabled, id, path: file, apply, line } = request ?? {};
-      if (op === 'status') {
-        const status = callSkill('capri.coding', 'status', undefined, { source: role });
-        return codingPanelState(status, role);
-      }
-      if (op === 'open-project' || op === 'open-file' || op === 'diff' || op === 'review') {
-        if (role !== 'settings' || !settingsHost?.window?.isVisible())
-          throw Error('Open Coding mode in Settings.');
-        if (op === 'open-project') return coding.openProject();
-        if (op === 'open-file') return coding.execute({ action: 'open', path: file, line });
-        if (op === 'diff') return codingRevisions.diff(id, file);
-        if (sessionLocked || shuttingDown || !skillEnabled('capri.coding'))
-          throw Error('Coding mode is unavailable.');
-        return codingRevisions.decide(id, apply);
-      }
-      if (op === 'editors') return discoverCodingEditors();
-      if (op === 'folder' || op === 'executable') {
-        const selected = await dialog.showOpenDialog({
-          properties: [op === 'folder' ? 'openDirectory' : 'openFile'],
-        });
-        return selected.canceled ? null : selected.filePaths[0];
-      }
-      if (op === 'save') {
-        const previous = coding.config.workspace;
-        const status = callSkill('capri.coding', 'save', value, { source: role });
-        if (coding.config.workspace !== previous) codingRevisions.reset();
-        coding.setMonitoring(skillEnabled('capri.coding'));
-        return codingPanelState(status, role);
-      }
-      if (op === 'install-bridge')
-        return callSkill('capri.coding', 'installBridge', undefined, { source: role });
-      if (op === 'mode' && typeof enabled === 'boolean') {
-        const result = callSkill('capri.coding', 'mode', enabled, { source: role });
-        if (enabled && result.enabled && role === 'settings' && !skillEnabled('capri.coding')) {
-          const settings = skillSettings.set({ id: 'capri.coding', enabled: true });
-          await applySkillActivation('capri.coding', true);
-          emit({ type: 'skills.settings', settings, changed: 'capri.coding' });
-        }
-        if (result.projectRequired && role === 'companion') await settingsHost?.open('coding');
-        return result;
-      }
-      throw Error('Invalid coding operation.');
-    });
     async function restartWithModelDevice(selected, npuConfig) {
       assertModelIdle();
       const capture = microphone.snapshot();
@@ -7768,24 +7664,6 @@ async function initializeDesktop() {
     });
     handle('capri:update-status', () => updates.snapshot());
     handle('capri:update-remind-later', () => updates.remindLater());
-    handle('capri:github-status', () => githubAccess.status());
-    handle('capri:github-connect', (value) => {
-      if (verification)
-        throw new Error('GitHub authentication is disabled in desktop verification.');
-      updates.cancelAutomaticCheck();
-      return githubAccess.connect(value);
-    });
-    handle('capri:github-remove', async () => {
-      updates.cancelAutomaticCheck();
-      const status = await githubAccess.remove();
-      updates.remindLater();
-      return status;
-    });
-    handle('capri:github-token-page', async (kind) => {
-      const url = githubTokenUrl(kind);
-      if (!verification) await shell.openExternal(url);
-      return true;
-    });
     handle('capri:update-settings', (value) => updates.setSettings(value));
     handle('capri:update-check', (value) => updates.check(value));
     handle('capri:update-versions', (experimental, { role }) => {
@@ -8181,7 +8059,6 @@ async function initializeDesktop() {
         modelStartup: { sequential: responseTiming.sequentialModels },
         backend: backendState,
         startup: startup.snapshot(),
-        github: githubAccess.diagnostics(),
         updates: updates.snapshot(),
         settingsWindow: settingsHost?.snapshot(),
         discordPresence: {
@@ -8281,7 +8158,6 @@ async function initializeDesktop() {
         attachmentVision: screenVisionAvailable,
         skills: skillSettings.snapshot(),
         thinking: { enabled: callSkill('capri.reasoning', 'mode') },
-        coding: { enabled: callSkill('capri.coding', 'enabled') },
         internet: { enabled: callSkill('capri.web-search', 'mode') },
         time: companionActions.time.snapshot(),
         inference: {
@@ -9478,7 +9354,6 @@ async function initializeDesktop() {
       void voiceTraining.close();
       void voiceCatalog.close();
       updates.close();
-      githubAccess.close();
       void speechInstaller.close();
       confirmations.cancel();
       cancelVisual();
@@ -9495,7 +9370,6 @@ async function initializeDesktop() {
       void breezeVoice.cancel();
       microphone.close();
       requestRouter.close();
-      coding.setMonitoring(false);
       saveWindow();
       pointer?.stop();
       clearInterval(controlTimer);
@@ -9643,7 +9517,6 @@ async function initializeDesktop() {
         installIpc();
         const preload = consumeFirstLaunchPreload(state);
         createWindow();
-        coding.setMonitoring(skillEnabled('capri.coding'));
         if (inferenceApi.config.setupRequired)
           window.once('ready-to-show', () => {
             if (!shuttingDown && !focusMode)
