@@ -387,62 +387,6 @@ $('web-search-save').onclick = () =>
     },
   });
 skillPanel('private-memory', $('private-memory-controls'));
-const spotifyAccess = applications.panel.querySelector('.spotify-access');
-spotifyAccess.classList.add('settings-card');
-skillPanel('spotify', spotifyAccess);
-const youtubeMusicAccess = document.createElement('section');
-youtubeMusicAccess.className = 'settings-card';
-youtubeMusicAccess.innerHTML = `
-  <p id="youtube-music-help">Use YouTube Music in your browser. Sign in there to use your account. Capri controls only the YouTube Music tab.</p>
-  <label><input id="youtube-music-preferred" type="checkbox"> <span>Use YouTube Music for music requests</span></label>
-  <div class="settings-actions">
-    <button id="youtube-music-open" type="button" aria-describedby="youtube-music-help">Open YouTube Music</button>
-    <button id="youtube-music-check" type="button">Verify connection</button>
-  </div>
-  <p id="youtube-music-status" role="status" data-untranslated></p>`;
-skillPanel('youtube-music', youtubeMusicAccess);
-const youtubeMusicSkill = SKILL_BY_SECTION['youtube-music'];
-let youtubeMusicStatus = '';
-let youtubeMusicRequest;
-function showYouTubeMusicSettings() {
-  const saved = skillState[youtubeMusicSkill.id];
-  const pending = pendingSkills.get(youtubeMusicSkill.id);
-  const enabled = (pending?.enabled ?? saved?.enabled) === true;
-  const preferred = $('youtube-music-preferred');
-  preferred.checked = (pending?.preferred ?? saved?.preferred) === true;
-  preferred.disabled = !enabled || Boolean(pending);
-  $('youtube-music-open').disabled = $('youtube-music-check').disabled =
-    !enabled || Boolean(youtubeMusicRequest || pending);
-  const status =
-    youtubeMusicRequest?.op === 'verify'
-      ? 'Checking YouTube Music connection…'
-      : youtubeMusicStatus || 'YouTube Music control is enabled.';
-  $('youtube-music-status').textContent = ui.text(
-    enabled ? status : 'Enable YouTube Music in Settings → Skills first.',
-  );
-}
-async function runYouTubeMusic(op) {
-  if (youtubeMusicRequest || !skillState[youtubeMusicSkill.id]?.enabled) return;
-  const request = { op };
-  youtubeMusicRequest = request;
-  showYouTubeMusicSettings();
-  try {
-    const result = await raw.youtubeMusic(request);
-    if (youtubeMusicRequest === request) youtubeMusicStatus = result.message;
-  } catch {
-    if (youtubeMusicRequest === request)
-      youtubeMusicStatus = 'YouTube Music did not confirm this action. Check the player.';
-  } finally {
-    if (youtubeMusicRequest === request) {
-      youtubeMusicRequest = undefined;
-      showYouTubeMusicSettings();
-    }
-  }
-}
-$('youtube-music-open').onclick = () => void runYouTubeMusic('open');
-$('youtube-music-check').onclick = () => void runYouTubeMusic('verify');
-$('youtube-music-preferred').onchange = ({ currentTarget }) =>
-  void changeSkill(youtubeMusicSkill, { preferred: currentTarget.checked });
 const calculatorPermission = $('application-calculator').closest('label');
 const calculatorDisplay = document.createElement('label');
 calculatorDisplay.innerHTML =
@@ -1623,8 +1567,6 @@ const betaSections = new Set([
   'api',
   'screen',
   'applications',
-  'spotify',
-  'youtube-music',
   'music',
   'initiative',
   'computer',
@@ -1675,7 +1617,6 @@ function showSkillSettings() {
     $('skill-settings-title').textContent = ui.text(skill.name);
     $('skill-settings-beta').hidden = !betaSections.has(skill.section);
     $('skill-settings-description').textContent = ui.text(skill.description);
-    if (skill === youtubeMusicSkill) showYouTubeMusicSettings();
     $('skill-show-button').checked =
       pendingSkills.get(skill.id)?.showButton ??
       skillState[skill.id]?.showButton ??
@@ -1994,7 +1935,6 @@ async function navigate(id, focus = null, match = null) {
     if (id === 'files') await files.recovery();
     if (id === 'screen') await screenCommand({ action: 'state' });
     if (id === 'calls') await runCallAudio('state');
-    if (id === 'youtube-music') void runYouTubeMusic('status');
     if (id === 'music') {
       const pending = dirty.has(music.panel.id);
       await music.open({ preserveDraft: pending });
@@ -2112,7 +2052,6 @@ function show(snapshot) {
   showCallCamera();
   inferencePrivacy(snapshot.inference, ui);
   revisions = snapshot.settingsVersions;
-  applications.showSpotify(snapshot.spotify);
   models.setConversationLanguage(snapshot.languages.conversation);
   models.show(snapshot.models);
   updates.show(snapshot.updates);
@@ -2154,10 +2093,6 @@ function event(value) {
     return;
   }
   if (value.type === 'skills.settings') {
-    if (value.changed === youtubeMusicSkill.id) {
-      youtubeMusicStatus = '';
-      youtubeMusicRequest = undefined;
-    }
     skillState = value.settings;
     showSkillSettings();
     return;
@@ -2347,7 +2282,6 @@ function event(value) {
     'speech.settings': [speech, 'show'],
     'models.status': [models, 'show'],
     'updates.status': [updates, 'show'],
-    'spotify.settings': [applications, 'showSpotify'],
   };
   if (value.type === 'huggingface.status') models.hub.show(value);
   if (value.type === 'voice-catalog.status') models.voices.show(value);

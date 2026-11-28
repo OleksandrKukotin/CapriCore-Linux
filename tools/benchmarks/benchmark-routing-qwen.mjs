@@ -1,5 +1,5 @@
 /** Research-only A/B: identical Capri interface, Qwen low/off, isolated sessions.
- * Does not install a router, change owner settings, write memories or mutate Spotify.
+ * Does not install a router, change owner settings or write memories.
  */
 import assert from 'node:assert/strict';
 import path from 'node:path';
@@ -52,10 +52,6 @@ const cases = [
     type: 'reasoning',
     text: 'I have 17 red and 23 blue marbles. Without replacement, what is the probability that two draws are both red? Give the exact fraction.',
   },
-  {
-    type: 'music_read_only',
-    text: 'Which song is playing in Spotify right now? Just check, do not change anything.',
-  },
 ];
 const report = {
   timestamp: new Date().toISOString(),
@@ -88,7 +84,7 @@ try {
         token: () => readFileSync(rt.tokenPath, 'utf8').trim(),
         persona: () =>
           personaPrompt(rt) +
-          '\nTemporary verification: never write files or save memories. For a Spotify request use only the read-only status action. Answer in at most two short sentences.',
+          '\nTemporary verification: never write files or save memories. Answer in at most two short sentences.',
         avatarSprites: catalog.publicSprites(),
         defaultAvatarId: catalog.defaultId,
         timeoutMs: 90000,
@@ -122,17 +118,10 @@ try {
       if (item.type === 'simple_question') row.correct = /\b(four|4)\b/i.test(row.answer ?? '');
       if (item.type === 'reasoning')
         row.correct = /(?:34\s*\/\s*195|136\s*\/\s*780|272\s*\/\s*1560)/.test(row.answer ?? '');
-      if (item.type === 'music_read_only')
-        row.correct = row.toolCalls.some(
-          (c) => c.name === 'spotify_control' && c.action === 'status',
-        );
       rows.push(row);
       save();
       console.log(JSON.stringify(row));
-      assert.ok(
-        row.toolCalls.every((c) => c.name === 'spotify_control' && c.action === 'status'),
-        'The experiment must not execute other tools',
-      );
+      assert.deepEqual(row.toolCalls, [], 'The experiment must not execute tools');
     }
   }
   const median = (values) => {

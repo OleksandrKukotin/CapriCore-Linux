@@ -191,10 +191,10 @@ test('diagnostic ZIP keeps the active model ID and reply flag without keys, prom
           elapsedMs: 20305,
         },
       },
-      spotifyPlanning: {
+      computerPlanning: {
         lastFailure: {
-          phase: 'spotify-planning',
-          code: 'CAPRI_SPOTIFY_PLAN_HTTP_ERROR',
+          phase: 'planning',
+          code: 'CAPRI_GATEWAY_HTTP_ERROR',
           httpStatus: 400,
           receivedText: false,
           message: privateText,
@@ -234,10 +234,10 @@ test('diagnostic ZIP keeps the active model ID and reply flag without keys, prom
   assert.equal(session.voiceCatalog.lastFailure.exitCode, 1);
   assert.equal(session.response.lastFailure.receivedText, false);
   assert.equal(session.response.lastFailure.code, 'CAPRI_GATEWAY_REPORTED_ERROR');
-  assert.equal(session.spotifyPlanning.lastFailure.phase, 'spotify-planning');
-  assert.equal(session.spotifyPlanning.lastFailure.code, 'CAPRI_SPOTIFY_PLAN_HTTP_ERROR');
-  assert.equal(session.spotifyPlanning.lastFailure.httpStatus, 400);
-  assert(!JSON.stringify(session.spotifyPlanning).includes(privateText));
+  assert.equal(session.computerPlanning.lastFailure.phase, 'planning');
+  assert.equal(session.computerPlanning.lastFailure.code, 'CAPRI_GATEWAY_HTTP_ERROR');
+  assert.equal(session.computerPlanning.lastFailure.httpStatus, 400);
+  assert(!JSON.stringify(session.computerPlanning).includes(privateText));
   assert.equal(session.musicListening.phase, 'listening');
   assert.equal(session.musicListening.tempo, 124);
   assert.equal(session.musicListening.tempoConfidence, 0.8);

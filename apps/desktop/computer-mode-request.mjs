@@ -193,142 +193,12 @@ export function exactClickLabel(text) {
   );
 }
 
-function musicRequestScope(text) {
-  const value = String(text).normalize('NFKC');
-  if (mentionsComputerMode(value) || rejectsDesktopAction(value)) return null;
-  const gui =
-    /\b(?:click|press|drag|cursor|mouse|keyboard|button|search\s+bar|address\s+bar|type|write|clipboard)\b/iu.test(
-      value,
-    );
-  const mixed =
-    /\b(?:chrome|edge|browser|notepad|discord|davinci|calculator|timer|reminder|file|folder)\b/iu.test(
-      value,
-    );
-  return gui || mixed ? null : value;
-}
-
-/** Candidate only; the bounded semantic planner must confirm a music action. */
-export function spotifyPlaybackCandidate(text) {
-  const scoped = musicRequestScope(text);
-  if (scoped === null) return false;
-  return /^(?:play|put\s+on|turn\s+on|resume|pause|skip|next|previous)(?=\s|[.!?]|$)/iu.test(
-    requestText(scoped),
-  );
-}
-
-/** Only an explicit, single owner request can bypass generated tool syntax. */
-export function namedSpotifyPlay(text) {
-  const scoped = musicRequestScope(text);
-  if (scoped === null) return null;
-  const request = requestText(scoped)
-    .replace(/[,\s]+(?:please)[.!?\s]*$/iu, '')
-    .replace(/[.!?\s]+$/u, '');
-  const match = /^(?:play|put\s+on|turn\s+on)\s+(.+)$/iu.exec(request);
-  if (!match) return null;
-  let query = match[1];
-  const spotify = /^(?:in|on)\s+(?:spotify)\s+|\s+(?:in|on)\s+(?:spotify)$/iu;
-  const explicit = spotify.test(query);
-  query = query.replace(spotify, '').replace(/^(?:me\s+)/iu, '');
-  const named = /^(?:the\s+)?(?:song|track)\s+/iu;
-  if (!explicit && !named.test(query) && !/\s[-–—]\s/u.test(query)) return null;
-  query = query.replace(named, '').trim();
-  // Ambiguous references, compound tasks and quoted tool output stay on the
-  // normal language-model route. Never repair/execute assistant text here.
-  if (
-    !query ||
-    query.length > 180 ||
-    /[\x00-\x1f{}<>;`]/u.test(query) ||
-    /\b(?:and|then|but|before|after|instead|not|don't|never|if|when)\b/iu.test(query) ||
-    /^(?:is|means|was|are|were)\b/iu.test(query) ||
-    /^(?:(?:some|any|the|this|that|my|your|current|next|previous)\s+)*(?:music|song|track|playlist|it|something|anything)$/iu.test(
-      query,
-    )
-  )
-    return null;
-  return { action: 'play', query };
-}
-
-/** Topic guard only: never authorizes a tool, execution or a verified-action reply. */
-export function dedicatedMusicContext(text) {
-  const value = musicRequestScope(text);
-  return (
-    value !== null &&
-    /\b(?:spotify|music|songs?|tracks?|playlists?|volume|shuffle|quieter|louder)\b/iu.test(value)
-  );
-}
-
 /** Music playback is a dedicated skill, not an implicit request for a GUI session. */
 export function windowsMediaPlayerTask(text) {
   const command = computerTaskCommand(text).replace(/"[^"\n]*"|“[^”\n]*”|«[^»\n]*»/gu, 'track');
   if (/\b(?:spotify|youtube)\b/iu.test(command)) return false;
   return /^(?:play|pause|resume|stop|skip|shuffle|put\s+on)\s+[^.!?;\n]{0,150}\b(?:from|in|on)\s+(?:(?:my|the)\s+)?(?:windows(?:['’]s?)?\s+)?media\s+player[.!\s]*$/iu.test(
     command,
-  );
-}
-
-export function dedicatedMusicRequest(text) {
-  if (windowsMediaPlayerTask(text)) return false;
-  const value = musicRequestScope(text);
-  if (value === null) return false;
-  const request = requestText(value)
-    .replace(/[.!?\s]+$/u, '')
-    .replace(/[,\s]+(?:please)$/iu, '')
-    .trim();
-  // A topic or a quoted song title is not an instruction. Unrecognized wording
-  // stays on the general model path rather than being promoted to an action.
-  if (/^(?:do\s+not|don['’]t|not|never)(?=\s)/iu.test(request)) return false;
-  const frenchSpotify = request.replace(/^(?:peux-tu|pourrais-tu)\s+/iu, '');
-  if (
-    /^(?:(?:mets?|joue|lance|cherche|recherche|reprends?|relance|arrête|jouer|lancer|chercher|mettre|reprendre)\s+[^;\r\n]{1,180}\s+sur\s+spotify|(?:mets?|mettre)\s+spotify\s+en\s+pause)$/iu.test(
-      frenchSpotify,
-    ) &&
-    !/\b(?:et|puis)\s+(?:ouvre|lance|clique|appuie|crée|écris|ferme|change|joue)\b/iu.test(
-      frenchSpotify,
-    )
-  )
-    return true;
-  if (
-    /^(?:play|pause|stop|next|previous|repeat|shuffle|volume)\s+(?:is|means|was|are|were)\b/iu.test(
-      request,
-    ) ||
-    /^(?:start|find|search(?:\s+for)?|repeat)\s+(?:(?:a|the)\s+)?(?:discussion|conversation|meaning|lyrics|title|name|history)\b/iu.test(
-      request,
-    ) ||
-    /^repeat\s+(?:(?:the|this|current)\s+)?(?:song|track)\s+(?:title|name|lyrics)\b/iu.test(request)
-  )
-    return false;
-  if (/^(?:pause|resume|next|previous|skip)$/iu.test(request)) return true;
-  if (/^(?:(?:a\s+(?:little|bit)|slightly|even|much)\s+)?(?:quieter|louder)$/iu.test(request))
-    return true;
-  if (
-    /^(?:what(?:['’]s|\s+is)\s+(?:(?:currently|now)\s+)?playing|(?:what|which)\s+(?:song|track|music)\s+is\s+(?:(?:currently|now)\s+)?playing)(?:\s+(?:on|in)\s+spotify)?(?:\s+(?:right\s+now|now))?$/iu.test(
-      request,
-    ) ||
-    /^(?:check|show|tell\s+me)\s+(?:(?:the|current|spotify['’]s?)\s+)*(?:spotify\s+)?(?:volume|playback\s+status|now\s+playing)(?:\s+(?:on|in)\s+spotify)?$/iu.test(
-      request,
-    )
-  )
-    return true;
-  const music = /\b(?:spotify|music|songs?|tracks?|playlists?|shuffle)\b/iu.test(request);
-  const playback =
-    /^(?:play|pause|resume|stop|skip|next|previous|shuffle|repeat|seek|turn\s+on|put\s+on|start|search|find)(?=\s|$)/iu.test(
-      request,
-    );
-  const openAndPlay =
-    /^(?:open|launch)\s/iu.test(request) &&
-    /\s(?:and(?:\s+then)?|then)\s+(?:turn\s+on|put\s+on|play|start|resume)(?=\s)/iu.test(request);
-  if (music && (playback || openAndPlay)) return true;
-  const volumeAction =
-    /^(?:turn|make|set|adjust|lower|reduce|raise|increase|decrease|mute|unmute)(?=\s|$)/iu.test(
-      request,
-    );
-  const volume =
-    /\b(?:volume|quieter|louder|mute|unmute)\b/iu.test(request) ||
-    (music && /\b(?:up|down)\b/iu.test(request));
-  return (
-    volumeAction &&
-    volume &&
-    !/\bvolume\s+of\s+(?!(?:(?:the|my)\s+)?(?:spotify|music|song|track)\b)/iu.test(request)
   );
 }
 
@@ -410,9 +280,6 @@ export function computerModeRequest(text, { fullComputerAccess = false } = {}) {
   }
   if (action.test(value) && trailing.test(value)) return { enabled: true, run: true };
   if (fullComputerAccess && windowsMediaPlayerTask(value)) return { enabled: true, run: true };
-  // "Open Spotify and turn on music" can look like one application name to
-  // the permissive app launcher. Keep playback on its dedicated permission.
-  if (dedicatedMusicRequest(value)) return null;
   if (fullComputerAccess) {
     if (youtubeHomeDestination(computerTaskCommand(value))) return { enabled: true, run: true };
     if (authorizedDiscordCommand(text)) return { enabled: true, run: true };

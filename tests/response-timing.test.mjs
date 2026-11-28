@@ -93,21 +93,6 @@ test('submission failure diagnostics preserve only a known technical reason', ()
   assert.equal(responseTimingRecord({ ...event, reason: 'private' }).reason, undefined);
 });
 
-test('YouTube Music diagnostics report the action and player outcome without the query or track', () => {
-  const start = record({ stage: 'youtube_music_start', action: 'play' });
-  const result = record({ stage: 'youtube_music_result', reason: 'control_unverified' });
-  assert.deepEqual(privateLogRecord(JSON.stringify({ ...start, query: 'private' })), {
-    schemaVersion: 1,
-    ...start,
-  });
-  assert.deepEqual(privateLogRecord(JSON.stringify({ ...result, track: 'private' })), {
-    schemaVersion: 1,
-    ...result,
-  });
-  assert.equal(responseTimingRecord({ ...start, action: 'private' }).action, undefined);
-  assert.equal(responseTimingRecord({ ...result, reason: 'private' }).reason, undefined);
-});
-
 test('timing logs rotate within a fixed bound without retaining ignored content', async () => {
   const parent = path.resolve('.runtime/response-timing-unit');
   mkdirSync(parent, { recursive: true });

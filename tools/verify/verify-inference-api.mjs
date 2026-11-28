@@ -77,7 +77,6 @@ const options = {
     if (scopedPhase) {
       const expected = {
         calculator: 'application_control',
-        spotify: 'spotify_control',
         desktop: 'desktop_control',
         'desktop-task': 'desktop_control',
       }[scopedPhase];
@@ -218,9 +217,6 @@ rt.inferenceUrl = api.url;
 rt.remoteProxyToken = api.proxyToken;
 initialize(rt);
 const gatewayConfig = JSON.parse(readFileSync(rt.configPath, 'utf8'));
-gatewayConfig.plugins.load.paths.push(path.join(root, 'integrations/spotify'));
-gatewayConfig.plugins.entries['capri-spotify'] = { enabled: true, config: {} };
-gatewayConfig.tools.allow.push('spotify_control');
 const appState = path.join(folder, 'applications');
 mkdirSync(appState, { recursive: true });
 writeFileSync(
@@ -258,7 +254,7 @@ try {
     assert.match(JSON.stringify(social), /Hello/);
   }
   socialPhase = false;
-  for (const scope of ['calculator', 'spotify', 'desktop', 'desktop-task']) {
+  for (const scope of ['calculator', 'desktop', 'desktop-task']) {
     scopedPhase = scope;
     const scoped = await request(rt.gatewayUrl + '/v1/chat/completions', {
       method: 'POST',
@@ -275,7 +271,7 @@ try {
         messages: [
           {
             role: 'user',
-            content: scope === 'calculator' ? 'Square root of 1036?' : 'Spotify controls fixture.',
+            content: scope === 'calculator' ? 'Square root of 1036?' : 'Desktop controls fixture.',
           },
         ],
       }),

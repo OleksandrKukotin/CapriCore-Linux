@@ -48,7 +48,6 @@ import { ComputerAgent } from './computer-agent.mjs';
 import { steamGameLauncher } from './steam-game-launch.mjs';
 import { createSteamGameTask } from './steam-game-task.mjs';
 import { computerIntentClassifier, computerPlanner } from './computer-planner.mjs';
-import { spotifyPlanner } from './spotify-planner.mjs';
 import { computerVision } from './computer-vision.mjs';
 import { readSteamScreenText } from './steam-screen-text.mjs';
 import { FullComputerAccess } from './full-computer-access.mjs';
@@ -148,9 +147,6 @@ import {
 import { BREEZE_LICENSE_URL, BreezeVoice } from './breeze-voice.mjs';
 import { ModelDeviceService } from './model-device-service.mjs';
 import { VoiceTrainingService } from './voice-training-service.mjs';
-import { SpotifySettings } from './spotify-settings.mjs';
-import { SpotifyService, SpotifyWorker } from '../../integrations/spotify/service.mjs';
-import { YouTubeMusicService } from '../../integrations/youtube-music/service.mjs';
 import { ApplicationService } from '../../integrations/desktop-actions/service.mjs';
 import {
   saveModelProfile,
@@ -1024,19 +1020,6 @@ async function initializeDesktop() {
       emit({ type: 'voice-catalog.status', ...voiceCatalog.snapshot() });
     },
   });
-  const spotifyService = new SpotifyService(new SpotifyWorker({ root }));
-  const youtubeMusicService = new YouTubeMusicService({
-    root,
-    openExternal: (url) => shell.openExternal(url),
-  });
-  const spotify = new SpotifySettings({
-    root,
-    rt,
-    agentId: settings.agentId,
-    node: nodePath,
-    emit,
-    readStatus: (signal) => spotifyService.execute(randomUUID(), { action: 'status' }, signal),
-  });
   const startup = new StartupProgress({ file: path.join(state, 'startup-times.json'), emit });
   const voiceEffects = new Preferences(
     path.join(state, 'voice-effects.json'),
@@ -1061,7 +1044,6 @@ async function initializeDesktop() {
     stop: async () => {
       workflows?.cancel();
       companionActions.approvals.cancel();
-      await spotifyService?.close();
       if (computerAgent.running || computerControl.session) await emergencyComputerStop();
     },
   });
@@ -1282,14 +1264,6 @@ async function initializeDesktop() {
           applicationAccess.mask(applications.snapshot()).notepad,
         calculator: skillEnabled('capri.calculator'),
       },
-      spotify: {
-        ...spotify.snapshot(),
-        enabled: skillEnabled('capri.spotify') && spotify.snapshot().enabled,
-      },
-      youtubeMusic: {
-        enabled: skillEnabled('capri.youtube-music'),
-        preferred: skillSettings.preferences.value['capri.youtube-music'].preferred,
-      },
       applicationAccess: skillEnabled('capri.applications') && applicationAccess.enabled,
       computerSkillEnabled: skillEnabled('capri.computer'),
       fullComputerAccess:
@@ -1351,25 +1325,6 @@ async function initializeDesktop() {
         }),
     localCalculation: (input, args, signal) =>
       companionActions.execute('application_control', input.id, args, signal),
-    localMusic: (input, args, signal) =>
-      companionActions.execute('spotify_control', input.id, args, signal),
-    localYouTubeMusic: (input, args, signal) =>
-      companionActions.execute('youtube_music_control', input.id, args, signal),
-    prepareMusic: spotifyPlanner({
-      url: rt.inferenceUrl,
-      model: settings.model,
-      params: auxiliaryRunnerParams,
-      modelCapabilities: settings.modelCapabilities,
-      ...inferenceOptions,
-    }),
-    prepareYouTubeMusic: spotifyPlanner({
-      url: rt.inferenceUrl,
-      model: rt.remote.enabled ? rt.remote.model : settings.model,
-      params: auxiliaryRunnerParams,
-      modelCapabilities: settings.modelCapabilities,
-      ...inferenceOptions,
-      player: 'YouTube Music',
-    }),
     computerAccess: (enabled, options) => {
       chat.assertToolAllowed('settings_control', {
         action: 'request',
@@ -3389,9 +3344,6 @@ async function initializeDesktop() {
       case 'capri.user-tools':
         if (!enabled) userTools.cancel();
         break;
-      case 'capri.spotify':
-        if (!enabled) await spotifyService.close();
-        break;
       case 'capri.voice-calls':
         if (!enabled) {
           await callCamera.stop();
@@ -3457,7 +3409,6 @@ async function initializeDesktop() {
       'open-file-access': 'files',
       'open-time': 'time',
       'open-applications': 'applications',
-      'open-spotify': 'spotify',
       'open-initiative': 'initiative',
       'open-screen': 'screen',
       'open-dimming': 'dimming',
@@ -5950,7 +5901,6 @@ async function initializeDesktop() {
           screenObservation: 'capri.screen',
           notepad: 'capri.applications',
           calculator: 'capri.calculator',
-          spotify: 'capri.spotify',
         }[args.setting];
         if (id) skillSettings.require(id);
       }
@@ -5981,16 +5931,6 @@ async function initializeDesktop() {
       applicationAccess.assertAllowed('desktop_control', { action: 'run_task' });
       return chat.active?.computerTaskResult ?? chat.selectModelComputerTask(goal, options);
     },
-    spotify: {
-      execute: (id, args, signal) => {
-        const access = spotify.snapshot();
-        if (!access.enabled || !access.prepared)
-          throw new Error('Enable Spotify in Settings → Application access first.');
-        return spotifyService.execute(id, args, signal);
-      },
-      close: () => spotifyService.close(),
-    },
-    youtubeMusic: youtubeMusicService,
     applications: new ApplicationService({
       root,
       permissionsFile: path.join(state, 'applications.json'),
@@ -6062,7 +6002,6 @@ async function initializeDesktop() {
       applications: applications.snapshot(),
       screenObservation: screenObservation.snapshot().active,
       fullComputerAccess: fullComputerAccess.enabled && applicationAccess.enabled,
-      spotify: spotify.snapshot().enabled && applicationAccess.enabled,
     }),
     setSetting: (key, value) => {
       const settings = companionPreferences.set({
@@ -6096,7 +6035,6 @@ async function initializeDesktop() {
         });
       const panel = {
         screenObservation: 'screen',
-        spotify: 'spotify',
         languages: 'languages',
         models: 'models',
       }[setting];
@@ -6125,7 +6063,6 @@ async function initializeDesktop() {
             confirmation: {
               screenObservation:
                 'Choose a window or monitor in Screen snapshot, then press Start observation. Capture has not started yet.',
-              spotify: 'Opened Spotify settings. Connect Spotify there.',
               languages:
                 'Opened Languages. Choose the languages, then press Apply languages. No language was changed yet.',
               models:
@@ -6221,7 +6158,7 @@ async function initializeDesktop() {
   });
   reminders.start();
 
-  function assertModelIdle({ spotifyChange = false } = {}) {
+  function assertModelIdle() {
     if (speechInstaller.busy())
       throw new Error('Wait for speech installation to finish, or cancel it in Languages.');
     if (
@@ -6234,8 +6171,7 @@ async function initializeDesktop() {
       huggingface.busy() ||
       voiceCatalog.busy() ||
       voiceTraining.busy() ||
-      models.busy() ||
-      (!spotifyChange && spotify.busy())
+      models.busy()
     )
       throw new Error('Wait for the current reply or operation to finish.');
   }
@@ -6884,83 +6820,6 @@ async function initializeDesktop() {
     handle('capri:screen-settings', (value, { role }) => {
       return media.screen.configure(value, role);
     });
-    handle('capri:spotify-status', () => spotify.snapshot());
-    handle('capri:youtube-music', async (value, { role }) => {
-      if (
-        role !== 'settings' ||
-        !value ||
-        Object.keys(value).length !== 1 ||
-        !['status', 'open', 'verify'].includes(value.op)
-      )
-        throw new Error('Invalid YouTube Music request.');
-      const configured = skillEnabled('capri.youtube-music');
-      if (!configured)
-        return {
-          ok: false,
-          configured,
-          message: 'Enable YouTube Music in Settings → Skills first.',
-        };
-      if (value.op === 'status')
-        return { ok: true, configured, message: 'YouTube Music control is enabled.' };
-      const signal = skillSettings.operationSignal({
-        skillId: 'capri.youtube-music',
-        command: 'execute',
-      });
-      const action = value.op === 'verify' ? 'status' : 'open';
-      const result = await youtubeMusicService.execute(randomUUID(), { action }, signal);
-      const message = result.ok
-        ? value.op === 'verify'
-          ? 'Connected to YouTube Music.'
-          : 'Opened YouTube Music.'
-        : result.status === 'tab_not_found'
-          ? 'YouTube Music tab not found. Open it in your browser and select the tab.'
-          : 'YouTube Music did not confirm this action. Check the player.';
-      return { ok: result.ok, configured, message };
-    });
-    handle('capri:spotify-check', () => {
-      if (verification)
-        throw new Error('Spotify connection checks are disabled in desktop verification.');
-      return spotify.check();
-    });
-    handle('capri:spotify-access', async (enabled) => {
-      if (typeof enabled !== 'boolean') throw new Error('Invalid Spotify permission.');
-      if (verification) throw new Error('Spotify setup is disabled in desktop verification.');
-      assertModelIdle();
-      if (spotify.busy() || models.busy())
-        throw new Error('Wait for the current operation to finish.');
-      if (
-        !(await confirmations.request({
-          title: enabled ? 'Enable Spotify control?' : 'Disable Spotify control?',
-          detail:
-            'Capri will restart to apply Spotify access. Your history, memory and voice settings will be kept. Only the Spotify desktop app is controlled.',
-          confirmLabel: enabled ? 'Enable and restart' : 'Disable and restart',
-        }))
-      )
-        return false;
-      assertModelIdle();
-      const previous = backendState;
-      let stopped = false;
-      setBackend('starting', 'Preparing Spotify integration...');
-      try {
-        await spotify.setEnabled(enabled, {
-          beforeCommit: async () => {
-            assertModelIdle({ spotifyChange: true });
-            await shutdownForRestart('Applying Spotify access...');
-            stopped = true;
-          },
-          restart: () => queueDesktopRelaunch(),
-        });
-        app.quit();
-        return true;
-      } catch (error) {
-        if (!stopped && !shuttingDown) setBackend(previous.phase, previous.message);
-        else {
-          shuttingDown = false;
-          setBackend('offline', 'Spotify access could not be applied. Reconnect to try again.');
-        }
-        throw error;
-      }
-    });
     handle('capri:models-status', () => models.snapshot());
     handle('capri:models-folder', (_value, { role }) => {
       if (role !== 'settings') throw new Error('Settings window required.');
@@ -7094,7 +6953,6 @@ async function initializeDesktop() {
       if (
         shuttingDown ||
         updates.busy() ||
-        spotify.busy() ||
         speechInstaller.busy() ||
         huggingface.busy() ||
         voiceCatalog.busy() ||
@@ -7684,7 +7542,6 @@ async function initializeDesktop() {
       assertIdle({ requireBackend: false });
       if (
         models.busy() ||
-        spotify.busy() ||
         speechInstaller.busy() ||
         huggingface.busy() ||
         voiceTraining.busy() ||
@@ -7709,8 +7566,7 @@ async function initializeDesktop() {
       )
         return false;
       assertIdle({ requireBackend: false });
-      if (models.busy() || spotify.busy())
-        throw new Error('Wait for the current operation to finish.');
+      if (models.busy()) throw new Error('Wait for the current operation to finish.');
       const installed = await updates.install({
         parentPid: process.pid,
         language: languages.value.interface,
@@ -8065,7 +7921,6 @@ async function initializeDesktop() {
           phase: discordPresence.phase,
           enabled: discordPresence.snapshot().enabled,
         },
-        spotify: spotify.snapshot(),
         confirmationPending: Boolean(confirmations.pending),
         desktopActions: companionActions.broker.diagnostics(),
         applicationAccess: {
@@ -8181,7 +8036,6 @@ async function initializeDesktop() {
         callCamera: callCamera.snapshot(),
         settingsVersions: settingsVersions(),
         screenSettings: media.screen.preferences(),
-        spotify: spotify.snapshot(),
         models: models.snapshot(),
         updates: updates.snapshot(),
         ...(role === 'companion' && {
@@ -8338,8 +8192,7 @@ async function initializeDesktop() {
         models.busy() ||
         huggingface.busy() ||
         voiceTraining.busy() ||
-        voiceCatalog.busy() ||
-        spotify.busy()
+        voiceCatalog.busy()
       )
         throw new Error('Wait for the current reply or operation to finish.');
       return speechInstaller.start(selection);
@@ -9346,7 +9199,6 @@ async function initializeDesktop() {
       companionActions.close();
       sleepService.close();
       reminders?.close();
-      spotify.close();
       backendController?.abort(new Error('Desktop closed during startup'));
       voiceStartController?.abort();
       models.close();

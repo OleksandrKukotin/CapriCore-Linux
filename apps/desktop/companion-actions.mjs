@@ -27,8 +27,6 @@ export class CompanionActions {
     computerAgent,
     requestComputerAccess,
     runComputerTask,
-    spotify,
-    youtubeMusic,
     applications,
     workflows,
     userTools,
@@ -46,8 +44,6 @@ export class CompanionActions {
       computerAgent,
       requestComputerAccess,
       runComputerTask,
-      spotify,
-      youtubeMusic,
       applications,
       workflows,
       userTools,
@@ -57,8 +53,6 @@ export class CompanionActions {
     this.skills = skills ?? new CapriCore();
     this.ownsSkills = !skills;
     registerActionToolSkills(this.skills, {
-      spotify,
-      youtubeMusic,
       applications,
       files,
       workflows,
@@ -150,21 +144,14 @@ export class CompanionActions {
       if (!this.computerAgent) throw new Error('Computer task executor is unavailable.');
       return this.computerAgent.run(args.goal, { signal });
     }
-    if (tool === 'youtube_music_control')
-      return invoke(ACTION_SKILLS.youtubeMusic, 'execute', args);
     if (
       this.computerAgent?.running &&
       ['desktop_control', 'filesystem_control', 'application_control'].includes(tool)
     )
       throw new Error('Wait for the current computer task or stop it with Escape.');
-    if (['spotify_control', 'application_control'].includes(tool)) {
-      const calculation = tool === 'application_control' && args?.action === 'calculate';
-      const skillId =
-        tool === 'spotify_control'
-          ? ACTION_SKILLS.spotify
-          : calculation
-            ? ACTION_SKILLS.calculator
-            : ACTION_SKILLS.applications;
+    if (tool === 'application_control') {
+      const calculation = args?.action === 'calculate';
+      const skillId = calculation ? ACTION_SKILLS.calculator : ACTION_SKILLS.applications;
       if (!this.skills?.has(skillId)) throw new Error('The requested application is unavailable.');
       return invoke(skillId, calculation ? 'calculate' : 'execute', args);
     }
@@ -212,9 +199,7 @@ export class CompanionActions {
     if (
       args.action !== 'request' ||
       (args.value !== undefined && args.value !== true) ||
-      !['screenObservation', 'notepad', 'calculator', 'spotify', 'languages', 'models'].includes(
-        args.setting,
-      )
+      !['screenObservation', 'notepad', 'calculator', 'languages', 'models'].includes(args.setting)
     )
       throw new Error('That setting needs its dedicated controls.');
     if (args.setting === 'screenObservation' && this.settings?.().screenObservation === true)
@@ -245,8 +230,6 @@ export class CompanionActions {
     this.unsubscribeTime();
     if (this.ownsSkills) void this.skills.close();
     void this.files?.close();
-    this.spotify?.close();
-    this.youtubeMusic?.close();
     void this.applications?.close();
     void Promise.resolve(this.desktop.close()).catch((error) =>
       console.warn('Desktop journal could not close:', error.message),

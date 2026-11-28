@@ -3,8 +3,6 @@ import { isRecord, noInput } from '../../skill-sdk/src/index.mjs';
 import { calculatorSkill } from './calculator.mjs';
 
 export const ACTION_SKILLS = Object.freeze({
-  spotify: 'capri.spotify',
-  youtubeMusic: 'capri.youtube-music',
   applications: 'capri.applications',
   calculator: calculatorSkill.manifest.id,
   files: 'capri.files',
@@ -44,11 +42,6 @@ function appActionSkill(
   };
 }
 
-const spotifySkill = appActionSkill(ACTION_SKILLS.spotify);
-const youtubeMusicSkill = appActionSkill(ACTION_SKILLS.youtubeMusic, actionInput, {
-  sectionId: 'youtube-music',
-  labelKey: 'YouTube Music',
-});
 const applicationsSkill = appActionSkill(
   ACTION_SKILLS.applications,
   (input) => actionInput(input) && input.action !== 'calculate',
@@ -179,11 +172,8 @@ const userToolsSkill = {
 /** Bind reviewed host services; skills receive just the operations they use. */
 export function registerActionToolSkills(
   core,
-  { spotify, youtubeMusic, applications, files, trash, workflows, userTools },
+  { applications, files, trash, workflows, userTools },
 ) {
-  if (spotify) core.register(spotifySkill, { executeAction: spotify.execute.bind(spotify) });
-  if (youtubeMusic)
-    core.register(youtubeMusicSkill, { executeAction: youtubeMusic.execute.bind(youtubeMusic) });
   if (applications) {
     const execute = applications.execute.bind(applications);
     core.register(applicationsSkill, { executeAction: execute });

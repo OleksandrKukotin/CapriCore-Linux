@@ -413,7 +413,6 @@ function syncSleepingVisual() {
   }
 }
 let activeTurnId = null;
-const pendingMusicTools = new Map();
 let submitting = false;
 let clearingHistory = false;
 const responsePaintStarts = new Map();
@@ -2132,11 +2131,7 @@ function controls() {
     if (elements.reconnect.textContent !== label) elements.reconnect.textContent = label;
   }
   const status = ui.text(
-    activeTurnId
-      ? (pendingMusicTools.values().next().value ?? 'Capri is replying…')
-      : voiceBusy
-        ? 'Capri is speaking…'
-        : backend.message,
+    activeTurnId ? 'Capri is replying…' : voiceBusy ? 'Capri is speaking…' : backend.message,
   );
   if (elements.status.textContent !== status) elements.status.textContent = status;
   document.body.dataset.phase = backend.phase;
@@ -2603,10 +2598,6 @@ function onEvent(event) {
     scheduleRegions();
     return;
   }
-  if (event.type === 'spotify.settings') {
-    applicationsPanel.showSpotify(event.settings);
-    return;
-  }
   if (event.type === 'models.status') {
     modelsPanel.show(event);
     scheduleRegions();
@@ -2994,7 +2985,6 @@ function onEvent(event) {
     thinkingMode.begin(event.turnId);
     internetMode.begin(event.turnId);
     if (event.source === 'attachment') attachmentComposer?.clear();
-    pendingMusicTools.clear();
     director?.attend(performance.now(), true);
     frameTicket++;
     wantedFrame = '';
@@ -3033,23 +3023,7 @@ function onEvent(event) {
     return;
   }
   if (thinkingMode.event(event)) return;
-  if (event.type === 'turn.tool') {
-    if (
-      event.turnId === activeTurnId &&
-      ['spotify_control', 'youtube_music_control'].includes(event.tool)
-    ) {
-      if (event.phase === 'start')
-        pendingMusicTools.set(
-          event.callId,
-          event.tool === 'spotify_control'
-            ? 'Working with Spotify…'
-            : 'Working with YouTube Music…',
-        );
-      else pendingMusicTools.delete(event.callId);
-      controls();
-    }
-    return;
-  }
+  if (event.type === 'turn.tool') return;
   if (event.type === 'turn.delta') {
     presence.text(event.turnId);
     const current = messages.get(activeAssistantId);
@@ -3074,7 +3048,6 @@ function onEvent(event) {
     return;
   }
   if (['turn.completed', 'turn.failed', 'turn.cancelled'].includes(event.type)) {
-    pendingMusicTools.clear();
     if (event.type === 'turn.completed' && event.assistant?.text?.trim())
       presence.text(event.turnId);
     presence.finish(event.turnId);
@@ -3698,7 +3671,6 @@ try {
   inference = snapshot.inference;
   attachmentVision = snapshot.attachmentVision === true;
   screenPanel.visionBlocked = Boolean(inference?.remote && !inference.vision);
-  applicationsPanel.showSpotify(snapshot.spotify);
   modelsPanel.show(snapshot.models);
   // A check can finish while the renderer loads its locale after bootstrap.
   const updateStatus = updatesPanel.value ?? snapshot.updates;

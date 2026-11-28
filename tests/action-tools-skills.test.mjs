@@ -19,7 +19,6 @@ test('legacy aliases dispatch through their registered skills without changing t
     root: process.cwd(),
     emit() {},
     desktop: { close() {} },
-    spotify: service('spotify'),
     applications: service('applications'),
     files: service('files'),
     workflows: {
@@ -41,7 +40,6 @@ test('legacy aliases dispatch through their registered skills without changing t
   });
   t.after(() => actions.close());
   for (const [tool, key] of [
-    ['spotify_control', 'spotify'],
     ['application_control', 'applications'],
     ['filesystem_control', 'files'],
   ]) {

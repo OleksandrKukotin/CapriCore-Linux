@@ -55,14 +55,6 @@ export function desktopTurnContext(
             ...(state.screenVisionAvailable === false ? { screenVisionAvailable: false } : {}),
             previousScreenshotSaved: Boolean(state.recentScreenshot),
           }),
-          ...skill('spotify', {
-            spotify: state.spotify
-              ? {
-                  enabled: Boolean(state.spotify.enabled),
-                  prepared: Boolean(state.spotify.prepared),
-                }
-              : null,
-          }),
           ...(state.temporalContext ? skill('timers', { liveClock: state.temporalContext }) : {}),
         }
       : {}),

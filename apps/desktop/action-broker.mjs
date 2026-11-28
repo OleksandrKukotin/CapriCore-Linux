@@ -80,7 +80,6 @@ export class ActionBroker {
             'fullComputerAccess',
             'notepad',
             'calculator',
-            'spotify',
             'languages',
             'models',
           ].includes(input.args?.setting)
@@ -152,7 +151,6 @@ export class ActionBroker {
             'settings_control',
             'desktop_control',
             'filesystem_control',
-            'spotify_control',
             'application_control',
             'workflow_control',
           ].includes(input.tool) &&

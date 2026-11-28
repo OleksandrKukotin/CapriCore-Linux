@@ -72,7 +72,7 @@ function client(key, routed, store) {
     requestRouter: routed ? router : null,
     persona: () =>
       personaPrompt(rt) +
-      '\nTemporary verification: never write files or save memories. Use only the read-only status action for Spotify. Answer in at most two short sentences.',
+      '\nTemporary verification: never write files or save memories. Answer in at most two short sentences.',
     avatarSprites: catalog.publicSprites(),
     defaultAvatarId: catalog.defaultId,
     store,
@@ -168,11 +168,6 @@ try {
   const math = await turn(chat, 'What is two plus two?');
   assert.equal(math.routing.mode, 'normal');
   assert.match(math.answer, /\b(four|4)\b/i);
-  const music = await turn(
-    chat,
-    'Just check which song is in Spotify right now. Do not change playback.',
-  );
-  assert.equal(music.routing.mode, 'normal');
   await turn(chat, 'What should we do for a quiet evening?');
   const transcript = (await history(key)).messages;
   const thinking = [],
@@ -192,8 +187,7 @@ try {
   assert.equal(thinking[0], 0);
   assert.ok(thinking[1] > 0);
   assert.equal(thinking.at(-1), 0);
-  assert.ok(calls.some((c) => c.name === 'spotify_control' && c.action === 'status'));
-  assert.ok(calls.every((c) => c.name === 'spotify_control' && c.action === 'status'));
+  assert.deepEqual(calls, []);
   assert.equal((await rpc('sessions.describe', { key })).session.thinkingLevel, 'low');
   report.thinkingCharactersPerTurn = thinking;
   report.toolCalls = calls;

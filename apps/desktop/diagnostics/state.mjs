@@ -13,8 +13,6 @@ const STATES = new Set([
   'observing',
   'acting',
   'planning',
-  'spotify-planning',
-  'spotify',
   'recovering',
   'directory-inheritance',
   'contents',

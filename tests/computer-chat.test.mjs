@@ -17,7 +17,6 @@ import { SETTINGS_SCHEMA } from '../integrations/companion-tools/index.mjs';
 import {
   computerModeRequest,
   computerTaskCommand,
-  dedicatedMusicRequest,
   mentionsDiscord,
   ownerAppLaunch,
   ownerAppLaunchFollowUp,
@@ -26,41 +25,6 @@ import { computerIntentClassifier } from '../apps/desktop/computer-planner.mjs';
 import { steamGameGoal } from '../apps/desktop/steam-task-state.mjs';
 import { ownerRequestsWeb } from '../apps/desktop/computer-task-scope.mjs';
 import { toolDomain } from '../apps/desktop/task-route.mjs';
-
-test('explicit local Media Player playback goes to authorized computer control', async () => {
-  for (const goal of [
-    "Play some music from my Windows's Media Player",
-    'Resume the song in Media Player.',
-  ]) {
-    assert.deepEqual(computerModeRequest(goal, { fullComputerAccess: true }), {
-      enabled: true,
-      run: true,
-    });
-    assert.equal(computerModeRequest(goal), null);
-    assert.equal(dedicatedMusicRequest(goal), false);
-  }
-  assert.equal(dedicatedMusicRequest('Play some music in Spotify.'), true);
-  assert.equal(
-    computerModeRequest('Do not play music in Media Player.', { fullComputerAccess: true }),
-    null,
-  );
-  const f = fixture({
-    interfaceState: () => ({
-      fullComputerAccess: f.access.enabled,
-      spotify: { enabled: true, prepared: true },
-      youtubeMusic: { enabled: true },
-    }),
-    localMusic: () => assert.fail('Spotify may not intercept Windows Media Player'),
-    prepareMusic: () => assert.fail('Spotify may not plan Windows Media Player playback'),
-    prepareYouTubeMusic: () => assert.fail('YouTube Music may not intercept Windows Media Player'),
-  });
-  const enabling = f.send('Enable full computer access.');
-  assert.equal(f.accept(), true);
-  await enabling;
-  const goal = "Play some music from my Windows's Media Player";
-  await f.send(goal);
-  assert.deepEqual(f.goals, [goal]);
-});
 
 test('explicit computer commands preserve full goals; questions, negations and quotations do not enable access', () => {
   for (const text of [
@@ -98,7 +62,6 @@ test('explicit computer commands preserve full goals; questions, negations and q
   for (const fullComputerAccess of [false, true]) {
     const state = {
       fullComputerAccess,
-      spotify: { enabled: true, prepared: true },
       applications: { calculator: true },
     };
     for (const text of [
@@ -106,7 +69,6 @@ test('explicit computer commands preserve full goals; questions, negations and q
       'I would like you to play Spotify using full computer control.',
     ])
       assert.equal(toolDomain(text, state), 'desktop');
-    assert.equal(toolDomain('Play music in Spotify.', state), 'spotify');
     assert.equal(toolDomain('Calculate 2+2.', state), 'calculator');
   }
 });
@@ -245,7 +207,6 @@ function fixture(overrides = {}) {
     },
     interfaceState: () => ({
       fullComputerAccess: access.enabled,
-      spotify: { enabled: true, prepared: true },
       applications: { calculator: true },
     }),
     computerAccess: (value, options) => requests.configure(value, options),
@@ -373,109 +334,6 @@ test('access complaints use ordinary conversation without desktop classification
     assert.deepEqual(f.goals, []);
     assert.deepEqual(f.dialogs, []);
     assert.equal(f.discoveries, 0);
-  }
-});
-
-test('ordinary Spotify playback cannot become an application-name computer task', () => {
-  for (const text of [
-    'Can you open my Spotify and turn on some music like Example Artist?',
-    'Play music on Spotify.',
-    'Start some music in Spotify.',
-  ]) {
-    assert.equal(dedicatedMusicRequest(text), true, text);
-    assert.equal(computerModeRequest(text, { fullComputerAccess: true }), null, text);
-  }
-  for (const text of [
-    'Use full computer control to play music in Spotify.',
-    'Open Spotify using full computer control.',
-    'Click the Spotify play button with the mouse.',
-    'Play Spotify, then open Notepad and type a note.',
-  ])
-    assert.equal(dedicatedMusicRequest(text), false, text);
-  assert.deepEqual(computerModeRequest('Use full computer control to play music in Spotify.'), {
-    enabled: true,
-    run: true,
-  });
-});
-
-test('an ordinary music turn rejects generated desktop escalation before any native service runs', async () => {
-  for (const spotify of [
-    { enabled: true, prepared: true },
-    { enabled: true, prepared: false },
-    { enabled: false, prepared: true },
-    { enabled: false, prepared: false },
-  ]) {
-    let nativeCalls = 0;
-    let spotifyCalls = 0;
-    const f = fixture({
-      interfaceState: () => ({ fullComputerAccess: true, spotify }),
-      requestRouter: null,
-      prepareContext: null,
-      token: () => 'fixture',
-      persona: () => 'fixture',
-      computerIntent: () => assert.fail('A dedicated music request must not reach desktop intent'),
-      fetchImpl: async (_url, options) => {
-        assert.equal(
-          options.headers['x-capri-tools-once'],
-          spotify.enabled && spotify.prepared ? 'spotify' : 'conversation',
-        );
-        const host = {
-          skills: new CapriCore(),
-          authorizeAction: (tool, args) => f.chat.assertToolAllowed(tool, args),
-          runComputerTask: () => nativeCalls++,
-          computer: { execute: () => nativeCalls++ },
-          desktop: { execute: () => nativeCalls++, operation: () => nativeCalls++ },
-          requestComputerAccess: () => nativeCalls++,
-          spotify: {
-            execute: () => {
-              spotifyCalls++;
-              return { ok: true, data: { playing: true } };
-            },
-          },
-        };
-        registerActionToolSkills(host.skills, { spotify: host.spotify });
-        const execute = (tool, args) =>
-          CompanionActions.prototype.executeAction.call(host, tool, randomUUID(), args);
-        for (const action of ['begin_control', 'observe', 'run_task', 'click', 'launch'])
-          await assert.rejects(
-            execute('desktop_control', { action, goal: 'Model invented a different goal' }),
-            { code: 'SPOTIFY_DEDICATED_ACTION_REQUIRED' },
-          );
-        await assert.rejects(
-          execute('settings_control', {
-            action: 'request',
-            setting: 'fullComputerAccess',
-            value: true,
-          }),
-          { code: 'SPOTIFY_DEDICATED_ACTION_REQUIRED' },
-        );
-        assert.equal(nativeCalls, 0);
-        if (spotify.enabled && spotify.prepared) {
-          const args = { action: 'play', query: 'Example Artist' };
-          const result = await execute('spotify_control', args);
-          f.chat.recordToolResult('spotify_control', args, result);
-        }
-        await host.skills.close();
-        const reply =
-          spotify.enabled && spotify.prepared
-            ? 'Resumed.'
-            : 'Enable Spotify in Settings → Application access first.';
-        return new Response(
-          'data: ' +
-            JSON.stringify({ choices: [{ delta: { content: reply } }] }) +
-            '\n\ndata: [DONE]\n\n',
-          { headers: { 'content-type': 'text/event-stream' } },
-        );
-      },
-    });
-    await f.send('Can you open my Spotify and turn on some music like Example Artist?');
-    assert.equal(f.events.at(-1).type, 'turn.completed', JSON.stringify(f.events.at(-1)));
-    assert.deepEqual(f.goals, []);
-    assert.deepEqual(f.dialogs, []);
-    assert.equal(nativeCalls, 0);
-    assert.equal(spotifyCalls, spotify.enabled && spotify.prepared ? 1 : 0);
-    if (!spotify.enabled || !spotify.prepared)
-      assert.match(f.events.at(-1).assistant.text, /Enable Spotify in Settings/);
   }
 });
 

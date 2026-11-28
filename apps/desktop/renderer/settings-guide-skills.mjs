@@ -182,41 +182,6 @@ export const skillGuides = {
       'For supported operations, Capri opens the Windows app and enters the calculation. The exact support depends on your Calculator app.',
     ),
   ],
-  spotify: [
-    step(
-      '#spotify-access',
-      'Connect the Spotify desktop app',
-      'Sign in to Spotify itself first. Connect or disconnect locally here. Changing access restarts Capri.',
-      '#spotify-title',
-    ),
-    step(
-      '#spotify-check',
-      'Verify the Spotify connection',
-      'Open Spotify and check the connection. Capri can search music and control Spotify’s playback, queue and app volume.',
-    ),
-    step(
-      '#spotify-repair',
-      'Repair a missing connection',
-      'If offered, use Repair Spotify, reopen Spotify and check the connection again.',
-    ),
-  ],
-  'youtube-music': [
-    step(
-      '#youtube-music-open',
-      'Open and sign in to YouTube Music',
-      'Open the service in your browser and sign in there. Capri uses that YouTube Music tab.',
-    ),
-    step(
-      '#youtube-music-preferred',
-      'Choose YouTube Music for music requests',
-      'Turn this on to send general music requests to YouTube Music. You can still name a specific service when asking Capri.',
-    ),
-    step(
-      '#youtube-music-check',
-      'Check that Capri can reach the music tab',
-      'Leave YouTube Music open and verify the connection. If playback fails, try starting a track manually once and check again.',
-    ),
-  ],
   music: [
     step(
       '#music-listening-status',

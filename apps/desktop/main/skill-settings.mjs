@@ -20,8 +20,6 @@ const protectedCommands = {
   'capri.attachment-viewer': ['open'],
   'capri.applications': ['execute'],
   'capri.calculator': ['calculate'],
-  'capri.spotify': ['execute'],
-  'capri.youtube-music': ['execute'],
   'capri.files': ['execute', 'trash'],
   'capri.workflows': ['list', 'run', 'record'],
   'capri.user-tools': ['run', 'test'],
@@ -51,17 +49,7 @@ export class SkillSettings {
       throw new SkillError('skill_disabled', 'Enable this skill in Settings → Skills first.');
   }
 
-  set({
-    id,
-    enabled,
-    showButton,
-    showComposer,
-    effort,
-    search,
-    showWindow,
-    automatic,
-    preferred,
-  } = {}) {
+  set({ id, enabled, showButton, showComposer, effort, search, showWindow, automatic } = {}) {
     const changes = Object.entries({
       enabled,
       showButton,
@@ -70,7 +58,6 @@ export class SkillSettings {
       search,
       showWindow,
       automatic,
-      preferred,
     }).filter(([, value]) => value !== undefined);
     if (
       !Object.hasOwn(SKILL_BY_ID, id) ||
@@ -87,8 +74,7 @@ export class SkillSettings {
           : typeof changes[0][1] !== 'boolean') ||
       (showComposer !== undefined && !Object.hasOwn(COMPOSER_SKILLS, id)) ||
       (showWindow !== undefined && id !== 'capri.calculator') ||
-      (automatic !== undefined && id !== 'capri.owner-memory') ||
-      (preferred !== undefined && id !== 'capri.youtube-music')
+      (automatic !== undefined && id !== 'capri.owner-memory')
     )
       throw new SkillError('invalid_skill_input', 'Invalid skill setting.');
     const next = this.snapshot();

@@ -25,9 +25,7 @@ export class ApplicationAccess {
   assertAllowed(tool, args) {
     if (
       this.enabled ||
-      !['desktop_control', 'application_control', 'spotify_control', 'workflow_control'].includes(
-        tool,
-      ) ||
+      !['desktop_control', 'application_control', 'workflow_control'].includes(tool) ||
       ['status', 'apps', 'control_status'].includes(args?.action)
     )
       return;

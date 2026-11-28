@@ -212,14 +212,6 @@ const topics = [
         settings('audio', 'Audio'),
       ],
       [
-        'music-sources',
-        'Does Music listening only work with Spotify?',
-        'Music listening uses the selected audio device, so it works with any app playing through it. The separate Spotify and YouTube Music skills control playback in those services.',
-        music,
-        settings('spotify', 'Spotify'),
-        settings('youtube-music', 'YouTube Music'),
-      ],
-      [
         'languages',
         'Can I use Capri in other languages?',
         'Choose the interface and conversation languages separately. Speech recognition and spoken voice options depend on the language and the installed speech components.',

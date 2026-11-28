@@ -37,25 +37,6 @@ test('unchanged discovery is bounded but real progress, changed results and a fr
   );
 });
 
-test('generated Spotify tool syntax never leaks through text, even in one-character deltas', () => {
-  for (const text of [
-    '[spotify_control{action:play}]',
-    '**[spotify_control{action:play}]**',
-    'spotify_control(action=play)',
-  ]) {
-    const stream = new CoreFailureStream();
-    let visible = '';
-    assert.throws(
-      () => {
-        for (const char of text) visible += stream.push(char);
-      },
-      { code: 'CAPRI_TOOL_ENCODING' },
-    );
-    assert.equal(visible, '');
-  }
-  assert.equal(new CoreFailureStream().push('Spotify is ready.'), 'Spotify is ready.');
-});
-
 test('Qwen markup from the desktop report is intercepted before any reply text', () => {
   for (const text of [
     '<tool_call> <function=desktop_control> <parameter=action> find_app </parameter>',

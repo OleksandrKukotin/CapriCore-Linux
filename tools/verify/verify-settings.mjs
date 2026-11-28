@@ -113,15 +113,7 @@ try {
   await settings.locator('#skill-show-button').uncheck();
   await page.waitForSelector('#thinking-toggle[hidden]', { state: 'attached' });
   record('Disabled skills remain configurable and toolbar visibility is independent');
-  const betaSkills = [
-    'applications',
-    'computer',
-    'initiative',
-    'music',
-    'screen',
-    'spotify',
-    'youtube-music',
-  ];
+  const betaSkills = ['applications', 'computer', 'initiative', 'music', 'screen'];
   for (const [section] of SETTINGS_GROUPS.find(({ id }) => id === 'skills').sections) {
     await navigate(section);
     assert.ok(await settings.locator('#skill-settings-description').textContent());
@@ -143,66 +135,6 @@ try {
   assert.equal(await settings.locator('#language-recognition').isVisible(), true);
   await settings.screenshot({ path: path.join(folder, 'settings-skills.png') });
   record('Every disabled skill opens its own settings with an independent toolbar switch');
-  const youtubeMusicId = 'capri.youtube-music';
-  await navigate('youtube-music');
-  assert.equal(await settings.locator('#skill-settings-title').textContent(), 'YouTube Music');
-  assert.equal(await skill(youtubeMusicId).isChecked(), false);
-  const youtubeMusicOpen = settings.locator('#youtube-music-open');
-  const youtubeMusicCheck = settings.locator('#youtube-music-check');
-  const youtubeMusicPreferred = settings.locator('#youtube-music-preferred');
-  assert.equal(await youtubeMusicOpen.isEnabled(), false);
-  assert.equal(await youtubeMusicCheck.isEnabled(), false);
-  assert.equal(await youtubeMusicPreferred.isEnabled(), false);
-  await skill(youtubeMusicId).check();
-  await youtubeMusicPreferred.check();
-  await settings.waitForFunction(
-    async (id) => (await window.capri.bootstrap()).skills[id].preferred === true,
-    youtubeMusicId,
-  );
-  await settings.waitForSelector('#youtube-music-open:enabled');
-  assert.equal(await youtubeMusicCheck.isEnabled(), true);
-  assert.equal(
-    (await settings.evaluate(() => window.capri.youtubeMusic({ op: 'status' }))).configured,
-    true,
-  );
-  const savedYouTubeMusic = JSON.parse(
-    readFileSync(path.join(folder, 'desktop', 'skills.json'), 'utf8'),
-  ).settings[youtubeMusicId];
-  assert.equal(savedYouTubeMusic.enabled && savedYouTubeMusic.preferred, true);
-  await application.evaluate(({ shell }) => {
-    globalThis.settingsVerificationOpenExternal = shell.openExternal;
-    globalThis.settingsVerificationExternalUrls = [];
-    shell.openExternal = async (url) => {
-      globalThis.settingsVerificationExternalUrls.push(url);
-    };
-  });
-  try {
-    await youtubeMusicOpen.click();
-    await settings.waitForFunction(
-      () => document.getElementById('youtube-music-status').textContent === 'Opened YouTube Music.',
-    );
-    const reply = await page.evaluate(async () => {
-      await window.capri.send({ id: crypto.randomUUID(), text: 'Open YouTube Music' });
-      return (await window.capri.bootstrap()).messages.at(-1).text;
-    });
-    assert.equal(reply, 'Opened YouTube Music.');
-    assert.deepEqual(
-      await application.evaluate(() => globalThis.settingsVerificationExternalUrls),
-      ['https://music.youtube.com/', 'https://music.youtube.com/'],
-    );
-  } finally {
-    await application.evaluate(({ shell }) => {
-      shell.openExternal = globalThis.settingsVerificationOpenExternal;
-      delete globalThis.settingsVerificationOpenExternal;
-      delete globalThis.settingsVerificationExternalUrls;
-    });
-  }
-  await settings.screenshot({ path: path.join(folder, 'settings-youtube-music.png') });
-  await youtubeMusicPreferred.uncheck();
-  await skill(youtubeMusicId).uncheck();
-  record(
-    'YouTube Music saves the preferred service and opens its official site from Settings and chat',
-  );
   await navigate('general');
   const navigation = settings.locator('#settings-navigation');
   const groupedSections = await navigation
@@ -804,22 +736,11 @@ try {
         await settings.locator('#skill-composer-control span').textContent(),
         'Schaltfläche in der Nachrichtenleiste anzeigen',
       );
-      await navigate('spotify');
-      assert.equal(
-        await settings.locator('#skill-settings-description').textContent(),
-        'Findet Titel, steuert die Wiedergabe und passt die Spotify-Lautstärke an.',
-      );
-      assert.equal(
-        await settings.locator('label:has(#skill-show-button) span').textContent(),
-        'Schaltfläche in Capris Symbolleiste anzeigen',
-      );
       assert.equal(
         await settings.locator('[data-section="avatar-skill"]').textContent(),
         'Avatar-Interaktion',
       );
-      record(
-        'German skill settings translate the Spotify description and both visibility switches',
-      );
+      record('German skill settings translate the visibility switches');
     }
     await settings.screenshot({ path: path.join(folder, 'settings-' + locale + '.png') });
   }

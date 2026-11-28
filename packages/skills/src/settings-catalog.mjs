@@ -84,20 +84,6 @@ export const SKILL_SETTINGS = Object.freeze(
       'M5 2h10v16H5zm2 3h6v3H7zm0 6h1m4 0h1m-6 3h1m4 0h1',
     ],
     [
-      'capri.spotify',
-      'spotify',
-      'Spotify',
-      'Find tracks, control playback and change Spotify volume.',
-      'M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0ZM6 8c3-1 5 0 8 1m-8 1c2-1 5 0 7 1m-6 1c2 0 3 0 5 1',
-    ],
-    [
-      'capri.youtube-music',
-      'youtube-music',
-      'YouTube Music',
-      'Find tracks, control playback and change YouTube Music volume.',
-      'M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0ZM8 6.5l5 3.5-5 3.5z',
-    ],
-    [
       'capri.music',
       'music',
       'Music listening',
@@ -233,7 +219,6 @@ export function skillPreferences(value) {
         ...(id === 'capri.reasoning' ? { effort: reasoningEffort(value?.[id]?.effort) } : {}),
         ...(id === 'capri.web-search' ? { search } : {}),
         ...(id === 'capri.calculator' ? { showWindow: value?.[id]?.showWindow === true } : {}),
-        ...(id === 'capri.youtube-music' ? { preferred: value?.[id]?.preferred === true } : {}),
         ...(id === 'capri.owner-memory' ? { automatic: value?.[id]?.automatic === true } : {}),
       },
     ]),

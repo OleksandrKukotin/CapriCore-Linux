@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Only draft saves participate in the leave-settings barrier. An action such as
-// setSpotifyAccess waits for a confirmation that itself consults that barrier.
+// Only draft saves participate in the leave-settings barrier. Actions that wait
+// for a confirmation consult that barrier themselves.
 const draftMethods = {
   setDiscordPresence: 'discord-panel',
   setSpeechSettings: 'speech-panel',
